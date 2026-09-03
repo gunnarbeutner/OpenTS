@@ -46,3 +46,12 @@ constexpr int LCW_Comp_Bound(int datasize)
 	// for four in, plus a command byte per 63 literals and the terminator.
 	return(datasize + datasize / 4 + datasize / 128 + 4);
 }
+
+
+/// <summary>
+/// Decompresses an LCW encoded block without reading or writing outside the
+/// buffers given and returns the number of bytes written. Decoding stops at
+/// the end of data code or at anything a well formed stream cannot contain,
+/// so a damaged stream returns a short count.
+/// </summary>
+int LCW_Uncomp_Bounded(void const * source, int srclen, void * dest, int destlen);
