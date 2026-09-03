@@ -391,7 +391,11 @@ unsigned int ScenarioCRC;
 char Debug_ScenarioName[128];
 char Debug_CampaignName[32];
 
+char Debug_PlayMovieName[32];
+
 int Debug_WinAfter = 0;
+
+bool Debug_Skip_Intro = false;
 
 
 /***************************************************************************

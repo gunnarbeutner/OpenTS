@@ -424,10 +424,14 @@ int Init_Game(int , char * [])
 	DebugString("Init Anim System\n");
 	Anim_Init();
 
-	/*
-	**	Play the startup animation.
-	*/
-	if (!Spawner_Is_Requested()) {
+	// -NOINTRO skips the startup movies; -PLAYMOVIE= plays one named movie in
+	// their place.
+	if (Debug_Skip_Intro) {
+		DebugString("Skipping the startup sequence.\n");
+	} else if (Debug_PlayMovieName[0] != '\0') {
+		DebugString("Playing %s in place of the startup sequence.\n", Debug_PlayMovieName);
+		Play_Movie(Debug_PlayMovieName);
+	} else if (!Spawner_Is_Requested()) {
 		if (Special.IsFromInstall == true) {
 			DebugString("Playing first time intro sequence.\n");
 			Play_Movie("EVA", THEME_NONE, false);
@@ -1748,8 +1752,21 @@ bool Parse_Command_Line(int argc, char * argv[])
 			continue;
 		}
 
+		// The movie name as Play_Movie takes it, such as "INTR0", with no
+		// extension.
+		if (memcmp(string, "-PLAYMOVIE=", strlen("-PLAYMOVIE=")) == 0) {
+			strncpy(Debug_PlayMovieName, &string[strlen("-PLAYMOVIE=")], sizeof(Debug_PlayMovieName) - 1);
+			Debug_PlayMovieName[sizeof(Debug_PlayMovieName) - 1] = '\0';
+			continue;
+		}
+
 		if (memcmp(string, "-WINAFTER=", strlen("-WINAFTER=")) == 0) {
 			Debug_WinAfter = atoi(&string[strlen("-WINAFTER=")]);
+			continue;
+		}
+
+		if (stricmp(string, "-NOINTRO") == 0) {
+			Debug_Skip_Intro = true;
 			continue;
 		}
 

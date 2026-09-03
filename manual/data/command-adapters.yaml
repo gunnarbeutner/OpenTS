@@ -557,6 +557,24 @@ launch_options:
     availability: *all
     sites:
       - { file: code/init.cpp, function: Parse_Command_Line, expression: 'literal:-WINAFTER=' }
+  - id: launch:play-movie
+    title: Startup movie
+    syntax: -PLAYMOVIE=<name>
+    description: >-
+      Plays the named movie in place of the startup sequence, then continues to the menu.
+      The name has no extension, such as INTR0.
+    audience: developer
+    availability: *all
+    sites:
+      - { file: code/init.cpp, function: Parse_Command_Line, expression: 'literal:-PLAYMOVIE=' }
+  - id: launch:no-intro
+    title: Skip startup movies
+    syntax: -NOINTRO
+    description: Skips the startup sequence's movies and goes straight to the menu.
+    audience: player
+    availability: *all
+    sites:
+      - { file: code/init.cpp, function: Parse_Command_Line, expression: 'literal:-NOINTRO' }
   - id: launch:multiplayer-debug
     title: Internet debug display
     syntax: -MPDEBUG
