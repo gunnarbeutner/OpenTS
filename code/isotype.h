@@ -77,6 +77,11 @@ struct IsoTileRecord
 	 */
 	unsigned int IsRandomized:1;
 
+	// The tile file gives these flags a four byte field of their own; spending
+	// the rest of it keeps the members below at the file's offsets under a
+	// compiler that would otherwise keep packing in the same byte.
+	unsigned int :29;
+
 	/*
 	 * This is the number of height levels this sub-tile lifts the cell it covers, so that a
 	 * tile laid across rising ground raises each of its cells by the right amount.

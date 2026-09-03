@@ -26,11 +26,13 @@ else()
 endif()
 
 target_compile_options(UnvqDelta PRIVATE
-    $<$<CONFIG:Debug>:/MTd /EHsc /Zc:__cplusplus ${UNVQDELTA_ARCH} /fp:precise>
-    $<$<CONFIG:Release>:/MT /EHsc /Zc:__cplusplus ${UNVQDELTA_ARCH} /fp:precise>
+    $<$<CXX_COMPILER_ID:MSVC>:$<$<CONFIG:Debug>:/MTd /EHsc /Zc:__cplusplus ${UNVQDELTA_ARCH} /fp:precise>>
+    $<$<CXX_COMPILER_ID:MSVC>:$<$<CONFIG:Release>:/MT /EHsc /Zc:__cplusplus ${UNVQDELTA_ARCH} /fp:precise>>
 )
 
-target_link_libraries(UnvqDelta PRIVATE kernel32 user32 shell32)
+if(MSVC)
+    target_link_libraries(UnvqDelta PRIVATE kernel32 user32 shell32)
+endif()
 
 set_target_properties(UnvqDelta PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
