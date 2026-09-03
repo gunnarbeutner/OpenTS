@@ -2328,6 +2328,29 @@ launch_options:
   _provenance:
     source: code/init.cpp
     guard: null
+- id: launch:play-movie
+  route_id: play-movie
+  kind: launch
+  title: Startup movie
+  description: Plays the named movie in place of the startup sequence, then continues to the menu. The
+    name has no extension, such as INTR0.
+  audience: developer
+  availability: *id001
+  syntax: -PLAYMOVIE=<name>
+  _provenance:
+    source: code/init.cpp
+    guard: null
+- id: launch:no-intro
+  route_id: no-intro
+  kind: launch
+  title: Skip startup movies
+  description: Skips the startup sequence's movies and goes straight to the menu.
+  audience: player
+  availability: *id001
+  syntax: -NOINTRO
+  _provenance:
+    source: code/init.cpp
+    guard: null
 - id: launch:multiplayer-debug
   route_id: multiplayer-debug
   kind: launch

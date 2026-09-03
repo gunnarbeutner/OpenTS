@@ -313,9 +313,11 @@ extern CDTimerClass<FrameTimerClass> TournamentTimer;
 
 extern char Debug_ScenarioName[128];
 extern char Debug_CampaignName[32];
+extern char Debug_PlayMovieName[32];
 
 // The frame a mission is won on regardless of what is happening in it, or
 // zero to play it out; -WINAFTER= sets it.
 extern int Debug_WinAfter;
+extern bool Debug_Skip_Intro;
 
 extern Buffer * UnkBuffer;
