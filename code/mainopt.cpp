@@ -44,6 +44,7 @@
 
 
 bool Change_Display_Mode(int width, int height);
+static void Display_Options_Dialog(void);
 
 GameOptionsClass TempOptions;
 
@@ -51,8 +52,8 @@ GameOptionsClass TempOptions;
 /// <summary>
 /// Brings up the main options dialog.
 /// This routine drives the options menu, dispatching to the sound, display, network,
-/// keyboard and game settings dialogs until the player backs out. A resolution change is
-/// offered as a trial first, and the settings are written out when the player leaves.
+/// keyboard and game settings dialogs until the player backs out. The settings
+/// are written out when the player leaves.
 /// </summary>
 /// <remarks>Game logic is suspended for the duration of this routine.</remarks>
 void Main_Options_Dialog(void)
@@ -60,45 +61,23 @@ void Main_Options_Dialog(void)
 	bool old_game_active = GameActive;
 	GameActive = false;
 
-	int main_rc;
-	int in_rc;
-
 	while (true) {
-		do {
-			main_rc = -1;
-		} while (!UI_Main_Options_Screen(main_rc));
+		// A hub that could not be shown ends the options without saving, as a dialog that
+		// could not be created did.
+		int main_rc = -1;
+		if (!UI_Main_Options_Screen(main_rc)) {
+			GameActive = old_game_active;
+			return;
+		}
 
 		switch (main_rc) {
 			case IDC_OPTMAIN_SOUND:
 				SoundControlsClass().Dialog();
 				break;
 
-			case IDC_OPTMAIN_DISPLAY: {
-				while (true) {
-					do {
-						TempOptions = Options;
-						in_rc = -1;
-					} while (!UI_Display_Options_Screen(TempOptions, in_rc));
-
-					if (in_rc != DIALOG_OK) {
-						break;
-					}
-					if (TempOptions.ScreenWidth == Options.ScreenWidth && TempOptions.ScreenHeight == Options.ScreenHeight) {
-						break;
-					}
-
-						if (WWMessageBox().Process(TXT_ABOUT_TO_TRY_MODE, TXT_OK, TXT_CANCEL) == 0) {
-							if (!Test_Display_Mode_Dialog(TempOptions.ScreenWidth, TempOptions.ScreenHeight)) {
-								continue;
-							}
-							Options.ScreenWidth = TempOptions.ScreenWidth;
-							Options.ScreenHeight = TempOptions.ScreenHeight;
-						}
-
-					break;
-				}
-			}
-			break;
+			case IDC_OPTMAIN_DISPLAY:
+				Display_Options_Dialog();
+				break;
 
 			case IDC_OPTMAIN_KEYBOARD:
 				Options.Hotkey_Dialog();
@@ -113,6 +92,42 @@ void Main_Options_Dialog(void)
 				GameActive = old_game_active;
 				return;
 		}
+	}
+}
+
+
+/// <summary>
+/// Runs the display options dialog and applies what the player accepted.
+/// </summary>
+static void Display_Options_Dialog(void)
+{
+	while (true) {
+		TempOptions = Options;
+
+		// A screen that could not be shown changes nothing, as a dialog that could not be
+		// created did.
+		int result = -1;
+		if (!UI_Display_Options_Screen(TempOptions, result)) {
+			break;
+		}
+
+		if (result != DIALOG_OK) {
+			break;
+		}
+
+		if (TempOptions.ScreenWidth == Options.ScreenWidth && TempOptions.ScreenHeight == Options.ScreenHeight) {
+			break;
+		}
+
+		if (WWMessageBox().Process(TXT_ABOUT_TO_TRY_MODE, TXT_OK, TXT_CANCEL) == 0) {
+			if (!Test_Display_Mode_Dialog(TempOptions.ScreenWidth, TempOptions.ScreenHeight)) {
+				continue;
+			}
+			Options.ScreenWidth = TempOptions.ScreenWidth;
+			Options.ScreenHeight = TempOptions.ScreenHeight;
+		}
+
+		break;
 	}
 }
 
