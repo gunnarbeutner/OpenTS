@@ -15,6 +15,7 @@
 
 #include "tooltip.h"
 
+#include "_xmouse.h"
 #include "data.h"
 #include "dbgprint.h"
 #include "hostwindow.h"
@@ -124,7 +125,12 @@ void ToolTipManager::Service(void)
 	Deadline = 0;
 	if (CurrentToolTip != NULL) {
 		Reset_Current();
-	} else {
+	} else if (Mouse_Is_Hovering()) {
+
+		/*
+		 * A tooltip needs a pointer resting there; the position
+		 * a finger left behind is not one.
+		 */
 		LastMousePos = pointer;
 		Window_Point_To_Game(LastMousePos);
 		CurrentToolTip = Find_From_Pos(LastMousePos);
