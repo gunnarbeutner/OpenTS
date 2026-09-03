@@ -34,6 +34,9 @@
 #include	"always.h"
 #include	"lcw.h"
 
+#include	<climits>
+#include	<cstring>
+
 #include <cstddef>
 #include <cstdint>
 
@@ -214,6 +217,145 @@ uint32_t LCW_Uncomp(void const * source, void * dest, unsigned long length)
  * HISTORY:                                                                                    *
  *   05/20/1997 JLB : Created.                                                                 *
  *=============================================================================================*/
+
+
+/// <summary>
+/// Decompresses an LCW encoded block without reading or writing outside the buffers given
+/// and returns the number of bytes written. Unlike LCW_Uncomp it also bounds the source and
+/// rejects a back reference that reaches before the destination, so a damaged stream returns
+/// a short count rather than reading whatever follows the block.
+/// </summary>
+int LCW_Uncomp_Bounded(void const * source, int srclen, void * dest, int destlen)
+{
+	/*
+	** Uncompress data to the following codes in the format b = byte, w = word
+	** n = byte code pulled from compressed data.
+	**
+	**   Command code, n        |Description
+	** -----------------------------------------------------------------------
+	** n=0xxxyyyy,yyyyyyyy      |short copy back y bytes and run x+3 from dest
+	** n=10xxxxxx,n1,n2,...,nx+1|med length copy the next x+1 bytes from source
+	** n=11xxxxxx,w1            |med copy from dest x+3 bytes from offset w1
+	** n=11111111,w1,w2         |long copy from dest w1 bytes from offset w2
+	** n=11111110,w1,b1         |long run of byte b1 for w1 bytes
+	** n=10000000               |end of data reached
+	*/
+
+	unsigned char const * const source_start = (unsigned char const *)source;
+	unsigned char * const dest_start = (unsigned char *)dest;
+
+	int const in_limit = srclen > 0 ? srclen : 0;
+	int const out_limit = destlen > 0 ? destlen : 0;
+
+	int in = 0;
+	int out = 0;
+
+	// A leading zero byte selects the relative form, where offset copies reach
+	// back from the current position; VQA stores its palettes, codebooks and
+	// pointer data that way because an absolute word offset cannot pass 64K.
+	bool const relative = (in_limit > 0 && source_start[0] == 0);
+
+	if (relative) in++;
+
+	for (;;) {
+
+		/* Read in the operation code. */
+		if (in >= in_limit) break;
+		unsigned char const op_code = source_start[in++];
+
+		if (!(op_code & 0x80)) {
+
+			/* Do a short copy from destination. */
+			if (in >= in_limit) break;
+			int const count = (op_code >> 4) + 3;
+			int const from = out - ((int)source_start[in++] + (((int)op_code & 0x0f) << 8));
+
+			if (from < 0 || from >= out || count > out_limit - out) break;
+
+			for (int i = 0; i < count; i++) dest_start[out + i] = dest_start[from + i];
+			out += count;
+
+		} else {
+
+			if (!(op_code & 0x40)) {
+
+				if (op_code == 0x80) {
+
+					/* Return # of destination bytes written. */
+					return(out);
+
+				} else {
+
+					/* Do a medium copy from source. */
+					int const count = op_code & 0x3f;
+
+					if (count > in_limit - in || count > out_limit - out) break;
+
+					for (int i = 0; i < count; i++) dest_start[out + i] = source_start[in + i];
+					in += count;
+					out += count;
+				}
+
+			} else {
+
+				if (op_code == 0xfe) {
+
+					/* Do a long run. */
+					if (in_limit - in < 3) break;
+					int const count = (int)source_start[in] + ((int)source_start[in + 1] << 8);
+					unsigned char const data = source_start[in + 2];
+					in += 3;
+
+					if (count > out_limit - out) break;
+
+					memset(dest_start + out, data, (size_t)count);
+					out += count;
+
+				} else {
+
+					if (op_code == 0xff) {
+
+						/* Do a long copy from destination. */
+						if (in_limit - in < 4) break;
+						int const count = (int)source_start[in] + ((int)source_start[in + 1] << 8);
+						int const offset = (int)source_start[in + 2] + ((int)source_start[in + 3] << 8);
+						int const from = relative ? (out - offset) : offset;
+						in += 4;
+
+						if (from < 0 || from >= out || count > out_limit - out) break;
+
+						for (int i = 0; i < count; i++) dest_start[out + i] = dest_start[from + i];
+						out += count;
+
+					} else {
+
+						/* Do a medium copy from destination. */
+						if (in_limit - in < 2) break;
+						int const count = (op_code & 0x3f) + 3;
+						int const offset = (int)source_start[in] + ((int)source_start[in + 1] << 8);
+						int const from = relative ? (out - offset) : offset;
+						in += 2;
+
+						if (from < 0 || from >= out || count > out_limit - out) break;
+
+						for (int i = 0; i < count; i++) dest_start[out + i] = dest_start[from + i];
+						out += count;
+					}
+				}
+			}
+		}
+	}
+
+	// Leaving the loop without the end of data code is a damaged stream, which
+	// callers recognise by the short count.
+	return(out);
+}
+
+
+/// <summary>
+/// Compresses a block with LCW and returns the number of bytes written. The
+/// destination must hold LCW_Comp_Bound(datasize) bytes.
+/// </summary>
 
 int LCW_Comp(void const * source, void * dest, int datasize)
 {
