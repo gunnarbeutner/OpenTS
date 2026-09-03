@@ -34,8 +34,8 @@
 
 #include "intro.h"
 
-#include "ccfile.h"
 #include "movie.h"
+#include "movies.h"
 
 #include <cstdio>
 
@@ -55,14 +55,14 @@
 void Choose_Side(int side)
 {
 	char name[16];
-	std::snprintf(name, sizeof(name), "INTR%d.VQA", side);
+	std::snprintf(name, sizeof(name), "INTR%d", side);
 
-	// Each side's intro was INTRO.VQA on its own disc, so an installation
+	// Each side's intro used one name on its own disc, so an installation
 	// holding both has to keep them apart by name.
-	if (CCFileClass(name).Is_Available()) {
+	if (Movie_Is_Available(name)) {
 		Play_Movie(name);
 		return;
 	}
 
-	Play_Movie("INTRO.VQA");
+	Play_Movie("INTRO");
 }

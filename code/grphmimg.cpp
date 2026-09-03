@@ -16,6 +16,7 @@
 #include "ini.h"
 #include "msanim.h"
 #include "mschoice.h"
+#include "movies.h"
 
 
 /// <summary>
@@ -202,7 +203,7 @@ void GraphicMenuImageItem::On_Enabled_Change(bool active)
 void GraphicMenuImageItem::Action(MSEngine * engine)
 {
 	GraphicMenuItem::Action(engine);
-	if (CCFileClass(SelectVQ).Is_Available()) {
+	if (Movie_Is_Available(SelectVQ)) {
 		MSAnim * anim = new MSVQAnim(SelectVQ, AlternateSurface, engine->Get_Anims(), true);
 		if (anim != NULL) {
 			engine->Wait_For_Anim(anim);
