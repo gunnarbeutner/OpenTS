@@ -18,6 +18,7 @@
 #include "globals.h"
 #include "ini.h"
 #include "keyboard.h"
+#include "movieformat.h"
 #include "mschoice.h"
 #include "msfont.h"
 #include "newmenu.h"
@@ -223,7 +224,7 @@ void Selection::Init_Regions(INIClass const & ini, const char * section, bool vq
 	ini.Get_String(section, "RegionName", NULL, region_name, sizeof(region_name));
 
 	char buffer[64];
-	sprintf(buffer, "%s%s.vqa", faction_name, region_name);
+	sprintf(buffer, "%s%s%s", faction_name, region_name, Movie_Extension());
 	if (vq_anim) {
 		RegionAnim = new MSVQAnim(buffer, AlternateSurface, &Anims, true);
 	} else {

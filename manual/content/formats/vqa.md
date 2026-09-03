@@ -1,7 +1,7 @@
 ---
 format_id: vqa
 title: VQA video
-summary: Stores the full-motion video the engine plays full screen and in the radar pane.
+summary: Stores full-motion video for a build configured to use the original VQA player.
 kind: binary
 extensions:
   - .VQA
@@ -21,11 +21,11 @@ source_files:
   - code/vqalib/vqafile.h
 ---
 
-A `.VQA` is an IFF container holding vector-quantized video and, optionally, an audio track. The engine plays one either full screen, interrupting the mission, or a frame at a time inside the radar pane while the mission carries on.
+A `.VQA` is an IFF container holding vector-quantized video and, optionally, an audio track. A build configured with `OPENTS_MOVIE_FORMAT=VQA` plays one either full screen, interrupting the mission, or a frame at a time inside the radar pane while the mission carries on. This is the default and the only movie format available to the supported Win32 target. [MP4 video](/formats/mp4-video/) is the WebAssembly alternative.
 
 ## Registering a movie
 
-Movie names come from the `[Movies]` section of the art layer: `ART.INI` first, then `ARTFS.INI` where that file is present. Each value is one movie name, without an extension; `.VQA` is appended when the movie is played.
+Movie names come from the `[Movies]` section of the art layer: `ART.INI` first, then `ARTFS.INI` where that file is present. Each value is one movie name, without an extension; a VQA build appends `.VQA` when the movie is played.
 
 ```ini title="art.ini"
 [Movies]
@@ -37,11 +37,11 @@ The section is walked in the order the file lists it in, and an entry key serves
 
 One lookup answers both questions asked of a movie name: whether the registry already holds it, and which registered movie a setting means. That lookup returns nothing for `<none>` without searching at all, and both of its uses inherit that. Registration therefore never finds a `<none>` already present and adds every one it meets in either file, while a setting or a trigger action naming `<none>` selects no movie and is left at the value it already had. A name that was never registered is left at that value too.
 
-Parts of the engine name a movie file outright instead of going through the list — the startup sequence, the score screen and the mission screens all do. Those names include the `.VQA` extension and the section has no bearing on them.
+Parts of the engine name a movie outright instead of going through the list — the startup sequence, the score screen and the mission screens all do. The section has no bearing on those names.
 
 ## Finding the file
 
-Playing a movie first tests that the file exists, through the general file layer that consults both the mounted archives and the game directory. The movie is then opened again through the archive reader, which finds the member, opens the archive holding it, and reads the movie out of it in place. The general reader stands in for that open in one main menu sequence and nowhere else, so a loose `.VQA` in the game directory passes the existence test and then fails to open. A movie has to be an archive member.
+Playing a movie in this build tests only the `.VQA` name. It does not try `.MP4` when the VQA member is missing. The existence test goes through the general file layer that consults both the mounted archives and the game directory. The movie is then opened again through the archive reader, which finds the member, opens the archive holding it, and reads the movie out of it in place. The general reader stands in for that open in one main menu sequence and nowhere else, so a loose `.VQA` in the game directory passes the existence test and then fails to open. A VQA movie has to be an archive member.
 
 Nothing is announced when a movie does not play, whatever the reason. A full-screen movie is shown only while all of these hold, tested in this order:
 
@@ -95,7 +95,7 @@ The offset the archive reader seeks to is measured from the start of the archive
 :::
 
 :::danger[A long movie name overruns the buffer the filename is built in]
-The filename is assembled in a fixed twenty-byte buffer. `.VQA` takes four of those bytes and the string terminator a fifth, so a registered name of fifteen characters fills the buffer exactly and a sixteenth character writes one byte past its end. The registry accepts names of up to thirty-one characters, and playing a movie registered at that length writes sixteen bytes over whatever follows the buffer. The names the game ships with are all eight characters or fewer.
+The filename is assembled in a fixed twenty-byte buffer. The four-character movie extension and the string terminator take five bytes, so a registered name of fifteen characters fills the buffer exactly and a sixteenth character writes one byte past its end. The registry accepts names of up to thirty-one characters, and playing a movie registered at that length writes sixteen bytes over whatever follows the buffer. The names the game ships with are all eight characters or fewer.
 :::
 
 ## Sound and picture

@@ -51,6 +51,7 @@ add_subdirectory(win32process)
 add_subdirectory(win32user)
 add_subdirectory(win32window)
 add_subdirectory(save)
+add_subdirectory(movieformat)
 
 # These exercise the WebAssembly target's own layers, so their harnesses build only there.
 if(EMSCRIPTEN)

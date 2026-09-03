@@ -33,7 +33,7 @@ It no longer selects a CD-ROM or changes which map and movie archives are
 mounted.
 
 `[Intro] PlayIntro` replaces the former per-disc intro flags with one startup
-setting for `EVA.VQA`. When that path is selected, the game writes the setting
+setting for the `EVA` startup movie. When that path is selected, the game writes the setting
 back as `no`.
 
 A campaign still carries its `CD` number, but nothing asks for the disc: it now

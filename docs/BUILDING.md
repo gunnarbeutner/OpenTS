@@ -202,9 +202,10 @@ constraints the substitute is held to and how stubs report themselves.
 
 `tests/` builds under both toolchains. The Emscripten toolchain file points
 `CMAKE_CROSSCOMPILING_EMULATOR` at the emsdk's node, so `ctest` runs the
-harnesses there without further configuration. Ten tests build on any
-substitute target: `blocksource`, `lcwstream`, `sosparity`, `unvqdelta`, `win32file`,
-`resources`, `win32process`, `win32user`, `win32window`, and `save`;
+harnesses there without further configuration. Twelve tests build on any
+substitute target: `blocksource`, `lcwstream`, `sosparity`, `unvqdelta`, `movieformat-vqa`,
+`movieformat-mp4`, `win32file`, `resources`, `win32process`, `win32user`,
+`win32window`, and `save`;
 `timer` substitutes the millisecond clock and builds under Emscripten alone.
 None of them reads game data.
 

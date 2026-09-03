@@ -41,8 +41,6 @@
 #include <vqaplay.h>
 #include <vqaplayp.h>
 
-DynamicVectorClass<VQHandle *> IngameVQ;
-
 long __cdecl VQAMixFileHandler(VQAHandle * vqa, long action, void * buffer, long nbytes);
 long __cdecl VQACCFileHandler(VQAHandle * vqa, long action, void * buffer, long nbytes);
 long __cdecl VQAEventHandler(VQAHandle * vqa, long action, void * buffer, long nbytes);

@@ -13,7 +13,17 @@
 
 #include "theme.hh"
 
+typedef void * (*MovieSurfaceLockCallback) (void);
+typedef bool (*MovieSurfaceUnlockCallback) (void);
+typedef void (*MovieSurfaceDrawCallback) (void);
+
+#if defined(OPENTS_MP4_MOVIES)
+class MP4Class;
+using MovieClass = MP4Class;
+#else
 class VQAClass;
+using MovieClass = VQAClass;
+#endif
 class Surface;
 struct VQHandle;
 template<class T> class DynamicVectorClass;
@@ -26,8 +36,12 @@ void Movie_Destroy(VQHandle * handle);
 void Movie_Play(VQHandle *movie, bool hide_mouse, ThemeType theme, bool user_break_not_allowed);
 bool Movie_Advance_Frame(VQHandle * handle, bool &finished);
 bool Movie_Is_Playing(void);
+// A movie the other machines are waiting for runs on without the window's focus.
+void Movie_Set_Pause_On_Focus_Loss(VQHandle * handle, bool pause);
 void Movie_Pause(VQHandle * handle);
 void Movie_Resume(VQHandle * handle);
+bool Movie_Is_Paused(VQHandle * handle);
+bool Movie_Is_Available(char const * name);
 void Movie_Queue_Ingame(VQHandle * handle);
 void Movie_Update_Visible_Surface(void);
 
@@ -41,7 +55,7 @@ struct VQHandle
 	 * Pointer to the player that decodes and shows this movie. It is NULL until the handle
 	 * has been filled in, and NULL again once the movie has been destroyed.
 	 */
-	VQAClass *VQA;
+	MovieClass *VQA;
 
 	/// Unused
 	int field_4;

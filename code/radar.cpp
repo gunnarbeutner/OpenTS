@@ -103,7 +103,6 @@
 #include "tactical.h"
 #include "voc.h"
 #include "vox.h"
-#include "vqa.h"
 
 #include <algorithm>
 
@@ -2282,7 +2281,7 @@ void RadarClass::Play_Movie(void)
 	if (!needs_volume_adjustment && IngameVQ.Count() > 0) {
 		handle = IngameVQ[0];
 		if (handle != NULL && handle->IsInitialized == true) {
-			if (!handle->VQA->Is_Paused()) {
+			if (!Movie_Is_Paused(handle)) {
 				if (Movie_Advance_Frame(handle, needs_volume_adjustment) == true) {
 					LastDrawRect = Rect(RadX, RadY, RadWidth, RadHeight);
 				}

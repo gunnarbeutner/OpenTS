@@ -135,6 +135,7 @@
 #include "misc.h"
 #include "mono.h"
 #include "movie.h"
+#include "movies.h"
 #include "mplayer.h"
 #include "msgbox.h"
 #include "netdlg.h"
@@ -429,16 +430,16 @@ int Init_Game(int , char * [])
 	if (!Spawner_Is_Requested()) {
 		if (Special.IsFromInstall == true) {
 			DebugString("Playing first time intro sequence.\n");
-			Play_Movie("EVA.VQA", THEME_NONE, false);
+			Play_Movie("EVA", THEME_NONE, false);
 		}
 
 		DebugString("Playing startup movies.\n");
-		Play_Movie("WWLOGO.VQA", THEME_NONE);
+		Play_Movie("WWLOGO", THEME_NONE);
 		if (!Get_New_Menu()->MixFile) {
-			if (CCFileClass("FS_TITLE.VQA").Is_Available() == true) {
-				Play_Movie("FS_TITLE.VQA", THEME_NONE, false);
+			if (Movie_Is_Available("FS_TITLE") == true) {
+				Play_Movie("FS_TITLE", THEME_NONE, false);
 			} else {
-				Play_Movie("STARTUP.VQA", THEME_NONE, false);
+				Play_Movie("STARTUP", THEME_NONE, false);
 			}
 		}
 	}
@@ -1297,7 +1298,7 @@ restart:
 					} else {
 						Choose_Side();
 						Clear_Option(OPTION_PLAY_FROM_MIXFILE);
-						Play_Movie("SIZZLE1.VQA");
+						Play_Movie("SIZZLE1");
 						Set_Option(OPTION_PLAY_FROM_MIXFILE);
 					}
 					Theme.Queue_Song(Fetch_Main_Menu_Theme());
