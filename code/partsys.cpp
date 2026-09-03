@@ -138,10 +138,12 @@ ParticleSystemClass::~ParticleSystemClass(void)
 	Detach_This_From_All(this);
 	Limbo();
 
+	// Deleting a particle detaches it from this system.
 	while (SystemParticles.Count()) {
-		delete SystemParticles[0];
-		ObjectsToDelete.Delete(SystemParticles[0]);
-		SystemParticles.Delete(SystemParticles[0]);
+		ParticleClass * particle = SystemParticles[0];
+		SystemParticles.Delete(particle);
+		ObjectsToDelete.Delete(particle);
+		delete particle;
 	}
 
 	Class = NULL;
@@ -337,40 +339,45 @@ void ParticleSystemClass::Spark_AI(void)
 
 		if (SparkSpawnFrames == 1 || Random_Double(0.0, 1.0) <= Class->SpawnSparkPercentage) {
 
-			int random = Scen->RandomNumber();
-			int count = Class->ParticleCap / 2 + abs(random) % (Class->ParticleCap / 2);
+			if (Class->HoldsWhat != PARTICLE_NONE) {
+				int random = Scen->RandomNumber();
+				int count = Class->ParticleCap / 2 + abs(random) % (Class->ParticleCap / 2);
 
-			ParticleTypeClass * held = ParticleTypes[Class->HoldsWhat];
+				ParticleTypeClass * held = ParticleTypes[Class->HoldsWhat];
 
-			int rand_a = Scen->RandomNumber();
-			int rand_b = Scen->RandomNumber();
+				int rand_a = Scen->RandomNumber();
+				int rand_b = Scen->RandomNumber();
 
-			Vector3 spark;
-			spark.Z = (float)(Scen->RandomNumber() % held->ZVelocityRange);
-			spark.X = (float)(rand_b % held->XVelocity);
-			spark.Y = (float)(rand_a % held->YVelocity);
+				Vector3 spark;
+				spark.Z = (float)(Scen->RandomNumber() % held->ZVelocityRange);
+				spark.X = (float)(rand_b % held->XVelocity);
+				spark.Y = (float)(rand_a % held->YVelocity);
 
-			while (count > 0) {
-				ParticleClass * particle = Spawn_Held_Particle(PositionCoord, PositionCoord);
+				while (count > 0) {
+					ParticleClass * particle = Spawn_Held_Particle(PositionCoord, PositionCoord);
+					if (particle == NULL) {
+						break;
+					}
 
-				ParticleTypeClass const * ptype = particle->Class;
-				Vector3 & dir = particle->MovementDirection;
+					ParticleTypeClass const * ptype = particle->Class;
+					Vector3 & dir = particle->MovementDirection;
 
-				particle->MovementDirection.X = (float)(Scen->RandomNumber() % ptype->XVelocity);
-				particle->MovementDirection.Y = (float)(Scen->RandomNumber() % ptype->YVelocity);
-				particle->MovementDirection.Z = (float)(ptype->MinZVelocity + abs(Scen->RandomNumber()) % ptype->ZVelocityRange);
+					particle->MovementDirection.X = (float)(Scen->RandomNumber() % ptype->XVelocity);
+					particle->MovementDirection.Y = (float)(Scen->RandomNumber() % ptype->YVelocity);
+					particle->MovementDirection.Z = (float)(ptype->MinZVelocity + abs(Scen->RandomNumber()) % ptype->ZVelocityRange);
 
-				float speed = (float)dir.Length();
-				if (IsRandomSparkDirection) {
-					particle->MovementDirection = spark + particle->MovementDirection;
-				} else {
-					Vector3 & spawndir = (Vector3 &)Class->SpawnDirection;
-					particle->MovementDirection = spawndir + particle->MovementDirection;
+					float speed = (float)dir.Length();
+					if (IsRandomSparkDirection) {
+						particle->MovementDirection = spark + particle->MovementDirection;
+					} else {
+						Vector3 & spawndir = (Vector3 &)Class->SpawnDirection;
+						particle->MovementDirection = spawndir + particle->MovementDirection;
+					}
+					particle->MovementDirection = Normalize(particle->MovementDirection);
+					particle->MovementDirection = speed * particle->MovementDirection;
+
+					count--;
 				}
-				particle->MovementDirection = Normalize(particle->MovementDirection);
-				particle->MovementDirection = speed * particle->MovementDirection;
-
-				count--;
 			}
 
 			if (Options.DetailLevel == 2) {
@@ -425,7 +432,9 @@ void ParticleSystemClass::Smoke_AI(void)
 {
 	int i;
 
-	if (Source->As_ObjectClass() != NULL && Source->What_Am_I() != RTTI_BUILDING) {
+	// A smoke system need not have a source, and Detach clears the source from
+	// a system that outlives the object it was rising from.
+	if (Source != NULL && Source->As_ObjectClass() != NULL && Source->What_Am_I() != RTTI_BUILDING) {
 		Set_Coord(Source->Center_Coord() + CoordOffset);
 	}
 
@@ -492,7 +501,7 @@ void ParticleSystemClass::Smoke_AI(void)
 	}
 
 	if (!IsMarkedForDeletion && IsActive && (Frame % (int)SpawnFrames) == 0) {
-		FootClass *foot = Source->As_FootClass();
+		FootClass *foot = (Source != NULL) ? Source->As_FootClass() : NULL;
 		if (foot == NULL || foot->CurrentTube < 0) {
 			int xrand = Scen->RandomNumber();
 			int yrand = Scen->RandomNumber();
@@ -589,6 +598,9 @@ void ParticleSystemClass::Railgun_AI(void)
 				Coord particle_pos = ic + Lerp(PositionCoord, SpawnCoord, frac);
 
 				ParticleClass * particle = Spawn_Held_Particle(particle_pos, particle_pos);
+				if (particle == NULL) {
+					break;
+				}
 
 				particle->MovementDirection = spiral;
 				particle->MovementDirection += Vector3(Random_Double(-0.5, 0.5) * Class->MovementPerturbationCoefficient, Random_Double(-0.5, 0.5) * Class->MovementPerturbationCoefficient, Random_Double(-0.5, 0.5) * Class->MovementPerturbationCoefficient);
