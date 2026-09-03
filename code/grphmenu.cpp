@@ -19,6 +19,8 @@
 #include "ini.h"
 #include "keyboard.h"
 #include "msanim.h"
+#include "movieformat.h"
+#include "movies.h"
 #include "surface.h"
 #include "theme.h"
 #include "wwmouse.h"
@@ -74,9 +76,9 @@ GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name)
 	Point2D pt(0,0);
 
 	if (has_background) {
-		strncat(buffer, ".VQA", sizeof(buffer) - strlen(buffer) - 1);
+		strncat(buffer, Movie_Extension(), sizeof(buffer) - strlen(buffer) - 1);
 		MSAnim * anim = NULL;
-		if (CCFileClass(buffer).Is_Available()) {
+		if (Movie_Is_Available(buffer)) {
 			anim = new MSVQAnim(buffer, AlternateSurface, menu->Engine.Get_Anims(), true);
 		}
 		if (anim == NULL) {

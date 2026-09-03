@@ -225,7 +225,7 @@ void ScoreClass::Presentation(void)
 
 	DoSound("Wipe", 256);
 
-	Play_Movie("SCORE.VQA", THEME_NONE, false, false, true);
+	Play_Movie("SCORE", THEME_NONE, false, false, true);
 
 	HiddenSurface->Blit_From(*SurfacePtr);
 	AlternateSurface->Blit_From(*SurfacePtr);

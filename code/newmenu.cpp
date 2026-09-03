@@ -19,6 +19,8 @@
 #include "loaddlg.h"
 #include "mixfile.h"
 #include "movie.h"
+#include "movieformat.h"
+#include "movies.h"
 #include "vector.h"
 
 
@@ -108,15 +110,15 @@ __forceinline int NewMenuClass::Game_Select_Loop(NewMenuClass * menu)
 				switch (item) {
 					case GMENU_TIBSUN:
 						menu->GameMode = 0;
-						if (CCFileClass("TS_Title.VQA").Is_Available()) {
-							Play_Movie("TS_Title.VQA", THEME_NONE, false, true, false);
+						if (Movie_Is_Available("TS_Title")) {
+							Play_Movie("TS_Title", THEME_NONE, false, true, false);
 						}
 						continue;
 
 					case GMENU_FIRESTORM:
 						menu->GameMode = 1;
-						if (CCFileClass("FS_Title.VQA").Is_Available()) {
-							Play_Movie("FS_Title.VQA", THEME_NONE, false, true, false);
+						if (Movie_Is_Available("FS_Title")) {
+							Play_Movie("FS_Title", THEME_NONE, false, true, false);
 						}
 						continue;
 

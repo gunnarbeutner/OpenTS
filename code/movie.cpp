@@ -20,7 +20,6 @@
 #include "_map.h"
 #include "_rect.h"
 #include "_surface.h"
-#include "ccfile.h"
 #include "dbgprint.h"
 #include "dsurface.h"
 #include "globals.h"
@@ -28,9 +27,9 @@
 #include "gscreen.h"
 #include "movies.h"
 #include "movieskip.h"
+#include "movieformat.h"
 #include "session.h"
 #include "vector.h"
-#include "vqa.h"
 
 #include "vq.hh"
 
@@ -41,6 +40,11 @@
 /// disk. Use this routine to mirror the stored half across the diagonal after loading.
 /// </summary>
 /// <param name="interpal">Pointer to the 256 by 256 interpolation table to complete.</param>
+// The interpolation table is square over a palette, and a palette is 256 colours. The header
+// that named this went with the assembly it belonged to.
+static int const SIZE_OF_PALETTE = 256;
+
+
 void Rebuild_Interpolated_Palette(unsigned char * interpal)
 {
 	for (int y=0; y<SIZE_OF_PALETTE - 1; y++) {
@@ -62,7 +66,7 @@ unsigned			PaletteCounter;
  *    Use this routine to play a VQ movie. It will dispatch the specified movie to the         *
  *    VQ player. The routine will not return until the movie has finished playing.             *
  *                                                                                             *
- * INPUT:   name  -- The name of the movie file (sans ".VQA").                                 *
+ * INPUT:   name  -- The name of the movie file, with or without its build-selected extension. *
  *                                                                                             *
  *          theme -- The identifier for an optional theme that should be played in the         *
  *                   background while this VQ plays.                                           *
@@ -86,7 +90,7 @@ void Play_Movie(char const * name, ThemeType theme, bool clrscrn_after, bool str
 	// Opened ahead of the file test so the other machines count this movie even if it is missing here.
 	MovieSkip::Playback playback(name);
 
-	if (!CCFileClass(name).Is_Available()) {
+	if (!Movie_Is_Available(name)) {
 		return;
 	}
 
@@ -96,7 +100,7 @@ void Play_Movie(char const * name, ThemeType theme, bool clrscrn_after, bool str
 
 	if (vqa != NULL) {
 
-		if (vqa->VQA->Get_VQA_Width() < 320 && vqa->VQA->Get_VQA_Height() < 200) {
+		if (vqa->InitialRect.Width < 320 && vqa->InitialRect.Height < 200) {
 			Movie_Destroy(vqa);
 			delete vqa;
 			return;
@@ -130,7 +134,7 @@ void Play_Movie(char const * name, ThemeType theme, bool clrscrn_after, bool str
 
 		// The other machines wait for this one, so the movie runs on without the window's focus.
 		if (Session.Type == GAME_IPX || Session.Type == GAME_INTERNET) {
-			vqa->VQA->Set_Pause_On_Focus_Loss(false);
+			Movie_Set_Pause_On_Focus_Loss(vqa, false);
 		}
 
 		Movie_Play(vqa, true, theme, false);
@@ -158,11 +162,11 @@ void Play_Movie(char const * name, ThemeType theme, bool clrscrn_after, bool str
 /// This is the plain variant of Play_Movie -- the screen is blanked, the movie runs at the
 /// default volume, and no stretching is attempted. A missing movie is quietly ignored.
 /// </summary>
-/// <param name="name">The name of the movie file, including the ".VQA" extension.</param>
+/// <param name="name">The name of the movie file.</param>
 /// <param name="theme">The optional theme to play behind the movie.</param>
 void _Play_Movie(char const * name, ThemeType theme)
 {
-	bool notavailable = CCFileClass(name).Is_Available() == false;
+	bool notavailable = Movie_Is_Available(name) == false;
 	if (!notavailable) {
 		HiddenSurface->Fill(0);
 		Update_Visible_Surface(HiddenSurface);
@@ -188,7 +192,7 @@ void Play_Movie(VQType vq, ThemeType theme, bool clrscrn, bool stretch)
 	static char _buf[20];
 	if (vq != VQ_NONE) {
 		UTF8::Copy(_buf, Movies[vq]);
-		strcpy(_buf + strlen(Movies[vq]), ".VQA");
+		UTF8::Append(_buf, Movie_Extension());
 		Play_Movie(_buf, theme, clrscrn, stretch, true);
 	}
 }
@@ -200,10 +204,10 @@ void Play_Movie(VQType vq, ThemeType theme, bool clrscrn, bool stretch)
 /// carries on around it. A missing movie is quietly ignored, and so is a game outside a
 /// campaign unless the launch file asked for movies.
 /// </summary>
-/// <param name="name">The name of the movie file, including the ".VQA" extension.</param>
+/// <param name="name">The name of the movie file.</param>
 void Play_Ingame_Movie(const char * name)
 {
-	bool notavailable = CCFileClass(name).Is_Available() == false;
+	bool notavailable = Movie_Is_Available(name) == false;
 	if (!notavailable && (Session.Type == GAME_NORMAL || Session.PlayMovies)) {
 		VQHandle * vqa = Movie_Create(name, SidebarSurface, Rect(0,0,0,0), SidebarSurface->Get_Rect(), 255, false);
 		if (vqa != NULL) {
@@ -223,7 +227,7 @@ void Play_Ingame_Movie(VQType vq)
 	static char _buf[20];
 	if (vq != VQ_NONE) {
 		UTF8::Copy(_buf, Movies[vq]);
-		strcpy(_buf + strlen(Movies[vq]), ".VQA");
+		UTF8::Append(_buf, Movie_Extension());
 		Play_Ingame_Movie(_buf);
 	}
 }

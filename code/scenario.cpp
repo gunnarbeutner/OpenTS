@@ -122,6 +122,8 @@
 #include "misc.h"
 #include "mouse.h"
 #include "movie.h"
+#include "movieformat.h"
+#include "movies.h"
 #include "movieskip.h"
 #include "mpu.h"
 #include "msgbox.h"
@@ -393,8 +395,8 @@ bool Start_Scenario(char const * name, bool briefing, CampaignType campaign)
 	bool has_briefing_movie = Scen->BriefMovie != VQ_NONE;
 
 	if (has_briefing_movie) {
-		snprintf(buffer, sizeof(buffer), "%s.VQA", Movies[Scen->BriefMovie]);
-		has_briefing_movie = CCFileClass(buffer).Is_Available();
+		snprintf(buffer, sizeof(buffer), "%s%s", Movies[Scen->BriefMovie], Movie_Extension());
+		has_briefing_movie = Movie_Is_Available(buffer);
 	}
 
 	bool transit_playing = false;

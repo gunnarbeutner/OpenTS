@@ -14,7 +14,9 @@
 #include "_map.h"
 #include "_surface.h"
 #include "audio/audioengine.h"
+#include "ccfile.h"
 #include "dsurface.h"
+#include "movieformat.h"
 #include "movieskip.h"
 #include "surface.h"
 #include "theme.h"
@@ -25,6 +27,7 @@
 
 
 DynamicVectorClass<char const *> Movies;
+DynamicVectorClass<VQHandle *> IngameVQ;
 
 VQHandle *CurrentVQ = NULL;
 int MovieInt1 = 0;
@@ -41,7 +44,7 @@ void * Movie_Lock_Surface(void)
 {
 	Surface *surf = CurrentVQ->DrawSurface;
 	void *buffptr = surf->Lock();
-	VQAClass * vqa = CurrentVQ->VQA;
+	MovieClass * vqa = CurrentVQ->VQA;
 
 	vqa->Set_Draw_Buffer(0,
 		surf->Stride() / surf->Bytes_Per_Pixel(),
@@ -96,6 +99,16 @@ void Movie_Blit_To_Screen(void)
 }
 
 
+namespace {
+
+bool Movie_Available(char const * filename)
+{
+	return(CCFileClass(filename).Is_Available());
+}
+
+}	// namespace
+
+
 /// <summary>
 /// Creates a playable movie from the file specified.
 /// This routine opens the movie, matches its color mode to the display, and works out where
@@ -115,12 +128,14 @@ void Movie_Blit_To_Screen(void)
 /// file is missing or the movie could not be opened.</returns>
 VQHandle * Movie_Create(char const * name, Surface * surface, Rect rect1, Rect rect2, int volume, bool fullscreen)
 {
-	VQA_SURF_DRAW_CALLBACK callback = NULL;
+	char filename[_MAX_PATH];
+	if (!Movie_Resolve_Name(name, filename, sizeof(filename)) || !Movie_Available(filename)) {
+		return(NULL);
+	}
+
+	MovieSurfaceDrawCallback callback = NULL;
 	VQHandle *handle = new VQHandle;
 	if (handle != NULL) {
-		if (!CCFileClass(name).Is_Available()) {
-			return(NULL);
-		}
 		int flags = 0;
 
 		if (!AudioEngine.Is_Available()) {
@@ -139,7 +154,7 @@ VQHandle * Movie_Create(char const * name, Surface * surface, Rect rect1, Rect r
 			callback = Movie_Blit_To_Screen;
 		}
 
-		handle->VQA = new VQAClass(name, flags, Movie_Lock_Surface, Movie_Unlock_Surface, callback, MovieSkip::Idle);
+		handle->VQA = new MovieClass(filename, flags, Movie_Lock_Surface, Movie_Unlock_Surface, callback, MovieSkip::Idle);
 		if (handle->VQA == NULL) {
 			delete handle;
 			return(NULL);
@@ -306,6 +321,21 @@ bool Movie_Is_Playing(void)
 }
 
 
+void Movie_Set_Pause_On_Focus_Loss(VQHandle * handle, bool pause)
+{
+	if (handle != NULL && handle->VQA != NULL) {
+		handle->VQA->Set_Pause_On_Focus_Loss(pause);
+	}
+}
+
+
+bool Movie_Is_Available(char const * name)
+{
+	char filename[_MAX_PATH];
+	return(Movie_Resolve_Name(name, filename, sizeof(filename)) && Movie_Available(filename));
+}
+
+
 /// <summary>
 /// Pauses the movie where it stands.
 /// This routine is used when the game loses the player's attention -- a dialog opens or the
@@ -333,6 +363,12 @@ void Movie_Resume(VQHandle * handle)
 			handle->VQA->Resume_VQA();
 		}
 	}
+}
+
+
+bool Movie_Is_Paused(VQHandle * handle)
+{
+	return(handle != NULL && handle->VQA != NULL && handle->VQA->Is_Paused());
 }
 
 

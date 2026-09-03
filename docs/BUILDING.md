@@ -202,12 +202,13 @@ ctest --test-dir build-macos
 
 | Target | Tests registered |
 | --- | --- |
-| MSVC | 46: the thirteen below and 33 more from the directories listed under `if(MSVC)` in `tests/CMakeLists.txt` |
-| macOS | 13 |
+| MSVC | 48: the fifteen below and 33 more from the directories listed under `if(MSVC)` in `tests/CMakeLists.txt` |
+| macOS | 15 |
 
-The thirteen that build everywhere are `blocksource`, `lcwstream`, `sosparity`,
-`unvqdelta`, `lzoblock`, `zbufring`, `priorityqueue`, `platformfile`, `save`,
-`uifontdialog`, `platformprocess`, `utf8contract` and `keyname`.
+The fifteen that build everywhere are `blocksource`, `lcwstream`, `sosparity`,
+`unvqdelta`, `movieformat-vqa`, `movieformat-mp4`, `lzoblock`, `zbufring`,
+`priorityqueue`, `platformfile`, `save`, `uifontdialog`, `platformprocess`,
+`utf8contract` and `keyname`.
 
 `platformprocess` builds `code/dbgprint.cpp` with the process and diagnostics
 files in `code/platform/`, and checks where the executable is found, the log
