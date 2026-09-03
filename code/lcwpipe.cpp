@@ -65,7 +65,8 @@ LCWPipe::LCWPipe(CompControl control, int blocksize) :
 		Counter(0),
 		Buffer(NULL),
 		Buffer2(NULL),
-		BlockSize(blocksize)
+		BlockSize(blocksize),
+		Damaged(false)
 {
 	SafetyMargin = LCW_Comp_Bound(BlockSize) - BlockSize;
 	Buffer = new char[BlockSize+SafetyMargin];
@@ -132,7 +133,7 @@ int LCWPipe::Put(void const * source, int slen)
 	*/
 	if (Control ==  DECOMPRESS) {
 
-		while (slen > 0) {
+		while (slen > 0 && !Damaged) {
 
 			/*
 			**	First check to see if we are in the block header accumulation phase.
@@ -181,10 +182,17 @@ int LCWPipe::Put(void const * source, int slen)
 				**	through the pipe.
 				*/
 				if (Counter == BlockHeader.CompCount) {
-					LCW_Uncomp(Buffer, Buffer2, BlockHeader.UncompCount);
-					total += BASECLASS::Put(Buffer2, BlockHeader.UncompCount);
+					int const uncomped = LCW_Uncomp_Bounded(Buffer, BlockHeader.CompCount, Buffer2, BlockHeader.UncompCount);
+
 					Counter = 0;
 					BlockHeader.CompCount = 0xFFFF;
+
+					if (uncomped < BlockHeader.UncompCount) {
+						Damaged = true;
+						break;
+					}
+
+					total += BASECLASS::Put(Buffer2, uncomped);
 				}
 			}
 		}

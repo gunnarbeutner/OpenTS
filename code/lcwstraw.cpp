@@ -168,7 +168,7 @@ int LCWStraw::Get(void * destbuf, int slen)
 			incount = BASECLASS::Get(ptr, BlockHeader.CompCount);
 			if (incount != BlockHeader.CompCount) break;
 
-			LCW_Uncomp(ptr, Buffer, BlockHeader.UncompCount);
+			if (LCW_Uncomp_Bounded(ptr, BlockHeader.CompCount, Buffer, BlockHeader.UncompCount) < BlockHeader.UncompCount) break;
 			Counter = BlockHeader.UncompCount;
 		} else {
 			BlockHeader.UncompCount = (unsigned short)BASECLASS::Get(Buffer, BlockSize);
