@@ -29,6 +29,7 @@
 #include "mixfile.h"
 #include "msgbox.h"
 #include "newmenu.h"
+#include "screenlayout.h"
 #include "sidebar.h"
 #include "sounddlg.h"
 #include "stimer.h"
@@ -46,6 +47,19 @@
 bool Change_Display_Mode(int width, int height);
 bool Test_Display_Mode_Dialog(int width, int height);
 static void Display_Options_Dialog(void);
+
+
+#if !defined(_WIN32)
+InterfaceSizeStruct const InterfaceSizes[INTERFACE_SIZE_COUNT] = {
+	{"Automatic", 0},
+	{"Small (1x)", 1},
+	{"Normal (2x)", 2},
+	{"Large (3x)", 3},
+	{"Largest (4x)", 4}
+};
+
+static_assert(UI_SCALE_MAX == INTERFACE_SIZE_COUNT - 1, "the interface size list names one entry for each scale");
+#endif
 
 
 /// <summary>
@@ -155,13 +169,10 @@ bool Change_Display_Mode(int width, int height)
 		Host_Fit_Window_To_Frame(width, height);
 	}
 
-	Rect temp = VisibleRect;
-	temp.X = ((Options.IsSidebarOnRight || Debug_Map) ? 0 : SidebarClass::SIDE_WIDTH);
-	temp.Y = 16;
-	temp.Width -= SidebarClass::SIDE_WIDTH;
-	temp.Height -= 16;
+	ScreenLayout const layout = Compute_Screen_Layout(VisibleRect);
+	Rect temp = layout.Tactical;
 
-	Allocate_Surfaces(VisibleRect, Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, SidebarClass::SIDE_WIDTH, VisibleRect.Height));
+	Allocate_Surfaces(layout.Hidden, layout.Composite, layout.Tile, layout.Sidebar);
 	LogicalSurface = HiddenSurface;
 
 	Map.Set_View_Dimensions(temp);
@@ -224,11 +235,6 @@ bool Test_Display_Mode_Dialog(int width, int height)
 }
 
 
-/// <summary>
-/// Shows the display options until the player leaves them or keeps a new display mode.
-/// A picked mode is applied as a trial; if the player does not confirm it, the screen opens
-/// again.
-/// </summary>
 static void Display_Options_Dialog(void)
 {
 	while (true) {
@@ -237,6 +243,16 @@ static void Display_Options_Dialog(void)
 			break;
 		}
 
+#if !defined(_WIN32)
+		Options.UIScale = picked->Scale;
+		Hide_Mouse();
+		HiddenSurface->Fill(TBLACK);
+		Update_Visible_Surface();
+		Change_Display_Mode(Options.ScreenWidth, Options.ScreenHeight);
+		Show_Mouse();
+		Draw_Menu_Background();
+		break;
+#else
 		if (WWMessageBox().Process(TXT_ABOUT_TO_TRY_MODE, TXT_OK, TXT_CANCEL) != 0) {
 			break;
 		}
@@ -245,5 +261,6 @@ static void Display_Options_Dialog(void)
 			Options.ScreenHeight = picked->Height;
 			break;
 		}
+#endif
 	}
 }

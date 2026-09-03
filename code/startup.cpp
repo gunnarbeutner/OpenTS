@@ -112,6 +112,7 @@
 #include "rules.h"
 #include "scenario.h"
 #include "scheme.h"
+#include "screenlayout.h"
 #include "script.h"
 #include "session.h"
 #include "shapeset.h"
@@ -509,14 +510,15 @@ int main(int argc, char * argv[])
 		Options.ScreenHeight = ConfigINI.Get_Int("Video", "ScreenHeight", Options.ScreenHeight);
 
 		/*
-		 * These are wanted before the window and the renderer exist, which is well
-		 * before the rest of the settings are read.
+		 * These are wanted before the window, the renderer and the drawing
+		 * surfaces exist, well before the rest of the settings are read.
 		 */
 		Options.Fullscreen = ConfigINI.Get_Bool("Video", "Fullscreen", Options.Fullscreen);
 		Options.WindowWidth = ConfigINI.Get_Int("Video", "WindowWidth", Options.WindowWidth);
 		Options.WindowHeight = ConfigINI.Get_Int("Video", "WindowHeight", Options.WindowHeight);
 		Options.VSync = ConfigINI.Get_Bool("Video", "VSync", Options.VSync);
 		Options.Renderer = ConfigINI.Get_Int("Video", "Renderer", Options.Renderer);
+		Options.UIScale = ConfigINI.Get_Int("Video", "UIScale", Options.UIScale);
 
 		/*
 		 * The command line asks for a window regardless of what the settings say.
@@ -579,11 +581,15 @@ int main(int argc, char * argv[])
 
 		VisibleSurface->Fill(0);
 
-		Rect sidebar_rect(0,0,SidebarClass::SIDE_WIDTH,VisibleRect.Height);
-		Rect tile_rect(0,0,VisibleRect.Width-sidebar_rect.Width, sidebar_rect.Height);
-		Rect composite_rect(0,0,VisibleRect.Width-sidebar_rect.Width, sidebar_rect.Height);
+		// The shell needs the frame's destination, which Video_Init settled, and the game
+		// runs without it if it cannot start: a screen that has no RmlUi view is unaffected.
+		if (!UI_Init()) {
+			DebugString("UI: the shell is unavailable; only the legacy screens will open\n");
+		}
 
-		Allocate_Surfaces(VisibleRect, composite_rect, tile_rect, sidebar_rect, false);
+		ScreenLayout const layout = Compute_Screen_Layout(VisibleRect);
+
+		Allocate_Surfaces(layout.Hidden, layout.Composite, layout.Tile, layout.Sidebar, false);
 		LogicalSurface = HiddenSurface;
 		Update_Visible_Surface(HiddenSurface);
 

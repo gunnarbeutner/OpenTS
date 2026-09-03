@@ -12,6 +12,7 @@
 #include "_ui.h"
 #include "globals.h"
 #include "goptions.h"
+#include "mainopt.h"
 #include "ui/screens/display/uidisplay.h"
 #include "ui/uienginehost.h"
 #include "ui/uishell.h"
@@ -24,12 +25,14 @@
 namespace
 {
 
+#if defined(_WIN32)
 enum {
 	MIN_WIDTH = 640,
 	MIN_HEIGHT = 400,
 	MAX_WIDTH = 4096,
 	MAX_HEIGHT = 4096
 };
+#endif
 
 
 class UIDisplayEngineServiceClass : public UIDisplayServiceClass
@@ -57,6 +60,22 @@ void UI_Display_State(UIDisplayState & state)
 	state = UIDisplayState();
 	state.StretchMovies = Options.StretchMovies;
 
+#if !defined(_WIN32)
+	state.ModesLabel = "Interface Size";
+	state.StretchVisible = false;
+	for (int index = 0; index < INTERFACE_SIZE_COUNT; index++) {
+		UIDisplayMode mode;
+		mode.Label = InterfaceSizes[index].Name;
+		mode.Scale = InterfaceSizes[index].Scale;
+		if (mode.Scale == Options.UIScale) {
+			state.Selected = index;
+		}
+		state.Modes.push_back(mode);
+	}
+	if (state.Selected < 0) {
+		state.Selected = 0;
+	}
+#else
 	int * modes = EnumDisplayModes(MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT);
 	if (modes == NULL) {
 		return;
@@ -78,6 +97,7 @@ void UI_Display_State(UIDisplayState & state)
 	}
 
 	delete [] modes;
+#endif
 }
 
 

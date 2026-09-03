@@ -31,7 +31,9 @@ void UIDisplayPresenterClass::Execute(UIIntent const & intent)
 		State.StretchMovies = (intent.Value != 0);
 
 	} else if (intent.Name == "ok") {
-		Service.Set_Stretch_Movies(State.StretchMovies);
+		if (State.StretchVisible) {
+			Service.Set_Stretch_Movies(State.StretchMovies);
+		}
 		if (State.Selected >= 0 && State.Selected != Initial) {
 			Picked = State.Modes[State.Selected];
 		}
@@ -116,7 +118,9 @@ class UIDisplayViewClass : public UIRmlViewClass
 			return(model.RegisterArray<std::vector<UIDisplayMode>>()
 				&& model.Bind("modes", &state.Modes)
 				&& model.Bind("selected", &state.Selected)
-				&& model.Bind("stretch", &state.StretchMovies));
+				&& model.Bind("stretch", &state.StretchMovies)
+				&& model.Bind("stretchvisible", &state.StretchVisible)
+				&& model.Bind("modeslabel", &state.ModesLabel));
 		}
 
 	private:

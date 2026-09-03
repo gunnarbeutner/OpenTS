@@ -23,11 +23,14 @@ class GraphicMenuItem
 		virtual void Action(MSEngine * engine);
 		virtual void On_Selected_Change(bool);
 		virtual void On_Enabled_Change(bool);
+		virtual void On_Visible_Change(bool);
 
 		void Set_Selected(bool selected);
 		void Set_Enabled(bool enabled);
+		void Set_Visible(bool visible);
 
 		int Get_ID(void) const { return(ID); }
+		bool Is_Visible(void) const { return(Visible); }
 		void Set_Select_Sound(MSSfxEntry * sound) { SelectSound = sound; }
 
 	protected:
@@ -51,6 +54,12 @@ class GraphicMenuItem
 		 * menu keeps its shape from page to page.
 		 */
 		bool Enabled;
+
+		/*
+		 * A hidden item is neither drawn nor offered to the mouse or the
+		 * keyboard, so a page can drop a choice rather than show it disabled.
+		 */
+		bool Visible;
 
 		/*
 		 * Pointer to the sound effect to play when this item is chosen, or NULL if it is

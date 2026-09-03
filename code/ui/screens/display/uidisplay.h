@@ -24,6 +24,7 @@ struct UIDisplayMode
 	int Width = 0;
 	int Height = 0;
 	std::string Label;
+	int Scale = 0;
 };
 
 
@@ -40,6 +41,8 @@ struct UIDisplayState
 	std::vector<UIDisplayMode> Modes;
 	int Selected = -1;
 	bool StretchMovies = false;
+	bool StretchVisible = true;
+	std::string ModesLabel = "Resolution Modes";
 };
 
 

@@ -126,6 +126,12 @@ class SidebarClass : public PowerClass
 
 		int Max_Visible(void);
 
+		/// <summary>
+		/// Names the strip a point in button coordinates falls on, or -1 when
+		/// it is on neither strip's slots.
+		/// </summary>
+		int Column_At(Point2D const & xy);
+
 		void Set_Cameo_Text(bool state);
 
 		void Blit_Sidebar(bool complete);

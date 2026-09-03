@@ -207,11 +207,11 @@ The four buttons above the strips toggle the same modes as [Repair Mode](/comman
 
 ## What is fixed in the engine
 
-No setting changes the panel's layout. Its width, the number of strips, their positions, the size of a cameo slot and the 225-entry capacity are fixed in the engine. So are the one-row scroll step, the timing of the power bar's blink, and the timing of the radar animation.
+Almost nothing on this surface is laid out from a setting. The panel's side, its width, the number of strips, their positions, the size of a cameo slot, the 225-entry capacity, the distance a strip scrolls in one update, and the pacing of the power bar's blink and of the radar animation are all compile-time constants. They are constants of the panel's own picture, which [`UIScale`](/keys/uiscale/) magnifies whole on its way to the screen; a panel drawn at double size is 336 screen pixels across and every figure in it doubles with it.
 
 The panel always sits on the right edge of the screen. Neither `sun.ini` nor the rules can move it.
 
-The number of cameo slots a strip shows depends on the screen height. It is the panel height left after the backdrop's top piece and bottom cap, divided by the height of the repeating middle piece, up to a maximum of 60. A taller screen therefore shows more cameos and a shorter one fewer. On a screen with room for more than 60 rows, the backdrop ends below the sixtieth slot and does not reach the bottom of the screen.
+The one figure that does vary is how many cameo slots a strip shows: it is the height left over after the backdrop's top piece and bottom cap, divided by the height of its repeating middle piece. That height is the screen's, divided by [`UIScale`](/keys/uiscale/). A taller screen therefore shows more cameos and a shorter one fewer, and magnifying the panel shows fewer and larger ones.
 
 The art filenames are fixed as well. The table lists each file the panel loads and what it draws.
 

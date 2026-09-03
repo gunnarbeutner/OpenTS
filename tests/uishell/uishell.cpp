@@ -890,6 +890,19 @@ void Test_Display_Presenter(void)
 	}
 
 	{
+		RecordingDisplayServiceClass service;
+		UIDisplayState state;
+		state.Modes = { { 0, 0, "Automatic", 0 }, { 0, 0, "Normal (2x)", 2 } };
+		state.Selected = 0;
+		state.StretchVisible = false;
+		state.ModesLabel = "Interface Size";
+		UIDisplayPresenterClass presenter(service, state);
+		Drive(presenter, "select", 1);
+		Drive(presenter, "ok");
+		Check(presenter.Picked.has_value() && presenter.Picked->Scale == 2 && service.Calls.empty(), "the interface size choice leaves movie stretching unchanged");
+	}
+
+	{
 		FakeClockClass clock;
 		UIConfirmModePresenterClass presenter(clock);
 		Check(presenter.Seconds == 10, "the confirmation starts with the full ten seconds");

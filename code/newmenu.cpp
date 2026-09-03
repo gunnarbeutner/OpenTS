@@ -184,21 +184,25 @@ int NewMenuClass::Process_Game_Select(void)
 int NewMenuClass::Display_Game_Select_Menu(char const * section)
 {
 	static DynamicVectorClass<int> options;
-	return(Display_Menu(section, options));
+	DynamicVectorClass<int> hidden;
+
+	return(Display_Menu(section, options, hidden));
 }
 
 
 /// <summary>
 /// Displays a menu page and waits for the player to choose.
 /// This routine will build the menu described by the INI section, adopt the background
-/// page that comes with it, gray out the options that are not available, and then run the
-/// menu until the player picks something.
+/// page that comes with it, gray out the options that are not available, drop
+/// the ones that do not belong on this build at all, and then run the menu
+/// until the player picks something.
 /// </summary>
 /// <param name="section">The NewMenu.INI section that describes the menu page.</param>
 /// <param name="options">The menu items that should be shown disabled.</param>
+/// <param name="hidden">The menu items that should not appear at all.</param>
 /// <returns>Returns with the selection the player made, or NSEL_OLD_MENU if the menu
 /// could not be built.</returns>
-int NewMenuClass::Display_Menu(char const * section, DynamicVectorClass<int> & options)
+int NewMenuClass::Display_Menu(char const * section, DynamicVectorClass<int> & options, DynamicVectorClass<int> & hidden)
 {
 	GraphicMenu * menu = Do_Graphic_Menu("NewMenu.INI", section);
 
@@ -206,7 +210,7 @@ int NewMenuClass::Display_Menu(char const * section, DynamicVectorClass<int> & o
 		return(NSEL_OLD_MENU);
 	}
 
-	delete Background;
+	delete [] Background;
 	char const * bgname = menu->BackgroundName.Peek();
 	if (bgname == NULL) {
 		bgname = "Title.PCX";
@@ -216,6 +220,10 @@ int NewMenuClass::Display_Menu(char const * section, DynamicVectorClass<int> & o
 
 	for (int option : options) {
 		menu->Set_Item_Enabled(option, false);
+	}
+
+	for (int option : hidden) {
+		menu->Set_Item_Visible(option, false);
 	}
 
 	int result = menu->Presentation();
@@ -279,6 +287,7 @@ int NewMenuClass::Display_Tiberian_Sun_Menu(void)
 	Set_Required_Addon(ADDON_BASE_GAME);
 
 	DynamicVectorClass<int> options;
+	DynamicVectorClass<int> hidden;
 
 	if (!Addon_Installed(ADDON_ANY)) {
 		options.Add(102);
@@ -291,7 +300,7 @@ int NewMenuClass::Display_Tiberian_Sun_Menu(void)
 	// The button is drawn by the menu artwork, so it is disabled rather than taken away.
 	options.Add(NSEL_INTERNET);
 
-	return(Display_Menu("TiberianSunMenu", options));
+	return(Display_Menu("TiberianSunMenu", options, hidden));
 }
 
 
@@ -308,6 +317,8 @@ int NewMenuClass::Display_Firestorm_Menu(void)
 	Set_Required_Addon(ADDON_FIRESTORM);
 
 	DynamicVectorClass<int> options;
+	DynamicVectorClass<int> hidden;
+
 	if (!LoadOptionsClass().Files_Present()) {
 		options.Add(NSEL_LOAD_MISSION);
 	}
@@ -317,7 +328,7 @@ int NewMenuClass::Display_Firestorm_Menu(void)
 	options.Add(NSEL_INTERNET);
 	options.Add(NSEL_WDT);
 
-	return(Display_Menu("FirestormMenu", options));
+	return(Display_Menu("FirestormMenu", options, hidden));
 }
 
 
