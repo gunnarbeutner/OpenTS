@@ -506,8 +506,10 @@ bool LoadOptionsClass::Dialog(void)
 								break;
 							}
 
-							const char * filename = NULL;
+							// filename points into this buffer until the save
+							// is written.
 							char test_filename[256];
+							const char * filename = NULL;
 
 							if (entry && entry->Valid) {
 								filename = entry->Filename;
