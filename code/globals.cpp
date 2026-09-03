@@ -387,7 +387,11 @@ int LogicTriggerID;
 */
 unsigned int ScenarioCRC;
 
+// Debug_ForceScenario is what makes these count.
 char Debug_ScenarioName[128];
+char Debug_CampaignName[32];
+
+int Debug_WinAfter = 0;
 
 
 /***************************************************************************
