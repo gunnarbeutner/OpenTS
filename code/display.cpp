@@ -1803,6 +1803,13 @@ int DisplayClass::TacticalClass::Action(unsigned flags, KeyNumType & key)
 		y = Keyboard->MouseQY;
 		pixel = Point2D(x, y);
 	} else {
+
+		// Without a resting pointer the last position is a leftover, and
+		// following it would move the placement cursor where nobody pointed.
+		if (!Mouse_Is_Hovering()) {
+			return(GadgetClass::Action(0, key));
+		}
+
 		x = Get_Mouse_X();
 		y = Get_Mouse_Y();
 		pixel = Get_Mouse_Point();
@@ -2309,6 +2316,20 @@ void DisplayClass::Mouse_Left_Release(Coord const & coord, Cell const & cell, Ob
 
 	if (PendingObjectPtr) {
 
+		Cell place = cell;
+
+		// Placement is checked as the cursor moves and committed by a click, so
+		// without a resting pointer the first click only positions the cursor
+		// and the next one commits.
+		if (!Mouse_Is_Hovering()) {
+			Cell previous = ZoneCell;
+			Set_Cursor_Pos(cell);
+			if (ZoneCell != previous) {
+				return;
+			}
+			place = ZoneCell;
+		}
+
 		if (PendingObject->RTTI == RTTI_BUILDINGTYPE) {
 			ProximityCheck = Passes_Proximity_Check(PendingObject, PendingHouse, CursorSize, ZoneCell+ZoneOffset);
 		}
@@ -2324,7 +2345,7 @@ void DisplayClass::Mouse_Left_Release(Coord const & coord, Cell const & cell, Ob
 		**	Try to place the pending object onto the map.
 		*/
 		if (ProximityCheck && ShroudCheck) {
-			OutList.push_back(EventClass(PlayerPtr->HeapID, EventClass::PLACE, PendingObjectPtr->RTTI, cell + ZoneOffset));
+			OutList.push_back(EventClass(PlayerPtr->HeapID, EventClass::PLACE, PendingObjectPtr->RTTI, place + ZoneOffset));
 		} else {
 			Speak(VOX_DEPLOY);
 		}

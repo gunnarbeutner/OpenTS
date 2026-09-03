@@ -95,6 +95,11 @@ class Mouse {
 		virtual int Get_Mouse_Y(void) const = 0;
 		virtual Point2D Get_Mouse_Point(void) const = 0;
 
+		// A mouse leaves a pointer resting wherever it stops, so hover driven
+		// code may read the position with no event behind it; a touch device
+		// leaves nothing there.
+		virtual bool Is_Hovering(void) const {return(true);}
+
 		/*
 		**	Converts O/S screen coordinates into game coordinates.
 		*/

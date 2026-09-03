@@ -559,7 +559,10 @@ void ScrollClass::Scroll_AI(void)
 				Map.Scroll_Coast(point);
 			}
 			return;
-		} else {
+		} else if (Mouse_Is_Hovering()) {
+
+			// A position a finger left behind is not a pointer, and an edge
+			// scroll driven by one runs away with the map.
 			Cell			cell;						/// cell click happened over
 			Coord			coord;						/// coord click happened over
 			ObjectClass *	object /*= 0*/;				// what object is in the cell
