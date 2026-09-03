@@ -20,6 +20,7 @@
 
 # CMake and Visual Studio 2022
 [Bb]uild/
+[Bb]uild-*/
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
@@ -46,6 +47,11 @@ cmake_install.cmake
 /.cache/
 /.clangd
 /compile_commands.json
+
+# Finder metadata, which appears in any directory the Finder has displayed. A published
+# asset tree is checked against its manifest, and one of these in it reads as a file the
+# release does not name.
+.DS_Store
 
 # Python bytecode
 __pycache__/
