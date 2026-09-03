@@ -13,14 +13,13 @@
 
 #pragma once
 
+#include "rect.h"
 #include "stimer.h"
 
 #include "side.hh"
 #include "theater.hh"
 #include "theme.hh"
 
-template<class T> class TRect;
-typedef TRect<int> Rect;
 class Surface;
 class ObjectClass;
 
@@ -56,12 +55,12 @@ SideType Prep_Speech_For_Side_Or_First(SideType side);
 
 void Anim_Init(void);
 
-void Load_Title_Page(const char * name, bool visible);
+Point2D Load_Title_Page(const char * name, bool visible);
 
 ThemeType Fetch_Main_Menu_Theme(void);
 ThemeType Fetch_Map_Select_Theme(void);
 
-void Draw_Version_Text(Surface * surface);
+void Draw_Version_Text(Surface * surface, Rect const & area = Rect(0, 0, 0, 0));
 
 // Shows the version information screen and returns when the player dismisses it. Declared
 // here rather than only in init.cpp because the UI register names it.

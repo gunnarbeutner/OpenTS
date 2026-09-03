@@ -8,8 +8,8 @@
  ******************************************************************************/
 
 // The display options screen. It stages a choice rather than applying it: the driver compares
-// the staged options with the live ones afterwards, makes the change and puts the new mode up
-// for confirmation.
+// the staged options with the live ones afterwards and makes the change, and on a target with
+// display modes puts the new mode up for confirmation.
 
 #include "always.h"
 
@@ -19,6 +19,7 @@
 #include "dialogresult.h"
 #include "globals.h"
 #include "goptions.h"
+#include "mainopt.h"
 #include "rules.h"
 #include "uicontext.h"
 #include "uimodel.h"
@@ -27,6 +28,10 @@
 #include "utf8.h"
 #include "video.h"
 #include "voc.h"
+
+#if !defined(_WIN32)
+#include "screenlayout.h"
+#endif
 
 #include <RmlUi/Core/Context.h>
 #include <RmlUi/Core/DataModelHandle.h>
@@ -55,6 +60,7 @@ class UIDisplayPresenter : public UIPresenterClass
 	public:
 		UIDisplayPresenter(GameOptionsClass & staged) : Staged(staged) {}
 
+		Rml::String Label;
 		std::vector<UIDisplayRow> Entries;
 
 		// The row the list shows selected, and the one it showed when the screen opened. A
@@ -62,6 +68,7 @@ class UIDisplayPresenter : public UIPresenterClass
 		int Current = -1;
 		int Previous = -1;
 
+		bool StretchVisible = false;
 		bool Stretch = false;
 
 		void Refresh(void) override;
@@ -74,8 +81,10 @@ class UIDisplayPresenter : public UIPresenterClass
 
 		GameOptionsClass & Staged;
 
+#if defined(_WIN32)
 		// Width and height of each row's mode, in the order the rows are listed.
 		std::vector<int> Modes;
+#endif
 };
 
 
@@ -84,6 +93,23 @@ void UIDisplayPresenter::Refresh(void)
 	Entries.clear();
 	int initial = -1;
 
+#if !defined(_WIN32)
+	Label = "Interface Size";
+
+	for (int index = 0; index < INTERFACE_SIZE_COUNT; index++) {
+		Entries.push_back(UIDisplayRow{InterfaceSizes[index].Name});
+		if (InterfaceSizes[index].Scale == Staged.UIScale) {
+			initial = index;
+		}
+	}
+
+	// A stored scale the list lacks selects the automatic entry.
+	if (initial < 0) {
+		initial = 0;
+	}
+
+	StretchVisible = false;
+#else
 	enum {
 		MIN_WIDTH = 640,
 		MIN_HEIGHT = 400,
@@ -91,6 +117,7 @@ void UIDisplayPresenter::Refresh(void)
 		MAX_HEIGHT = 4096,
 	};
 
+	Label = "Resolution Modes";
 	Modes.clear();
 
 	int * modes = EnumDisplayModes(MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT);
@@ -112,6 +139,9 @@ void UIDisplayPresenter::Refresh(void)
 		delete [] modes;
 	}
 
+	StretchVisible = true;
+#endif
+
 	Current = initial;
 	Previous = initial;
 	Stretch = (Options.StretchMovies != false);
@@ -121,12 +151,18 @@ void UIDisplayPresenter::Refresh(void)
 void UIDisplayPresenter::Accept(void)
 {
 	if (Previous != Current && Current >= 0 && Current < (int)Entries.size()) {
+#if !defined(_WIN32)
+		Staged.UIScale = InterfaceSizes[Current].Scale;
+#else
 		Staged.ScreenWidth = Modes[2 * Current];
 		Staged.ScreenHeight = Modes[2 * Current + 1];
+#endif
 	}
 
+#if defined(_WIN32)
 	// The dialog wrote this into the live options as it closed, not into the staged copy.
 	Options.StretchMovies = Stretch;
+#endif
 
 	Finish(UI_RESULT_ACCEPTED, DIALOG_OK);
 }
@@ -239,8 +275,10 @@ bool UIDisplayView::Bind_Model(void)
 	}
 	UI_Register_Array<std::vector<UIDisplayRow>>(constructor);
 
+	constructor.Bind("Label", &Display.Label);
 	constructor.Bind("Entries", &Display.Entries);
 	constructor.Bind("Current", &Display.Current);
+	constructor.Bind("StretchVisible", &Display.StretchVisible);
 	constructor.Bind("Stretch", &Display.Stretch);
 
 	constructor.BindEventCallback("act", &UIDisplayView::On_Action, this);

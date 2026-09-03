@@ -92,14 +92,14 @@
 <body>
 	<div id="display" class="dialog" data-model="display">
 		<div id="title" class="caption">Display Options:</div>
-		<div id="label" class="caption">Resolution Modes</div>
+		<div id="label" class="caption">{{Label}}</div>
 
 		<div id="modes" class="list">
 			<p data-for="entry : Entries" data-class-picked="it_index == Current"
 				data-event-click="act('select', it_index)">{{entry.Name}}</p>
 		</div>
 
-		<div id="stretch">
+		<div id="stretch" data-if="StretchVisible">
 			<input type="checkbox" data-attrif-checked="Stretch" data-event-change="act('stretch')"/>
 			<label>Stretch movies to fit resolution</label>
 		</div>

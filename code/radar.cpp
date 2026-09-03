@@ -102,6 +102,7 @@
 #include "rules.h"
 #include "savestream.h"
 #include "scheme.h"
+#include "screenlayout.h"
 #include "tactical.h"
 #include "voc.h"
 #include "vox.h"
@@ -210,10 +211,12 @@ void RadarClass::One_Time(void)
 
 	BASECLASS::One_Time();
 
-	RadarButton.X		= RadX + SidebarRect.X;
-	RadarButton.Y 		= RadY;
-	RadarButton.Width 	= RadWidth;
-	RadarButton.Height 	= RadHeight;
+	Rect const pane = Sidebar_To_Screen(Rect(RadX, RadY, RadWidth, RadHeight));
+
+	RadarButton.X		= pane.X;
+	RadarButton.Y 		= pane.Y;
+	RadarButton.Width 	= pane.Width;
+	RadarButton.Height 	= pane.Height;
 	RadarButton.Set_Flags(GadgetClass::FlagEnum(GadgetClass::FlagEnum::LEFTPRESS |
 														GadgetClass::FlagEnum::LEFTHELD |
 														GadgetClass::FlagEnum::LEFTRELEASE |
@@ -518,7 +521,10 @@ int RadarClass::RTacticalClass::Action(unsigned flags, KeyNumType & key)
 	}
 
 
-	x -= Options.IsSidebarOnRight ? TacticalRect.Width : 0;
+	// The radar pane is drawn on the sidebar surface, in its own coordinates.
+	Point2D const local = Screen_To_Sidebar(Point2D(x, y));
+	x = local.X;
+	y = local.Y;
 
 	/*
 	**	See if the mouse is over the radar general area, but not yet
@@ -828,7 +834,11 @@ void RadarClass::Draw_Names(void)
 void RadarClass::Reposition_Sidebar(void)
 {
 	BASECLASS::Reposition_Sidebar();
-	RadarButton.Set_Position(RadX + (Options.IsSidebarOnRight ? TacticalRect.Width : 0), RadY);
+
+	Rect const pane = Sidebar_To_Screen(Rect(RadX, RadY, RadWidth, RadHeight));
+
+	RadarButton.Set_Position(pane.X, pane.Y);
+	RadarButton.Set_Size(pane.Width, pane.Height);
 	RadarButton.Flag_To_Redraw();
 	FullRedraw = true;
 }
