@@ -44,15 +44,18 @@ BOOL CALLBACK Display_Options_Dialog_Proc(HWND window, UINT message, WPARAM wpar
 bool Change_Display_Mode(int width, int height);
 bool Test_Display_Mode_Dialog(int width, int height);
 BOOL CALLBACK Test_Display_Mode_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
+static void Display_Options_Dialog(void);
 
 GameOptionsClass TempOptions;
+
+
 
 
 /// <summary>
 /// Brings up the main options dialog.
 /// This routine drives the options menu, dispatching to the sound, display, network,
-/// keyboard and game settings dialogs until the player backs out. A resolution change is
-/// offered as a trial first, and the settings are written out when the player leaves.
+/// keyboard and game settings dialogs until the player backs out. The settings
+/// are written out when the player leaves.
 /// </summary>
 /// <remarks>Game logic is suspended for the duration of this routine.</remarks>
 void Main_Options_Dialog(void)
@@ -63,14 +66,15 @@ void Main_Options_Dialog(void)
 	HWND main_handle;
 	LONG main_rc;
 
-	HWND in_handle;
-	LONG in_rc;
-
 	while (true) {
-		do {
-			main_rc = -1;
-			main_handle = OwnerDraw::Begin_Dialog(IDD_OPT_MAIN, Main_Options_Dialog_Proc);
-		} while (main_handle == 0);
+		main_rc = -1;
+		main_handle = OwnerDraw::Begin_Dialog(IDD_OPT_MAIN, Main_Options_Dialog_Proc);
+
+		if (main_handle == 0) {
+			GameActive = old_game_active;
+			return;
+		}
+
 		SetWindowLong(main_handle, DWL_USER, (LONG)&main_rc);
 
 		OwnerDraw::Move_Dialog(main_handle, -1, (HiddenSurface->Get_Height() - 400) / 2 + 147);
@@ -90,44 +94,9 @@ void Main_Options_Dialog(void)
 				SoundControlsClass().Dialog();
 				break;
 
-			case IDC_OPTMAIN_DISPLAY: {
-				while (true) {
-					do {
-						TempOptions = Options;
-						in_rc = -1;
-						in_handle = OwnerDraw::Begin_Dialog(IDD_OPT_DISPLAY, Display_Options_Dialog_Proc);
-					} while (in_handle == 0);
-					SetWindowLong(in_handle, DWL_USER, (LONG)&in_rc);
-					OwnerDraw::Display_Dialog(in_handle);
-
-					while (in_rc < 0) {
-						if (OwnerDraw::Dialog_Message_Handler() == true) {
-							break;
-						}
-						Title_Screen_Restore();
-					}
-
-					OwnerDraw::End_Dialog(in_handle);
-
-					if (in_rc != 1) {
-						break;
-					}
-					if (TempOptions.ScreenWidth == Options.ScreenWidth && TempOptions.ScreenHeight == Options.ScreenHeight) {
-						break;
-					}
-
-						if (WWMessageBox().Process(TXT_ABOUT_TO_TRY_MODE, TXT_OK, TXT_CANCEL) == 0) {
-							if (!Test_Display_Mode_Dialog(TempOptions.ScreenWidth, TempOptions.ScreenHeight)) {
-								continue;
-							}
-							Options.ScreenWidth = TempOptions.ScreenWidth;
-							Options.ScreenHeight = TempOptions.ScreenHeight;
-						}
-
-					break;
-				}
-			}
-			break;
+			case IDC_OPTMAIN_DISPLAY:
+				Display_Options_Dialog();
+				break;
 
 			case IDC_OPTMAIN_KEYBOARD:
 				Options.Hotkey_Dialog();
@@ -142,6 +111,53 @@ void Main_Options_Dialog(void)
 				GameActive = old_game_active;
 				return;
 		}
+	}
+}
+
+
+/// <summary>
+/// Runs the display options dialog and applies what the player accepted.
+/// </summary>
+static void Display_Options_Dialog(void)
+{
+	while (true) {
+		TempOptions = Options;
+
+		LONG result = -1;
+		HWND handle = OwnerDraw::Begin_Dialog(IDD_OPT_DISPLAY, Display_Options_Dialog_Proc);
+		if (handle == 0) {
+			break;
+		}
+
+		SetWindowLong(handle, DWL_USER, (LONG)&result);
+		OwnerDraw::Display_Dialog(handle);
+
+		while (result < 0) {
+			if (OwnerDraw::Dialog_Message_Handler() == true) {
+				break;
+			}
+			Title_Screen_Restore();
+		}
+
+		OwnerDraw::End_Dialog(handle);
+
+		if (result != IDOK) {
+			break;
+		}
+
+		if (TempOptions.ScreenWidth == Options.ScreenWidth && TempOptions.ScreenHeight == Options.ScreenHeight) {
+			break;
+		}
+
+		if (WWMessageBox().Process(TXT_ABOUT_TO_TRY_MODE, TXT_OK, TXT_CANCEL) == 0) {
+			if (!Test_Display_Mode_Dialog(TempOptions.ScreenWidth, TempOptions.ScreenHeight)) {
+				continue;
+			}
+			Options.ScreenWidth = TempOptions.ScreenWidth;
+			Options.ScreenHeight = TempOptions.ScreenHeight;
+		}
+
+		break;
 	}
 }
 
