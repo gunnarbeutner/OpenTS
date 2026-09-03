@@ -13,10 +13,12 @@
 
 #pragma once
 
+#include "point.h"
+
 class Surface;
 class PaletteClass;
 
 
-void Load_Title_Screen(char const * name, Surface * surface, PaletteClass * palette);
+Point2D Load_Title_Screen(char const * name, Surface * surface, PaletteClass * palette, bool fill = false);
 
 unsigned int Build_Number(void);

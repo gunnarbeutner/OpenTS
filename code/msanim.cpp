@@ -20,6 +20,7 @@
 #include "dbgprint.h"
 #include "draw.h"
 #include "audio/audioengine.h"
+#include "dsurface.h"
 #include "globals.h"
 #include "goptions.h"
 #include "mixfile.h"
@@ -594,7 +595,6 @@ MSVQAnim::MSVQAnim(char const * name, Surface * surface, MS_ANIM_LIST * vector, 
 	MSAnim(0, 0, false),
 	Anims(vector),
 	Movie(NULL),
-	TargetSurface(surface),
 	Background(NULL),
 	Persistent(persistent),
 	Done(false)
@@ -602,6 +602,9 @@ MSVQAnim::MSVQAnim(char const * name, Surface * surface, MS_ANIM_LIST * vector, 
 	if (name != NULL && surface != NULL) {
 		Movie = Movie_Create(name, surface, Rect(0, 0, 0, 0), Rect(0, 0, 0, 0), 255, false);
 		if (Movie != NULL) {
+			// A menu backdrop keeps this size whatever the movie stretching
+			// option says, because the menu items and the still picture are
+			// laid out against it unscaled.
 			Movie->InitialRect = Rect((surface->Get_Width() - 640) / 2, (surface->Get_Height() - 400) / 2, 640, 400);
 			Movie->StretchRect = Rect((HiddenSurface->Get_Width() - 640) / 2, (HiddenSurface->Get_Height() - 400) / 2, 640, 400);
 		}
@@ -664,7 +667,7 @@ bool MSVQAnim::Advance(Surface * surface, Rect & rect)
 
 			if (is_done == true) {
 				if (Background != NULL) {
-					TargetSurface->Blit_From(Movie->InitialRect, *Background, Background->Get_Rect());
+					AlternateSurface->Blit_From(Movie->InitialRect, *Background, Background->Get_Rect());
 					Redraw(surface);
 					rect = Movie->StretchRect;
 
@@ -687,7 +690,7 @@ bool MSVQAnim::Advance(Surface * surface, Rect & rect)
 	if (!Done) {
 		if (Background != NULL) {
 			Rect backdrop_rect = Background->Get_Rect();
-			TargetSurface->Blit_From(backdrop_rect, *Background, backdrop_rect);
+			AlternateSurface->Blit_From(backdrop_rect, *Background, backdrop_rect);
 			Redraw(surface);
 			rect = backdrop_rect;
 
@@ -729,7 +732,7 @@ void MSVQAnim::Redraw(Surface * surface, const Rect * rect)
 void MSVQAnim::Restore(const Rect & rect)
 {
 	if (Done && Movie != NULL && Background != NULL) {
-		TargetSurface->Blit_From(Movie->InitialRect, *Background, Background->Get_Rect());
+		AlternateSurface->Blit_From(Movie->InitialRect, *Background, Background->Get_Rect());
 	}
 }
 
@@ -1505,7 +1508,6 @@ void MSButtonAnim::Set_Pressed(bool pressed)
 /// <param name="vector">The anim list this anim belongs to.</param>
 MSPCXAnim::MSPCXAnim(const char * name, MS_ANIM_LIST * vector, bool transient) :
 	MSAnim(0, 0, false),
-	TargetSurface(AlternateSurface),
 	Anims(vector),
 	Image(NULL),
 	Transient(transient),
@@ -1526,7 +1528,7 @@ MSPCXAnim::MSPCXAnim(const char * name, MS_ANIM_LIST * vector, bool transient) :
 				Image = Read_PCX_File(file);
 				if (Image != NULL) {
 					Area = Image->Get_Rect();
-					Rect surface_rect = TargetSurface->Get_Rect();
+					Rect surface_rect = AlternateSurface->Get_Rect();
 					Area.X += (surface_rect.Width - Area.Width) / 2;
 					Area.Y += (surface_rect.Height - Area.Height) / 2;
 				}
@@ -1545,7 +1547,6 @@ MSPCXAnim::MSPCXAnim(const char * name, MS_ANIM_LIST * vector, bool transient) :
 /// <param name="vector">The anim list this anim belongs to.</param>
 MSPCXAnim::MSPCXAnim(const char * name, MS_ANIM_LIST * vector, const Point2D & position, bool transient) :
 	MSAnim(0, 0, false),
-	TargetSurface(AlternateSurface),
 	Anims(vector),
 	Image(NULL),
 	Transient(transient),
@@ -1568,7 +1569,6 @@ MSPCXAnim::MSPCXAnim(const char * name, MS_ANIM_LIST * vector, const Point2D & p
 					Area = Image->Get_Rect();
 					Area.X = position.X;
 					Area.Y = position.Y;
-					TargetSurface->Get_Rect();
 				}
 			}
 		}
@@ -1599,7 +1599,7 @@ bool MSPCXAnim::Advance(Surface * surface, Rect & rect)
 	if (!Drawn) {
 		if (Active) {
 			if (Image != NULL) {
-				TargetSurface->Blit_From(Area, *Image, Image->Get_Rect());
+				AlternateSurface->Blit_From(Area, *Image, Image->Get_Rect());
 				Redraw(surface);
 
 				Rect rect2 = Area;
@@ -1644,7 +1644,7 @@ void MSPCXAnim::Redraw(Surface * surface, const Rect * rect)
 void MSPCXAnim::Restore(const Rect & rect)
 {
 	if (Image != NULL && Active) {
-		TargetSurface->Blit_From(Area, *Image, Image->Get_Rect());
+		AlternateSurface->Blit_From(Area, *Image, Image->Get_Rect());
 	}
 }
 
