@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$(git rev-parse --show-toplevel)/.agents/hooks/style-rules.py\"",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.agents/hooks/style-rules.py\" || python \"$(git rev-parse --show-toplevel)/.agents/hooks/style-rules.py\"",
             "timeout": 15,
             "statusMessage": "Applying writing style rules",
             "additionalContextLimit": 6000
@@ -20,7 +20,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$(git rev-parse --show-toplevel)/.agents/hooks/style-rules.py\"",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.agents/hooks/style-rules.py\" || python \"$(git rev-parse --show-toplevel)/.agents/hooks/style-rules.py\"",
             "timeout": 15,
             "statusMessage": "Loading writing style rules",
             "additionalContextLimit": 6000
@@ -34,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$(git rev-parse --show-toplevel)/.agents/hooks/style-rules.py\"",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.agents/hooks/style-rules.py\" || python \"$(git rev-parse --show-toplevel)/.agents/hooks/style-rules.py\"",
             "timeout": 15,
             "statusMessage": "Restoring writing style rules",
             "additionalContextLimit": 6000

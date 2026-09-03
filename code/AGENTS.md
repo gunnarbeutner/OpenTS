@@ -7,7 +7,8 @@ instructions in [`../AGENTS.md`](../AGENTS.md).
 
 - Use [`../docs/BUILDING.md`](../docs/BUILDING.md) for supported build paths.
 - Use [`../docs/STYLE.md`](../docs/STYLE.md) for source conventions.
-- Read the relevant implementation, callers, data paths, and tests first.
+- Read the task-relevant implementation, callers, data paths, and tests before
+  editing.
 
 ## Language and change discipline
 
@@ -103,3 +104,16 @@ A clear private helper needs no comment:
 -// Rebuilds the lookup table.
  void Rebuild_Lookup_Table();
 ```
+
+## Documentation, validation, and handoff
+
+- Update the owning user or developer documentation with every material source
+  change. If no update is required, state why the existing documentation
+  remains accurate.
+- Run the narrowest relevant checks first, followed by the supported build or
+  test suite when the change warrants it.
+- Report exact commands, configurations, environments, results, and relevant
+  checks not run. Never turn an unverified result into a support claim.
+- Behavior changes require focused evidence and corresponding documentation.
+- Automated checks must not require proprietary game assets or original game
+  executables.
