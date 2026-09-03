@@ -673,12 +673,12 @@ int RawFileClass::Size(void)
 
 	} else {
 
-		/*
-		**	If the file wasn't open, then open the file and call this routine again. Count on
-		**	the fact that the open function must succeed.
-		*/
+		// BufferIOFileClass::Open reports success even when the file could not
+		// be found, so Is_Open() guards the recursion.
 		if (Open()) {
-			size = Size();
+			if (Is_Open()) {
+				size = Size();
+			}
 
 			/*
 			**	Since we needed to open the file we must remember to close the file when the
