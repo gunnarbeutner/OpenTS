@@ -1622,6 +1622,11 @@ void RadarClass::Render_Tracked_Objects(void)
 
 		int count = bucket.Count();
 
+		// An empty bucket has no element to take the address of.
+		if (count == 0) {
+			continue;
+		}
+
 		RADAR_HASH_TABLE::ObjectType *ptr = &bucket[0];
 
 		for (int t = 0; t < count; t++) {
