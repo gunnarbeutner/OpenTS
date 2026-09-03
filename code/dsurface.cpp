@@ -76,7 +76,6 @@ unsigned short DSurface::HalfbrightMask = 0;
 unsigned short DSurface::QuarterbrightMask = 0;
 unsigned short DSurface::EighthbrightMask = 0;
 
-bool DSurface::AllowStretchBlits = true;
 int DSurface::PrimaryColorMode = COLORMODE_565;
 
 
@@ -454,9 +453,9 @@ bool DSurface::Unlock(void) const
  * HISTORY:                                                                                    *
  *   02/07/1997 JLB : Created.                                                                 *
  *=============================================================================================*/
-bool DSurface::Blit_From(Rect const & destrect, Surface const & ssource, Rect const & sourcerect, bool trans, bool unknown)
+bool DSurface::Blit_From(Rect const & destrect, Surface const & ssource, Rect const & sourcerect, bool trans, bool unknown, SurfaceFilterType filter)
 {
-	return(Blit_From(Get_Rect(), destrect, ssource, ssource.Get_Rect(), sourcerect, trans, unknown));
+	return(Blit_From(Get_Rect(), destrect, ssource, ssource.Get_Rect(), sourcerect, trans, unknown, filter));
 }
 
 
@@ -488,52 +487,28 @@ bool DSurface::Blit_From(Rect const & destrect, Surface const & ssource, Rect co
  * HISTORY:                                                                                    *
  *   05/27/1997 JLB : Created.                                                                 *
  *=============================================================================================*/
-bool DSurface::Blit_From(Rect const & dcliprect, Rect const & destrect, Surface const & ssource, Rect const & scliprect, Rect const & sourcerect, bool trans, bool unknown)
+bool DSurface::Blit_From(Rect const & dcliprect, Rect const & destrect, Surface const & ssource, Rect const & scliprect, Rect const & sourcerect, bool trans, bool unknown, SurfaceFilterType filter)
 {
 	if (!dcliprect.Is_Valid() || !scliprect.Is_Valid() || !destrect.Is_Valid() || !sourcerect.Is_Valid()) return(false);
 
-	bool samesize = (sourcerect.Width == destrect.Width && sourcerect.Height == destrect.Height);
-
-	/*
-	 * The software blitter handles everything except a size change between two of these
-	 * surfaces, which GDI stretches instead.
-	 */
-	if (trans || !ssource.Is_GDI_Backed() || samesize) {
-		bool result = BASECLASS::Blit_From(dcliprect, destrect, ssource, scliprect, sourcerect, trans, unknown);
-		if (result && IsPrimary) {
-			Video_Mark_Dirty();
-		}
-		return(result);
-	}
-
-	DSurface const & source = (DSurface const &)ssource;
-
-	if (GDIDC == NULL || source.GDIDC == NULL) {
-		return(false);
-	}
-
-	Rect drect = destrect.Bias_To(dcliprect);
-	Rect srect = sourcerect.Bias_To(scliprect);
-
-	drect = Intersect(drect, Intersect(dcliprect, Get_Rect()));
-	if (!drect.Is_Valid()) return(false);
-
-	/*
-	 * Both sets of pixels are read and written directly elsewhere, so any drawing GDI
-	 * still holds has to land first.
-	 */
-	GdiFlush();
-
-	SetStretchBltMode(GDIDC, COLORONCOLOR);
-	bool result = StretchBlt(GDIDC, drect.X, drect.Y, drect.Width, drect.Height,
-		source.GDIDC, srect.X, srect.Y, srect.Width, srect.Height, SRCCOPY) != 0;
-
-	GdiFlush();
-
+	bool result = BASECLASS::Blit_From(dcliprect, destrect, ssource, scliprect, sourcerect, trans, unknown, filter);
 	if (result && IsPrimary) {
 		Video_Mark_Dirty();
 	}
+	return(result);
+}
 
+
+/// <summary>
+/// Writes only the part of a scaling blit that falls inside region.
+/// </summary>
+/// <returns>bool; Was anything written?</returns>
+bool DSurface::Blit_Scaled_Region(Rect const & destrect, Surface const & ssource, Rect const & sourcerect, Rect const & region, SurfaceFilterType filter)
+{
+	bool result = BASECLASS::Blit_Scaled_Region(destrect, ssource, sourcerect, region, filter);
+	if (result && IsPrimary) {
+		Video_Mark_Dirty();
+	}
 	return(result);
 }
 

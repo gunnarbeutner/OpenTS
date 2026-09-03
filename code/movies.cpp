@@ -93,10 +93,15 @@ void Movie_Blit_To_Screen(void)
 		area.Set(CurrentVQ->StretchRect.X, CurrentVQ->StretchRect.Y,
 			CurrentVQ->StretchRect.Width, CurrentVQ->StretchRect.Height);
 
+		// A movie frame is photographic, so a stretched one is resampled
+		// smoothly.
 		VisibleSurface->Blit_From(
 			area,
 			*CurrentVQ->DrawSurface,
-			CurrentVQ->InitialRect
+			CurrentVQ->InitialRect,
+			false,
+			true,
+			SURFACE_FILTER_SMOOTH
 		);
 
 		MovieSkip::Draw_Overlay(*VisibleSurface, area);

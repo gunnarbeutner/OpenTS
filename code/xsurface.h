@@ -50,9 +50,11 @@ class XSurface : public Surface
 		/*
 		**	Copies regions from one surface to another.
 		*/
-		virtual bool Blit_From(Rect const & dcliprect, Rect const & destrect, Surface const & source, Rect const & scliprect, Rect const & sourcerect, bool trans=false, bool =true) override;
-		virtual bool Blit_From(Rect const & destrect, Surface const & source, Rect const & sourcerect, bool trans=false, bool unknown=true) override;
+		virtual bool Blit_From(Rect const & dcliprect, Rect const & destrect, Surface const & source, Rect const & scliprect, Rect const & sourcerect, bool trans=false, bool =true, SurfaceFilterType filter=SURFACE_FILTER_POINT) override;
+		virtual bool Blit_From(Rect const & destrect, Surface const & source, Rect const & sourcerect, bool trans=false, bool unknown=true, SurfaceFilterType filter=SURFACE_FILTER_POINT) override;
 		virtual bool Blit_From(Surface const & source, bool trans=false, bool unknown=true) override;
+
+		virtual bool Blit_Scaled_Region(Rect const & destrect, Surface const & source, Rect const & sourcerect, Rect const & region, SurfaceFilterType filter=SURFACE_FILTER_POINT) override;
 
 		/*
 		**	Fills a region with a constant color.
@@ -137,6 +139,15 @@ class XSurface : public Surface
 		*/
 		static bool Blit_Trans(Surface & dest, Rect const & destrect, Surface const & source, Rect const & sourcerect);
 		static bool Blit_Plain(Surface & dest, Rect const & destrect, Surface const & source, Rect const & sourcerect);
+		static bool Blit_Scaled(Surface & dest, Rect const & destrect, Surface const & source, Rect const & sourcerect, bool trans, SurfaceFilterType filter=SURFACE_FILTER_POINT, Rect const * destregion=NULL);
+
+		/*
+		 * The widest neighborhood a resampling blit reads for one destination
+		 * pixel, and so how far a change to the source reaches.
+		 */
+		enum {
+			RESAMPLE_MAX_TAPS = 8
+		};
 
 	protected:
 		/*

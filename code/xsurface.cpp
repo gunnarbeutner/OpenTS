@@ -52,8 +52,11 @@
 #include "blit.h"
 #include "blitblit.h"
 
+#include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <utility>
+#include <vector>
 
 /***********************************************************************************************
  * XSurface::Draw_Line -- Draws a line upon the surface.                                       *
@@ -1233,9 +1236,9 @@ bool XSurface::Blit_From(Surface const & source, bool trans, bool unknown)
  * HISTORY:                                                                                    *
  *   02/07/1997 JLB : Created.                                                                 *
  *=============================================================================================*/
-bool XSurface::Blit_From(Rect const & destrect, Surface const & source, Rect const & sourcerect, bool trans, bool unknown)
+bool XSurface::Blit_From(Rect const & destrect, Surface const & source, Rect const & sourcerect, bool trans, bool unknown, SurfaceFilterType filter)
 {
-	return(XSurface::Blit_From(Get_Rect(), destrect, source, source.Get_Rect(), sourcerect, trans, unknown));
+	return(XSurface::Blit_From(Get_Rect(), destrect, source, source.Get_Rect(), sourcerect, trans, unknown, filter));
 }
 
 
@@ -1266,7 +1269,7 @@ bool XSurface::Blit_From(Rect const & destrect, Surface const & source, Rect con
  * HISTORY:                                                                                    *
  *   05/27/1997 JLB : Created.                                                                 *
  *=============================================================================================*/
-bool XSurface::Blit_From(Rect const & dcliprect, Rect const & destrect, Surface const & source, Rect const & scliprect, Rect const & sourcerect, bool trans, bool)
+bool XSurface::Blit_From(Rect const & dcliprect, Rect const & destrect, Surface const & source, Rect const & scliprect, Rect const & sourcerect, bool trans, bool, SurfaceFilterType filter)
 {
 	Rect drect = destrect;
 	Rect srect = sourcerect;
@@ -1277,12 +1280,30 @@ bool XSurface::Blit_From(Rect const & dcliprect, Rect const & destrect, Surface 
 	*/
 	if (Blit_Clip(drect, dcliprect, srect, scliprect)) {
 
+		if (drect.Width != srect.Width || drect.Height != srect.Height) {
+			return(Blit_Scaled(*this, drect, source, srect, trans, filter));
+		}
 		if (trans) {
 			return(Blit_Trans(*this, drect, source, srect));
 		}
 		return(Blit_Plain(*this, drect, source, srect));
 	}
 	return(false);
+}
+
+
+/// <summary>
+/// Writes one region of what a scaling blit of the two rectangles would have
+/// produced, so a magnified picture can be repainted a piece at a time;
+/// returns whether anything was written.
+/// </summary>
+bool XSurface::Blit_Scaled_Region(Rect const & destrect, Surface const & source, Rect const & sourcerect, Rect const & region, SurfaceFilterType filter)
+{
+	if (!destrect.Is_Valid() || !sourcerect.Is_Valid() || !region.Is_Valid()) {
+		return(false);
+	}
+
+	return(Blit_Scaled(*this, destrect, source, sourcerect, false, filter, &region));
 }
 
 
@@ -1634,6 +1655,316 @@ bool XSurface::Blit_Trans(Surface & dest, Rect const & destrect, Surface const &
 		return(Bit_Blit(dest, destrect, source, sourcerect, BlitTrans<unsigned char>()));
 	}
 	return(Bit_Blit(dest, destrect, source, sourcerect, BlitTrans<unsigned short>()));
+}
+
+
+// Only 'window', in the destination rectangle's own coordinates, is written,
+// and the accumulators are seeded as the whole blit would have reached its
+// corner, so a pixel comes out the same value whichever window covered it.
+template<class T>
+static bool Scaled_Rows(Surface & dest, void * dbuffer, Rect const & drect, Surface const & source, void const * sbuffer, Rect const & srect, Rect const & window, bool trans)
+{
+	BlitPlain<T> plain;
+	BlitTrans<T> transparent;
+	Blitter const & blitter = trans ? (Blitter const &)transparent : (Blitter const &)plain;
+
+	std::vector<T> row(window.Width);
+
+	int xstep = (srect.Width << 16) / drect.Width;
+	int ystep = (srect.Height << 16) / drect.Height;
+
+	char * to = ((char *)dbuffer) + (size_t)window.Y * dest.Stride() + (size_t)window.X * sizeof(T);
+	int line = window.Y * ystep;
+	int taken = -1;
+
+	for (int y = 0; y < window.Height; y++) {
+
+		// A row is gathered only when the source row beneath the destination
+		// changes.
+		if ((line >> 16) != taken) {
+			taken = line >> 16;
+			T const * from = (T const *)(((char const *)sbuffer) + taken * source.Stride());
+			int column = window.X * xstep;
+			for (int x = 0; x < window.Width; x++) {
+				row[x] = from[column >> 16];
+				column += xstep;
+			}
+		}
+
+		blitter.BlitForward(to, row.data(), window.Width);
+		to += dest.Stride();
+		line += ystep;
+	}
+
+	return(true);
+}
+
+
+// A magnifying blit uses four taps for the smooth filter and seven for the
+// sharp one; the rest of RESAMPLE_MAX_TAPS is for shrinking, where the window
+// has to grow with the ratio or the result aliases.
+enum {
+	RESAMPLE_MAX_TAPS = XSurface::RESAMPLE_MAX_TAPS
+};
+
+static double const RESAMPLE_PI = 3.14159265358979323846;
+
+
+static double Resample_Tent(double distance)
+{
+	return(distance < 1.0 ? 1.0 - distance : 0.0);
+}
+
+
+static double Resample_Sinc(double distance)
+{
+	if (distance < 1.0e-9) {
+		return(1.0);
+	}
+	double const angle = RESAMPLE_PI * distance;
+	return(std::sin(angle) / angle);
+}
+
+
+// A sinc windowed by three lobes of a wider sinc; it overshoots at a step
+// because a band limited signal has no other way to hold one.
+static double Resample_Lanczos3(double distance)
+{
+	if (distance >= 3.0) {
+		return(0.0);
+	}
+	return(Resample_Sinc(distance) * Resample_Sinc(distance / 3.0));
+}
+
+
+// Blur above one low passes below what reconstruction needs, so the filter
+// takes out something the source carries rather than rebuilding it.
+struct ResampleFilter
+{
+	double (*Weigh)(double distance);
+	double Radius;
+	double Blur;
+};
+
+
+// The tent is widened to 1.4 to take out the ordered dither a 16 bit picture
+// carries at its Nyquist frequency without discarding the structure band of a
+// movie frame; Lanczos stays at the sampling rate because artwork carries no
+// dither.
+static ResampleFilter const _ResampleFilters[] = {
+	{ Resample_Tent, 1.0, 1.4 },
+	{ Resample_Lanczos3, 3.0, 1.0 }
+};
+
+
+// Null for a name that asks for no resampling.
+static ResampleFilter const * Resample_Filter(SurfaceFilterType filter)
+{
+	switch (filter) {
+		case SURFACE_FILTER_SMOOTH:
+			return(&_ResampleFilters[0]);
+
+		case SURFACE_FILTER_SHARP:
+			return(&_ResampleFilters[1]);
+
+		default:
+			return(NULL);
+	}
+}
+
+
+// The indices are already clamped to the source rectangle, and the weights
+// are 8 bit fractions summing to exactly 256, negative where the kernel has
+// negative lobes.
+struct ResampleAxis
+{
+	int Taps;
+	std::vector<int> Index;
+	std::vector<short> Weight;
+};
+
+
+// Every entry is placed against the full extents, so a run describes the
+// same taps the whole axis would have given it.
+static void Build_Resample_Axis(ResampleAxis & axis, ResampleFilter const & filter, int dstextent, int srcextent, int first, int count)
+{
+	double ratio = (double)srcextent / (double)dstextent;
+	double scale = (ratio > 1.0 ? ratio : 1.0) * filter.Blur;
+	double support = scale * filter.Radius;
+
+	int taps = (int)std::ceil(support * 2.0) + 1;
+	if (taps > RESAMPLE_MAX_TAPS) {
+		taps = RESAMPLE_MAX_TAPS;
+		support = (double)(taps - 1) / 2.0;
+		scale = support / filter.Radius;
+	}
+
+	axis.Taps = taps;
+	axis.Index.resize((size_t)count * taps);
+	axis.Weight.resize((size_t)count * taps);
+
+	for (int i = 0; i < count; i++) {
+		double centre = ((double)(first + i) + 0.5) * ratio - 0.5;
+		int start = (int)std::ceil(centre - support);
+
+		double raw[RESAMPLE_MAX_TAPS];
+		double total = 0.0;
+		for (int t = 0; t < taps; t++) {
+			raw[t] = filter.Weigh(std::fabs((double)(start + t) - centre) / scale);
+			total += raw[t];
+		}
+
+		// Weights sum to exactly 256 so identical source pixels come back as
+		// themselves; the rounding remainder goes to the heaviest tap.
+		int sum = 0;
+		int heaviest = 0;
+		for (int t = 0; t < taps; t++) {
+			int weight = (int)std::lround(raw[t] / total * 256.0);
+			axis.Weight[(size_t)i * taps + t] = (short)weight;
+			axis.Index[(size_t)i * taps + t] = std::clamp(start + t, 0, srcextent - 1);
+			if (weight > axis.Weight[(size_t)i * taps + heaviest]) {
+				heaviest = t;
+			}
+			sum += weight;
+		}
+		axis.Weight[(size_t)i * taps + heaviest] = (short)(axis.Weight[(size_t)i * taps + heaviest] + (256 - sum));
+	}
+}
+
+
+// The horizontal pass is kept in a ring as long as the vertical pass has
+// taps, so a source row is filtered once; the pixels are 16 bit 565, the only
+// format the engine's surfaces have.
+static bool Smooth_Rows(Surface & dest, void * dbuffer, Rect const & drect, Surface const & source, void const * sbuffer, Rect const & srect, Rect const & window, ResampleFilter const & filter)
+{
+	ResampleAxis across;
+	ResampleAxis down;
+
+	Build_Resample_Axis(across, filter, drect.Width, srect.Width, window.X, window.Width);
+	Build_Resample_Axis(down, filter, drect.Height, srect.Height, window.Y, window.Height);
+
+	int htaps = across.Taps;
+	int vtaps = down.Taps;
+
+	std::vector<int> ring((size_t)vtaps * window.Width * 3, 0);
+	std::vector<int> held(vtaps, -1);
+
+	for (int y = 0; y < window.Height; y++) {
+
+		int const * vindex = &down.Index[(size_t)y * vtaps];
+		short const * vweight = &down.Weight[(size_t)y * vtaps];
+
+		// The rows a destination row draws on are fewer than the ring is long,
+		// so each source row keeps to one slot.
+		for (int t = 0; t < vtaps; t++) {
+			int srow = vindex[t];
+			int slot = srow % vtaps;
+			if (held[slot] == srow) {
+				continue;
+			}
+			held[slot] = srow;
+
+			unsigned short const * from = (unsigned short const *)(((char const *)sbuffer) + (size_t)srow * source.Stride());
+			int * to = &ring[(size_t)slot * window.Width * 3];
+			int const * hindex = across.Index.data();
+			short const * hweight = across.Weight.data();
+
+			for (int x = 0; x < window.Width; x++) {
+				int red = 0;
+				int green = 0;
+				int blue = 0;
+				for (int k = 0; k < htaps; k++) {
+					unsigned int pixel = from[hindex[k]];
+					int weight = hweight[k];
+					red += (int)((pixel >> 11) & 0x1F) * weight;
+					green += (int)((pixel >> 5) & 0x3F) * weight;
+					blue += (int)(pixel & 0x1F) * weight;
+				}
+				to[0] = red;
+				to[1] = green;
+				to[2] = blue;
+				to += 3;
+				hindex += htaps;
+				hweight += htaps;
+			}
+		}
+
+		int const * rows[RESAMPLE_MAX_TAPS];
+		for (int t = 0; t < vtaps; t++) {
+			rows[t] = &ring[(size_t)(vindex[t] % vtaps) * window.Width * 3];
+		}
+
+		unsigned short * out = (unsigned short *)(((char *)dbuffer) + (size_t)(window.Y + y) * dest.Stride()) + window.X;
+
+		for (int x = 0; x < window.Width; x++) {
+			int red = 0;
+			int green = 0;
+			int blue = 0;
+			for (int t = 0; t < vtaps; t++) {
+				int const * row = rows[t] + (size_t)x * 3;
+				int weight = vweight[t];
+				red += row[0] * weight;
+				green += row[1] * weight;
+				blue += row[2] * weight;
+			}
+
+			// A kernel with negative lobes overshoots at an edge, so the
+			// channels are clamped rather than wrapped.
+			out[x] = (unsigned short)((std::clamp((red + 32768) >> 16, 0, 0x1F) << 11)
+						| (std::clamp((green + 32768) >> 16, 0, 0x3F) << 5)
+						| std::clamp((blue + 32768) >> 16, 0, 0x1F));
+		}
+	}
+
+	return(true);
+}
+
+
+/// <summary>
+/// Blits a rectangle onto a destination rectangle of a different size,
+/// resampled by the filter asked for; a paletted surface or a transparent
+/// blit falls back to nearest neighbor. The rectangles are scaled as they
+/// stand, so boundary clipping must happen first, and a region restricts
+/// what is written without changing what is computed.
+/// </summary>
+bool XSurface::Blit_Scaled(Surface & dest, Rect const & destrect, Surface const & source, Rect const & sourcerect, bool trans, SurfaceFilterType filter, Rect const * destregion)
+{
+	Rect drect = destrect;
+	Rect srect = sourcerect;
+	bool overlapped = false;
+	void * dbuffer = NULL;
+	void * sbuffer = NULL;
+
+	if (!Prep_For_Blit(dest, drect, source, srect, overlapped, dbuffer, sbuffer)) {
+		return(false);
+	}
+
+	Rect window(0, 0, drect.Width, drect.Height);
+	if (destregion != NULL) {
+		Rect const region = Intersect(*destregion, drect);
+		window = Rect(region.X - drect.X, region.Y - drect.Y, region.Width, region.Height);
+	}
+
+	ResampleFilter const * resample = Resample_Filter(filter);
+
+	bool smooth = resample != NULL && !trans
+					&& dest.Bytes_Per_Pixel() == 2 && source.Bytes_Per_Pixel() == 2;
+
+	bool result = false;
+	if (window.Is_Valid()) {
+		if (smooth) {
+			result = Smooth_Rows(dest, dbuffer, drect, source, sbuffer, srect, window, *resample);
+		} else {
+			result = dest.Bytes_Per_Pixel() == 1
+				? Scaled_Rows<unsigned char>(dest, dbuffer, drect, source, sbuffer, srect, window, trans)
+				: Scaled_Rows<unsigned short>(dest, dbuffer, drect, source, sbuffer, srect, window, trans);
+		}
+	}
+
+	dest.Unlock();
+	source.Unlock();
+
+	return(result);
 }
 
 

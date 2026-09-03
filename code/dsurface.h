@@ -74,9 +74,11 @@ class DSurface : public XSurface
 		/*
 		**	Copies regions from one surface to another.
 		*/
-		virtual bool Blit_From(Rect const & dcliprect, Rect const & destrect, Surface const & source, Rect const & scliprect, Rect const & sourcerect, bool trans=false, bool unknown=true) override;
-		virtual bool Blit_From(Rect const & destrect, Surface const & source, Rect const & sourcerect, bool trans=false, bool unknown=true) override;
+		virtual bool Blit_From(Rect const & dcliprect, Rect const & destrect, Surface const & source, Rect const & scliprect, Rect const & sourcerect, bool trans=false, bool unknown=true, SurfaceFilterType filter=SURFACE_FILTER_POINT) override;
+		virtual bool Blit_From(Rect const & destrect, Surface const & source, Rect const & sourcerect, bool trans=false, bool unknown=true, SurfaceFilterType filter=SURFACE_FILTER_POINT) override;
 		virtual bool Blit_From(Surface const & source, bool trans=false, bool unknown=true) override {return(BASECLASS::Blit_From(source, trans, unknown));}
+
+		virtual bool Blit_Scaled_Region(Rect const & destrect, Surface const & source, Rect const & sourcerect, Rect const & region, SurfaceFilterType filter=SURFACE_FILTER_POINT) override;
 
 		/*
 		**	Fills a region with a constant color.
@@ -114,7 +116,8 @@ class DSurface : public XSurface
 
 		/*
 		 * This surface owns a device context, so GetDC yields one that draws on these
-		 * same pixels.
+		 * same pixels. A page has no GDI, so there the callers that draw text
+		 * through a device context stand down.
 		 */
 #if defined(OPENTS_WIN32_SUBSTITUTE)
 		virtual bool Is_GDI_Backed(void) const override {return(false);}
@@ -123,12 +126,6 @@ class DSurface : public XSurface
 #endif
 
 		virtual bool Can_Blit(void) const;
-
-		/*
-		 * The movie player scales to the full screen only when this is true. Surfaces
-		 * stretch in software now, so it always is.
-		 */
-		static bool AllowStretchBlits;
 
 		/*
 		 * The bit layout that the primary surface packs its color guns into. The
