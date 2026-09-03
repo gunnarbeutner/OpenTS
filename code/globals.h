@@ -311,6 +311,11 @@ extern bool TacticalActive;
 
 extern CDTimerClass<FrameTimerClass> TournamentTimer;
 
-extern char Debug_ScenarioName[];
+extern char Debug_ScenarioName[128];
+extern char Debug_CampaignName[32];
+
+// The frame a mission is won on regardless of what is happening in it, or
+// zero to play it out; -WINAFTER= sets it.
+extern int Debug_WinAfter;
 
 extern Buffer * UnkBuffer;

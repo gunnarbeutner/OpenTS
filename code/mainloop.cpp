@@ -350,6 +350,13 @@ bool Main_Loop(void)
 
 	Call_Back();
 
+	// Read here so that a command line win goes through everything a real one
+	// does.
+	if (Debug_WinAfter > 0 && Frame >= Debug_WinAfter) {
+		Debug_WinAfter = 0;
+		PlayerWins = true;
+	}
+
 	bool done = false;
 	if (PlayerWins || PlayerLoses || PlayerRestarts || PlayerAborts) {
 		Unlock_Scenario_Input();

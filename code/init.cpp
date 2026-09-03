@@ -864,6 +864,25 @@ static CampaignType Choose_Campaign(void)
 
 
 /// <summary>
+/// Returns the campaign named on the command line for a forced scenario, or
+/// CAMPAIGN_NONE; the campaign decides the closing movie and the campaign
+/// number a save records.
+/// </summary>
+static CampaignType Forced_Campaign(void)
+{
+	if (Debug_CampaignName[0] == '\0') {
+		return(CAMPAIGN_NONE);
+	}
+
+	if (Campaigns.Count() == 0) {
+		Init_Campaigns();
+	}
+
+	return(CampaignClass::From_Name(Debug_CampaignName));
+}
+
+
+/// <summary>
 /// Loads the rules and the art control files.
 /// This routine gathers every rules file it can find and, should there be more than one,
 /// asks the player which of them to play with. It then loads the art, expansion, AI and
@@ -1161,11 +1180,17 @@ restart:
 				case SEL_CAMPAIGN_GAME: {
 					new (&Environment) EnvironmentClass;
 
-					Scen->Campaign = Choose_Campaign();
-					if (Scen->Campaign == CAMPAIGN_NONE) {
-						process = true;
-						selection = SEL_NONE;
-						break;
+					// A forced scenario has already answered the campaign
+					// dialog.
+					if (Debug_ForceScenario) {
+						Scen->Campaign = Forced_Campaign();
+					} else {
+						Scen->Campaign = Choose_Campaign();
+						if (Scen->Campaign == CAMPAIGN_NONE) {
+							process = true;
+							selection = SEL_NONE;
+							break;
+						}
 					}
 
 					Theme.Stop(true);
@@ -1416,7 +1441,7 @@ restart:
 			Session.CampaignCDifficulty = (DiffType)(DIFF_COUNT - 1 - Options.Difficulty);
 		}
 
-		if (Session.Type != GAME_NORMAL || Debug_ForceScenario || Session.Play || Spawner_Is_Active()) {
+		if (Session.Type != GAME_NORMAL || Session.Play || Spawner_Is_Active()) {
 			if (!Start_Scenario(Scen->ScenarioName, true, Spawner_Is_Active() ? Scen->Campaign : CAMPAIGN_NONE)) {
 				if (Debug_Map) {
 					return(false);
@@ -1425,7 +1450,9 @@ restart:
 				}
 			}
 		} else {
-			if (!Start_Scenario(Campaigns[Scen->Campaign]->ScenarioName, true, Scen->Campaign)) {
+			// Start_Scenario picks the forced scenario or the campaign's
+			// first one.
+			if (!Start_Scenario(NULL, true, Scen->Campaign)) {
 				if (Debug_Map) {
 					return(false);
 				} else {
@@ -1702,6 +1729,28 @@ bool Parse_Command_Line(int argc, char * argv[])
 
 		if (memcmp(string, "-TIME=", 6) == 0) {
 			sscanf(&string[6], "%d", &TournamentTime);
+		}
+
+		// The name is the scenario's file name as the battle control file
+		// spells it, such as "GDI1A.MAP".
+		if (memcmp(string, "-SCENARIO=", strlen("-SCENARIO=")) == 0) {
+			strncpy(Debug_ScenarioName, &string[strlen("-SCENARIO=")], sizeof(Debug_ScenarioName) - 1);
+			Debug_ScenarioName[sizeof(Debug_ScenarioName) - 1] = '\0';
+			Debug_ForceScenario = (Debug_ScenarioName[0] != '\0');
+			continue;
+		}
+
+		// The battle name as the battle control file spells it, such as "GDI1";
+		// without one the forced scenario is played on its own.
+		if (memcmp(string, "-CAMPAIGN=", strlen("-CAMPAIGN=")) == 0) {
+			strncpy(Debug_CampaignName, &string[strlen("-CAMPAIGN=")], sizeof(Debug_CampaignName) - 1);
+			Debug_CampaignName[sizeof(Debug_CampaignName) - 1] = '\0';
+			continue;
+		}
+
+		if (memcmp(string, "-WINAFTER=", strlen("-WINAFTER=")) == 0) {
+			Debug_WinAfter = atoi(&string[strlen("-WINAFTER=")]);
+			continue;
 		}
 
 		if (strstr(string, "-MPDEBUG")) {
