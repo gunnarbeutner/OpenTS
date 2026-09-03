@@ -57,13 +57,14 @@ GraphicMenuItem *GM_Create_Item_From_INI(const char * name, INIClass const & ini
 
 /// <summary>
 /// Constructor for a graphic menu item.
-/// The item starts out enabled, unhighlighted, and with no select sound of its own.
+/// It starts out visible, enabled, unhighlighted, and with no select sound.
 /// </summary>
 /// <param name="id">The identifier the menu uses to tell this item from its fellows.</param>
 GraphicMenuItem::GraphicMenuItem(int id) :
 	ID(id),
 	Selected(false),
 	Enabled(true),
+	Visible(true),
 	SelectSound(NULL)
 {
 }
@@ -113,6 +114,19 @@ void GraphicMenuItem::Set_Enabled(bool enabled)
 
 
 /// <summary>
+/// Sets whether this item appears on the page; On_Visible_Change fires only
+/// when the state changes.
+/// </summary>
+void GraphicMenuItem::Set_Visible(bool visible)
+{
+	if (visible != Visible) {
+		Visible = visible;
+		On_Visible_Change(visible);
+	}
+}
+
+
+/// <summary>
 /// Handles a change to this item's selected state.
 /// The base item has nothing to do. Derived items override this routine when they must
 /// adjust their appearance as the menu highlight moves on or off them.
@@ -129,6 +143,16 @@ void GraphicMenuItem::On_Selected_Change(bool)
 /// swap artwork or drop a highlight as they are turned on and off.
 /// </summary>
 void GraphicMenuItem::On_Enabled_Change(bool)
+{
+	//nothing
+}
+
+
+/// <summary>
+/// Called when the item is taken off the page or put back; derived items
+/// that draw override it to remove their artwork.
+/// </summary>
+void GraphicMenuItem::On_Visible_Change(bool)
 {
 	//nothing
 }

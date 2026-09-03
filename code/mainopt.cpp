@@ -30,6 +30,7 @@
 #include "msgbox.h"
 #include "newmenu.h"
 #include "ownrdraw.h"
+#include "screenlayout.h"
 #include "sidebar.h"
 #include "sounddlg.h"
 #include "stimer.h"
@@ -49,6 +50,22 @@ static void Display_Options_Dialog(void);
 GameOptionsClass TempOptions;
 
 
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+// The frame follows the window on this target, so the dialog offers interface
+// scales in place of display modes.
+static struct {
+	char const * Name;
+	int Scale;
+} const _InterfaceSizes[] = {
+	{"Automatic", 0},
+	{"Small (1x)", 1},
+	{"Normal (2x)", 2},
+	{"Large (3x)", 3},
+	{"Largest (4x)", 4}
+};
+
+static_assert(UI_SCALE_MAX == 4, "the interface size list names one entry for each scale");
+#endif
 
 
 /// <summary>
@@ -145,6 +162,22 @@ static void Display_Options_Dialog(void)
 			break;
 		}
 
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+		if (TempOptions.UIScale != Options.UIScale) {
+			Options.UIScale = TempOptions.UIScale;
+
+			// The surfaces are built from the scale, so changing it takes the
+			// rebuild a resolution change makes.
+			Hide_Mouse();
+			HiddenSurface->Fill(TBLACK);
+			Update_Visible_Surface();
+
+			Change_Display_Mode(Options.ScreenWidth, Options.ScreenHeight);
+
+			Show_Mouse();
+			Draw_Menu_Background();
+		}
+#else
 		if (TempOptions.ScreenWidth == Options.ScreenWidth && TempOptions.ScreenHeight == Options.ScreenHeight) {
 			break;
 		}
@@ -156,6 +189,7 @@ static void Display_Options_Dialog(void)
 			Options.ScreenWidth = TempOptions.ScreenWidth;
 			Options.ScreenHeight = TempOptions.ScreenHeight;
 		}
+#endif
 
 		break;
 	}
@@ -293,13 +327,10 @@ bool Change_Display_Mode(int width, int height)
 		SetWindowPos(MainWindow, NULL, x, y, newwidth, newheight, SWP_NOZORDER);
 	}
 
-	Rect temp = VisibleRect;
-	temp.X = ((Options.IsSidebarOnRight || Debug_Map) ? 0 : SidebarClass::SIDE_WIDTH);
-	temp.Y = 16;
-	temp.Width -= SidebarClass::SIDE_WIDTH;
-	temp.Height -= 16;
+	ScreenLayout const layout = Compute_Screen_Layout(VisibleRect);
+	Rect temp = layout.Tactical;
 
-	Allocate_Surfaces(VisibleRect, Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, SidebarClass::SIDE_WIDTH, VisibleRect.Height));
+	Allocate_Surfaces(layout.Hidden, layout.Composite, layout.Tile, layout.Sidebar);
 	LogicalSurface = HiddenSurface;
 
 	if (MouseCursor != NULL) {
@@ -414,13 +445,14 @@ INT_PTR CALLBACK Test_Display_Mode_Dialog_Proc(HWND window, UINT message, WPARAM
 
 /// <summary>
 /// Handles the display options dialog messages.
-/// This routine fills the resolution list with the display modes the hardware reports,
-/// remembers which one the player picked, and tracks the movie stretching preference. The
-/// chosen resolution is staged in the temporary options so that it can be tested before
-/// being made permanent.
+/// This routine fills the dialog's list, remembers which entry the player
+/// picked, and tracks the movie stretching preference. The list offers display
+/// modes, or interface sizes where the frame follows the window. Either answer
+/// is staged in the temporary options.
 /// </summary>
 static __forceinline BOOL Display_Options_Dialog_Body(HWND window, UINT message, WPARAM wparam)
 {
+#if !defined(OPENTS_WIN32_SUBSTITUTE)
 	enum {
 		MIN_WIDTH = 640,
 		MIN_HEIGHT = 400,
@@ -429,6 +461,7 @@ static __forceinline BOOL Display_Options_Dialog_Body(HWND window, UINT message,
 	};
 
 	static int * _modes = NULL;
+#endif
 	static int _current_mode = -1;
 	static int _previous_mode = -1;
 	static bool _initialized = true;
@@ -448,35 +481,59 @@ static __forceinline BOOL Display_Options_Dialog_Body(HWND window, UINT message,
 
 				case IDOK: {
 					if (_previous_mode != _current_mode) {
-						Center_Window_Within_Window(window, MainWindow);
 						HWND list = GetDlgItem(window, IDC_DISPLAY_RESLIST);
 						if (list) {
 							int index = ListBox_GetItemData(list, _current_mode);
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+							TempOptions.UIScale = _InterfaceSizes[index].Scale;
+#else
+							Center_Window_Within_Window(window, MainWindow);
 							int * modes = &_modes[2 * index];
 							TempOptions.ScreenWidth = modes[0];
 							TempOptions.ScreenHeight = modes[1];
+#endif
 						}
 					}
+#if !defined(OPENTS_WIN32_SUBSTITUTE)
 					HWND button = GetDlgItem(window, IDC_STRETCH_MOVIES);
 					if (button) {
 						Options.StretchMovies = Button_GetCheck(button) == BST_CHECKED;
 					}
+#endif
 				}
 				break;
 
 				case IDCANCEL:
 					break;
 			}
+#if !defined(OPENTS_WIN32_SUBSTITUTE)
 			delete [] _modes;
+#endif
 			*result = LOWORD(wparam);
 			break;
 
 		case WM_INITDIALOG: {
 			HWND list = GetDlgItem(window, IDC_DISPLAY_RESLIST);
+			int initial_mode = -1;
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+			SetDlgItemText(window, IDC_DISPLAY_RESLABEL, "Interface Size");
+
+			for (int size_index = 0; size_index < ARRAY_SIZE(_InterfaceSizes); size_index++) {
+				int index = ListBox_AddString(list, _InterfaceSizes[size_index].Name);
+				ListBox_SetItemData(list, index, size_index);
+				if (_InterfaceSizes[size_index].Scale == TempOptions.UIScale) {
+					initial_mode = index;
+				}
+			}
+
+			// A stored scale the list lacks selects the automatic entry.
+			if (initial_mode < 0) {
+				initial_mode = 0;
+			}
+#else
 			_modes = EnumDisplayModes(MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT);
 			int * modes = _modes;
 			int item_index = 0;
-			int initial_mode = -1;
 			int mode_index = 0;
 			if (modes != NULL) {
 				while (*modes != 0) {
@@ -493,6 +550,7 @@ static __forceinline BOOL Display_Options_Dialog_Body(HWND window, UINT message,
 					item_index++;
 				}
 			}
+#endif
 			ListBox_SetCurSel(list, initial_mode);
 			_initialized = true;
 			_current_mode = initial_mode;
@@ -501,6 +559,9 @@ static __forceinline BOOL Display_Options_Dialog_Body(HWND window, UINT message,
 			HWND button = GetDlgItem(window, IDC_STRETCH_MOVIES);
 			if (button) {
 				Button_SetCheck(button, Options.StretchMovies != false);
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+				ShowWindow(button, SW_HIDE);
+#endif
 			}
 		}
 		break;

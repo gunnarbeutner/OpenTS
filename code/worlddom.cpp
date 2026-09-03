@@ -18,6 +18,7 @@
 #include "language/language.h"
 #include "mapgen.h"
 #include "mixfile.h"
+#include "msgloop.h"
 #include "ownrdraw.h"
 #include "wdtnet.h"
 
@@ -91,17 +92,33 @@ INT_PTR CALLBACK WDT_Faction_Choice_Menu_Proc(HWND window, UINT message, WPARAM 
 /// <returns>Returns with the side the player chose, or zero if the choice was declined.</returns>
 int Do_WDT_Faction_Choice_Menu(void)
 {
-	GraphicMenu *gmenu = Do_Graphic_Menu("WDTChoice.ini", "WDTFactionChoiceMenu");
-	if (gmenu == NULL) {
+	bool themeplaying = false;
+
+	for (;;) {
+		GraphicMenu *gmenu = Do_Graphic_Menu("WDTChoice.ini", "WDTFactionChoiceMenu");
+		if (gmenu == NULL) {
+			return(0);
+		}
+		gmenu->Set_Theme_Playing(themeplaying);
+		int rc = gmenu->Presentation();
+		delete gmenu;
+
+		/*
+		 * The page put itself away so the frame can follow the window; one
+		 * turn of the pump moves the frame and the page is built again.
+		 */
+		if (rc == GMENU_REDISPLAY) {
+			Windows_Message_Handler();
+			themeplaying = true;
+			continue;
+		}
+
+		switch (rc) {
+			case 1: return(2);
+			case 2: return(3);
+		}
 		return(0);
 	}
-	int rc = gmenu->Presentation();
-	delete gmenu;
-	switch (rc) {
-		case 1: return(2);
-		case 2: return(3);
-	}
-	return(0);
 }
 
 int g_WDTChosenSide;

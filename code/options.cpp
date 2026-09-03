@@ -78,6 +78,7 @@
 #include "msgbox.h"
 #include "ownrdraw.h"
 #include "rules.h"
+#include "screenlayout.h"
 #include "session.h"
 #include "techno.h"
 #include "theme.h"
@@ -138,6 +139,7 @@ OptionsClass::OptionsClass(void) :
 	VSync(false),
 	Renderer(0),
 	CursorScale(0),
+	UIScale(0),
 	SoundLatency(9),
 	KeyForceMove1(KN_LALT),
 	KeyForceMove2(KN_LALT),
@@ -426,6 +428,9 @@ void OptionsClass::Load_Settings(void)
 
 	CursorScale = ConfigINI.Get_Int("Video", "CursorScale", CursorScale);
 
+	UIScale = ConfigINI.Get_Int("Video", "UIScale", UIScale);
+	DebugString("UIScale = %d (drawn at %d)\n", UIScale, UI_Scale());
+
 	Set_Sound_Volume(ConfigINI.Get_Float("Audio", "SoundVolume", SoundVolume), false);
 	Set_Voice_Volume(ConfigINI.Get_Float("Audio", "VoiceVolume", VoiceVolume), false);
 	Set_Score_Volume(ConfigINI.Get_Float("Audio", "ScoreVolume", ScoreVolume), false);
@@ -492,6 +497,7 @@ void OptionsClass::Save_Settings (void)
 	ConfigINI.Put_Bool("Video", "VSync", VSync);
 	ConfigINI.Put_Int("Video", "Renderer", Renderer);
 	ConfigINI.Put_Int("Video", "CursorScale", CursorScale);
+	ConfigINI.Put_Int("Video", "UIScale", UIScale);
 	ConfigINI.Put_Float("Audio", "SoundVolume", SoundVolume);
 	ConfigINI.Put_Float("Audio", "VoiceVolume", VoiceVolume);
 	ConfigINI.Put_Float("Audio", "ScoreVolume", ScoreVolume);

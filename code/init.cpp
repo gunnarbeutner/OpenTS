@@ -252,7 +252,6 @@ static bool Init_Rules(void);
 static void Init_Commands(void);
 static CampaignType Choose_Campaign(void);
 static void Init_Threads(void);
-void Draw_Version_Text(Surface * surface);
 void Version_Dialog(void);
 
 static INT_PTR CALLBACK Rules_Choice_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
@@ -2034,12 +2033,18 @@ void Init_Random(void)
  * HISTORY:                                                                                    *
  *   06/03/1996 JLB : Created.                                                                 *
  *=============================================================================================*/
-void Load_Title_Page(const char * name, bool visible)
+Point2D Load_Title_Page(const char * name, bool visible)
 {
 	HiddenSurface->Fill(0);
-	Load_Title_Screen(name, HiddenSurface, &CCPalette);
+
+	// The title page is filled out where it is drawn so that a dialog opening
+	// over it and every later repaint carry the magnified picture.
+	Point2D const size = Load_Title_Screen(name, HiddenSurface, &CCPalette, true);
+
 	if (visible)
 		Update_Visible_Surface(HiddenSurface);
+
+	return(size);
 }
 
 
@@ -3338,12 +3343,15 @@ INT_PTR CALLBACK Main_Menu_Dialog_Proc(HWND window, UINT message, WPARAM wparam,
 /// comes back after the display has been taken away and handed back to the game.
 /// </summary>
 /// <param name="force">Should the title screen be redrawn even if nothing was lost?</param>
+/// <remarks>The picture put back under a dialog is filled out to the frame
+/// for the graphic shell and left at its drawn size for the plain menu, which
+/// places its dialog at that size.</remarks>
 void Title_Screen_Restore(bool force)
 {
 	if (force == true) {
 		HiddenSurface->Fill(0);
 		char *menu = Get_New_Menu()->Background;
-		Load_Title_Screen(menu, HiddenSurface, &CCPalette);
+		Load_Title_Screen(menu, HiddenSurface, &CCPalette, Get_New_Menu()->MixFile != NULL);
 		Draw_Version_Text(HiddenSurface);
 		Update_Visible_Surface(HiddenSurface);
 	}
@@ -3356,7 +3364,9 @@ void Title_Screen_Restore(bool force)
 /// nothing at all until the color schemes have been loaded.
 /// </summary>
 /// <param name="surface">The surface to print the version text upon.</param>
-void Draw_Version_Text(Surface * surface)
+/// <param name="area">The area whose bottom right corner the text is placed
+/// against; the whole surface when none is given.</param>
+void Draw_Version_Text(Surface * surface, Rect const & area)
 {
 	char version[128];
 	Rect rect;
@@ -3370,13 +3380,13 @@ void Draw_Version_Text(Surface * surface)
 
 	Cheat_Version_Suffix(version);
 
-	rect = surface->Get_Rect();
+	rect = area.Is_Valid() ? area : surface->Get_Rect();
 
 	Fancy_Text_Print(
 		"V%s",
 		*surface,
 		rect,
-		Point2D(rect.X + rect.Width - 2, rect.Y + rect.Height - 20),
+		Point2D(rect.Width - 2, rect.Height - 20),
 		Fetch_Scheme_By_Name("Green"),
 		TBLACK,
 		(TextPrintType)(TPF_EFNT|TPF_NOSHADOW|TPF_RIGHT),
@@ -3387,7 +3397,7 @@ void Draw_Version_Text(Surface * surface)
 		Fetch_String(TXT_COPYRIGHT),
 		*surface,
 		rect,
-		Point2D(rect.X + rect.Width - 2, rect.Y + rect.Height - 10),
+		Point2D(rect.Width - 2, rect.Height - 10),
 		Fetch_Scheme_By_Name("Green"),
 		TBLACK,
 		(TextPrintType)(TPF_EFNT|TPF_NOSHADOW|TPF_RIGHT)

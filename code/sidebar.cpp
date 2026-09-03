@@ -109,6 +109,7 @@
 #include "rules.h"
 #include "savestream.h"
 #include "scheme.h"
+#include "screenlayout.h"
 #include "session.h"
 #include "shapeset.h"
 #include "super.h"
@@ -274,6 +275,47 @@ static CameoOrderType Cameo_Order(SidebarClass::StripClass::BuildType const & en
 }
 
 
+// A sidebar gadget is clicked in screen coordinates but drawn on the sidebar
+// surface, which is magnified by the interface scale.
+
+/// <summary>
+/// Places a sidebar shape button, given its position in sidebar surface
+/// coordinates and how far below that its shape is drawn.
+/// </summary>
+static void Place_Sidebar_Button(ShapeButtonClass & button, int x, int y, int nudge = 0)
+{
+	int const scale = UI_Scale();
+
+	button.Set_Position(SidebarRect.X + x * scale, y * scale);
+	button.DrawOffsetX = x - button.X;
+	button.DrawOffsetY = (y + nudge) - button.Y;
+
+	ShapeSet const * shape = button.Get_Shape_Data();
+	if (shape != NULL) {
+		button.Set_Size(shape->Get_Width() * scale, shape->Get_Height() * scale);
+	}
+
+	button.Flag_To_Redraw();
+}
+
+
+/// <summary>
+/// Places a build cameo slot, given its strip and its index down that strip.
+/// </summary>
+static void Place_Cameo_Slot(SidebarClass::StripClass::SelectClass & slot, int column, int index)
+{
+	using Strip = SidebarClass::StripClass;
+
+	int const scale = UI_Scale();
+	int const x = Map.Column[column].X;
+	int const y = SidebarClass::SIDE_Y + Map.Column[column].Y + Strip::OBJECT_HEIGHT * index;
+
+	slot.Set_Position(SidebarRect.X + x * scale, y * scale);
+	slot.Set_Size(Strip::OBJECT_WIDTH * scale, Strip::OBJECT_HEIGHT * scale);
+	slot.Flag_To_Redraw();
+}
+
+
 /// <summary>
 /// Default constructor for the sidebar background gadget.
 /// This gadget exists to cover the sidebar so that the mouse reverts to its normal shape
@@ -424,15 +466,10 @@ void SidebarClass::Init_IO(void)
 	**	Add the sidebar's buttons only if we're not in editor mode.
 	*/
 	if (!Debug_Map) {
-		int xoff = -480;
-		int yoff = 3;
-
 		Repair.IsSticky = true;
 		Repair.ID = BUTTON_REPAIR;
 		Repair.X = SidebarRect.X;
 		Repair.Y = SidebarRect.Y;
-		Repair.DrawOffsetX = xoff;
-		Repair.DrawOffsetY = yoff;
 		Repair.DrawOnSidebar = true;
 		Repair.ShapeDrawer = SidebarDrawer;
 		Repair.IsPressed = false;
@@ -443,8 +480,6 @@ void SidebarClass::Init_IO(void)
 		Upgrade.ID = BUTTON_UPGRADE;
 		Upgrade.X = Repair.X + BUTTON_SPACING;
 		Upgrade.Y = Repair.Y;
-		Upgrade.DrawOffsetX = xoff;
-		Upgrade.DrawOffsetY = yoff;
 		Upgrade.DrawOnSidebar = true;
 		Upgrade.ShapeDrawer = SidebarDrawer;
 		Upgrade.IsPressed = false;
@@ -455,8 +490,6 @@ void SidebarClass::Init_IO(void)
 		Power.ID = BUTTON_POWER;
 		Power.X = Upgrade.X + BUTTON_SPACING;
 		Power.Y = Upgrade.Y;
-		Power.DrawOffsetX = xoff;
-		Power.DrawOffsetY = yoff;
 		Power.DrawOnSidebar = true;
 		Power.ShapeDrawer = SidebarDrawer;
 		Power.IsPressed = false;
@@ -467,8 +500,6 @@ void SidebarClass::Init_IO(void)
 		Waypoint.ID = BUTTON_WAYPOINT;
 		Waypoint.X = Power.X + BUTTON_SPACING;
 		Waypoint.Y = Power.Y;
-		Waypoint.DrawOffsetX = xoff;
-		Waypoint.DrawOffsetY = yoff;
 		Waypoint.DrawOnSidebar = true;
 		Waypoint.ShapeDrawer = SidebarDrawer;
 		Waypoint.IsPressed = false;
@@ -943,7 +974,7 @@ void SidebarClass::Draw_It(bool complete)
 	if (IsSidebarActive && (IsToRedraw || complete) && !Debug_Map) {
 		if (complete || Column[0].IsToRedraw || Column[1].IsToRedraw) {
 
-			int y = SidebarRect.Y;
+			int y = SIDE_Y;
 
 			/*
 			**	The sidebar shape is too big in 640x400 so it needs to be drawn in three chunks.
@@ -1006,6 +1037,19 @@ void SidebarClass::Draw_It(bool complete)
 }
 
 
+// Copies a piece of the sidebar surface, given in its own coordinates, onto the
+// screen. It is trimmed first because a scaled blit clips its rectangles
+// independently.
+static void Blit_Sidebar_Piece(Rect const & piece)
+{
+	Rect const source = Intersect(SidebarSurface->Get_Rect(), piece);
+
+	if (source.Is_Valid()) {
+		VisibleSurface->Blit_From(Sidebar_To_Screen(source), *SidebarSurface, source);
+	}
+}
+
+
 /// <summary>
 /// Copies the sidebar onto the visible screen.
 /// This routine is the last step of the sidebar's redraw. When nothing but the credits have
@@ -1021,13 +1065,7 @@ void SidebarClass::Blit_Sidebar(bool complete)
 			IsToBlitSidebar = false;
 			if (Map.LastDrawRect == RECT_NONE) {
 				if (IsToRedrawCredits) {
-					VisibleSurface->Blit_From(
-						Rect((Options.IsSidebarOnRight ? TacticalRect.Width : 0), 0, SIDE_WIDTH, CREDITS_HEIGHT),
-						*SidebarSurface,
-						Rect(0, 0, SIDE_WIDTH, CREDITS_HEIGHT),
-						false,
-						true
-					);
+					Blit_Sidebar_Piece(Rect(0, 0, SIDE_WIDTH, CREDITS_HEIGHT));
 					IsToRedrawCredits = false;
 				}
 				IsToBlitSidebar = false;
@@ -1038,13 +1076,12 @@ void SidebarClass::Blit_Sidebar(bool complete)
 		}
 
 		if (Map.LastDrawRect == RECT_NONE && !complete) {
-			VisibleSurface->Blit_From(Rect((Options.IsSidebarOnRight ? TacticalRect.Width : 0), 0, SIDE_WIDTH, CREDITS_HEIGHT), *SidebarSurface, Rect(0, 0, SIDE_WIDTH, CREDITS_HEIGHT));
-			VisibleSurface->Blit_From(Rect((Options.IsSidebarOnRight ? TacticalRect.Width : 0), SIDE_BODY_Y, SIDE_WIDTH, SidebarSurface->Get_Height() - SIDE_BODY_Y), *SidebarSurface, Rect(0, SIDE_BODY_Y, SIDE_WIDTH, SidebarSurface->Get_Height() - SIDE_BODY_Y));
+			Blit_Sidebar_Piece(Rect(0, 0, SIDE_WIDTH, CREDITS_HEIGHT));
+			Blit_Sidebar_Piece(Rect(0, SIDE_BODY_Y, SIDE_WIDTH, SidebarSurface->Get_Height() - SIDE_BODY_Y));
 		} else if (!IsToBlitSidebar) {
-			VisibleSurface->Blit_From(Rect(Map.LastDrawRect.X + (Options.IsSidebarOnRight ? TacticalRect.Width : 0), Map.LastDrawRect.Y, Map.LastDrawRect.Width, Map.LastDrawRect.Height), *SidebarSurface, Map.LastDrawRect);
+			Blit_Sidebar_Piece(Map.LastDrawRect);
 		} else {
-			Rect sb_rect = SidebarSurface->Get_Rect();
-			VisibleSurface->Blit_From(Rect((Options.IsSidebarOnRight ? TacticalRect.Width : 0), 0, sb_rect.Width, sb_rect.Height), *SidebarSurface, Rect(0, 0, sb_rect.Width, sb_rect.Height));
+			Blit_Sidebar_Piece(SidebarSurface->Get_Rect());
 		}
 	}
 	IsToBlitSidebar = false;
@@ -1415,10 +1452,7 @@ void SidebarClass::StripClass::Init_IO(int id)
 	for (int index = 0; index < Map.Max_Visible(); index++) {
 		SelectClass & g = SelectButton[ID][index];
 		g.ID = BUTTON_SELECT;
-		g.X = SidebarRect.X + Map.Column[ID].X;
-		g.Y = SidebarRect.Y + Map.Column[ID].Y + (OBJECT_HEIGHT*index);
-		g.Width = OBJECT_WIDTH;
-		g.Height = OBJECT_HEIGHT;
+		Place_Cameo_Slot(g, ID, index);
 		g.Set_Owner(*this, index);
 	}
 
@@ -1848,8 +1882,7 @@ void SidebarClass::StripClass::Draw_It(bool complete)
 	if (IsToRedraw || complete) {
 		IsToRedraw = false;
 		IsToBlitSidebar = true;
-		Rect cliprect = SidebarRect;
-		cliprect.X = 0;
+		Rect cliprect(0, SIDE_Y, SIDE_WIDTH, SidebarSurface->Get_Height() - SIDE_Y);
 
 		/*
 		**	Redraw the scroll buttons.
@@ -2705,14 +2738,16 @@ void SidebarClass::Zoom_Mode_Control(void)
 void SidebarClass::Reposition_Sidebar(void)
 {
 	int index;
+	int const scale = UI_Scale();
 
 	/*
-	 * Position the sidebar.
+	 * Position the sidebar. The rectangle is in screen coordinates, which
+	 * differ from the sidebar surface's by the interface scale.
 	 */
 	SidebarRect.X = Options.IsSidebarOnRight ? TacticalRect.X + TacticalRect.Width : 0;
-	SidebarRect.Y = SIDE_Y;
-	SidebarRect.Width = SIDE_WIDTH;
-	SidebarRect.Height = TacticalRect.Height + TacticalRect.Y - SIDE_Y;
+	SidebarRect.Y = SIDE_Y * scale;
+	SidebarRect.Width = SIDE_WIDTH * scale;
+	SidebarRect.Height = TacticalRect.Height + TacticalRect.Y - SidebarRect.Y;
 
 	BASECLASS::Reposition_Sidebar();
 
@@ -2728,21 +2763,14 @@ void SidebarClass::Reposition_Sidebar(void)
 	Background.Set_Position(SidebarRect.X + 16, TacticalRect.Y);
 	Background.Flag_To_Redraw();
 
-	Repair.Set_Position(SidebarRect.X + BUTTON_ONE_X, SidebarRect.Y + BUTTON_ONE_Y);
-	Repair.Flag_To_Redraw();
-	Repair.DrawOffsetX = -SidebarRect.X;
+	// The mode buttons' artwork sits three rows below the button.
+	int const buttony = SIDE_Y + BUTTON_ONE_Y;
+	int const buttonnudge = 3;
 
-	Upgrade.Set_Position(Repair.X + BUTTON_SPACING, Power.Y);
-	Upgrade.Flag_To_Redraw();
-	Upgrade.DrawOffsetX = -SidebarRect.X;
-
-	Power.Set_Position(Upgrade.X + BUTTON_SPACING, Repair.Y);
-	Power.Flag_To_Redraw();
-	Power.DrawOffsetX = -SidebarRect.X;
-
-	Waypoint.Set_Position(Power.X + BUTTON_SPACING, Upgrade.Y);
-	Waypoint.Flag_To_Redraw();
-	Waypoint.DrawOffsetX = -SidebarRect.X;
+	Place_Sidebar_Button(Repair, BUTTON_ONE_X, buttony, buttonnudge);
+	Place_Sidebar_Button(Upgrade, BUTTON_ONE_X + BUTTON_SPACING, buttony, buttonnudge);
+	Place_Sidebar_Button(Power, BUTTON_ONE_X + BUTTON_SPACING * 2, buttony, buttonnudge);
+	Place_Sidebar_Button(Waypoint, BUTTON_ONE_X + BUTTON_SPACING * 3, buttony, buttonnudge);
 
 	/*
 	 * Create the tooltips for the sidebar.
@@ -2755,21 +2783,15 @@ void SidebarClass::Reposition_Sidebar(void)
 				ToolTips->Remove((j | (index << 8)) + GADGET_CAMEO);
 			}
 		}
-		int arrowy = SidebarRect.Y + Map.Max_Visible() * StripClass::OBJECT_HEIGHT + StripClass::UP_Y_OFFSET;
+		int arrowy = SIDE_Y + Map.Max_Visible() * StripClass::OBJECT_HEIGHT + StripClass::UP_Y_OFFSET;
 
 		for (int col = 0; col < COLUMNS; col++) {
 
-			StripClass::UpButton[col].Set_Position(SidebarRect.X + Column[col].X + StripClass::UP_X_OFFSET, arrowy);
-			StripClass::UpButton[col].Flag_To_Redraw();
-			StripClass::UpButton[col].DrawOffsetX = -SidebarRect.X;
-
-			StripClass::DownButton[col].Set_Position(SidebarRect.X + Column[col].X + StripClass::DOWN_X_OFFSET, arrowy);
-			StripClass::DownButton[col].Flag_To_Redraw();
-			StripClass::DownButton[col].DrawOffsetX = -SidebarRect.X;
+			Place_Sidebar_Button(StripClass::UpButton[col], Column[col].X + StripClass::UP_X_OFFSET, arrowy);
+			Place_Sidebar_Button(StripClass::DownButton[col], Column[col].X + StripClass::DOWN_X_OFFSET, arrowy);
 
 			for (int i = 0; i < Map.Max_Visible(); i++) {
-				StripClass::SelectButton[col][i].Set_Position(SidebarRect.X + Column[col].X, SidebarRect.Y + Column[col].Y + (StripClass::OBJECT_HEIGHT * i));
-				StripClass::SelectButton[col][i].Flag_To_Redraw();
+				Place_Cameo_Slot(StripClass::SelectButton[col][i], col, i);
 				ToolTip tmp;
 				tmp.Text = TXT_NONE;
 				tmp.ID = (i | (col << 8)) + GADGET_CAMEO;
@@ -2812,7 +2834,7 @@ void SidebarClass::Reposition_Sidebar(void)
 	} else {
 		Background.Set_Position(x, y);
 	}
-	Background.Set_Size(SidebarSurface->Get_Width(), SidebarSurface->Get_Height() - y);
+	Background.Set_Size(SidebarSurface->Get_Width() * scale, SidebarSurface->Get_Height() * scale - y);
 }
 
 
@@ -2838,9 +2860,35 @@ const char * SidebarClass::Help_Text(int id)
 
 
 /// <summary>
+/// Finds the strip whose cameo slots cover a screen position.
+/// </summary>
+/// <returns>The strip index, or -1 when none covers the position.</returns>
+int SidebarClass::Column_At(Point2D const & xy)
+{
+	// Must agree with the placement Place_Cameo_Slot writes.
+	int const scale = UI_Scale();
+	int const visible = Max_Visible();
+
+	for (int index = 0; index < COLUMNS; index++) {
+		Rect const slots(SidebarRect.X + Column[index].X * scale,
+			(SIDE_Y + Column[index].Y) * scale,
+			StripClass::OBJECT_WIDTH * scale,
+			StripClass::OBJECT_HEIGHT * visible * scale);
+
+		if (slots.Is_Point_Within(xy)) {
+			return(index);
+		}
+	}
+
+	return(-1);
+}
+
+
+/// <summary>
 /// Determines how many cameos a sidebar strip can show.
-/// The answer follows from the height of the sidebar, so it varies with the screen
-/// resolution. It is used to lay the strips out and to decide when scrolling is called for.
+/// The answer follows from the height of the sidebar surface, so it varies with
+/// the screen resolution and the interface scale. It lays the strips out and
+/// decides when scrolling is called for.
 /// </summary>
 /// <returns>Returns with the number of build cameos that will fit in one strip.</returns>
 /// <remarks>A strip has MAX_SLOTS select buttons, so a taller picture than those can fill
@@ -2848,9 +2896,11 @@ const char * SidebarClass::Help_Text(int id)
 int SidebarClass::Max_Visible(void)
 {
 	if (SidebarSurface != NULL && SidebarShape != NULL) {
-		Rect r = SidebarRect;
-		int fits = (r.Height - SidebarBottomShape->Get_Height() - SidebarShape->Get_Height()) / SidebarMiddleShape->Get_Height();
-		return(std::min(fits, int(StripClass::MAX_SLOTS)));
+		int height = SidebarSurface->Get_Height() - SIDE_Y;
+		int fits = (height - SidebarBottomShape->Get_Height() - SidebarShape->Get_Height()) / SidebarMiddleShape->Get_Height();
+
+		// A negative count would be taken as an array size.
+		return(std::clamp(fits, 0, int(StripClass::MAX_SLOTS)));
 	}
 	return(StripClass::MAX_VISIBLE);
 }

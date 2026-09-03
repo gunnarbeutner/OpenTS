@@ -70,7 +70,8 @@ GraphicMenuItem * GM_Read_Image_Item(const char * name, INIClass const & ini, MS
 /// the others are activated as the item gains the selection or is disabled. The
 /// highlighted and disabled artwork may be omitted: an item with no highlight simply does
 /// not light up, and one with no disabled artwork keeps its normal image while it is
-/// unavailable rather than vanishing from the menu.
+/// unavailable rather than vanishing from the menu. The browser build dims a
+/// copy of the normal artwork for the disabled face when it can.
 /// </summary>
 /// <param name="origin">The screen position to display the artwork at.</param>
 /// <param name="rect">The screen area the mouse must be within to select this item.</param>
@@ -99,11 +100,14 @@ GraphicMenuImageItem::GraphicMenuImageItem(int id, MSEngine & engine, Point2D co
 
 	strncpy(SelectVQ, select_vq != NULL ? select_vq : "", sizeof(SelectVQ));
 
+	MSPCXAnim * highlight = NULL;
+
 	if (strlen(highlight_image)) {
-		HighlightImage = new MSPCXAnim(highlight_image, engine.Get_Anims(), origin, true);
-		if (HighlightImage != NULL) {
-			HighlightImage->Set_Active(false);
-			engine.Add_Animation(HighlightImage);
+		highlight = new MSPCXAnim(highlight_image, engine.Get_Anims(), origin, true);
+		HighlightImage = highlight;
+		if (highlight != NULL) {
+			highlight->Set_Active(false);
+			engine.Add_Animation(highlight);
 		}
 	}
 
@@ -114,7 +118,8 @@ GraphicMenuImageItem::GraphicMenuImageItem(int id, MSEngine & engine, Point2D co
 		}
 	}
 
-	if (strlen(disabled_image)) {
+
+	if (DisabledImage == NULL && strlen(disabled_image)) {
 		DisabledImage = new MSPCXAnim(disabled_image, engine.Get_Anims(), origin, true);
 		if (DisabledImage != NULL) {
 			DisabledImage->Set_Active(false);
@@ -153,15 +158,7 @@ bool GraphicMenuImageItem::Is_Mouse_Over(Point2D const & mouse)
 /// <param name="selected">Is this item now the selected one?</param>
 void GraphicMenuImageItem::On_Selected_Change(bool selected)
 {
-	if (Image != NULL) {
-		Image->Set_Active(!selected && (Enabled || DisabledImage == NULL));
-	}
-	if (HighlightImage != NULL) {
-		HighlightImage->Set_Active(Enabled && selected);
-	}
-	if (DisabledImage != NULL) {
-		DisabledImage->Set_Active(Enabled == false);
-	}
+	Update_Images();
 	Engine->Restore_Anims(ActiveRect);
 	Engine->Restore_And_Advance();
 	if (selected) {
@@ -177,20 +174,39 @@ void GraphicMenuImageItem::On_Selected_Change(bool selected)
 /// This routine swaps the disabled image in or out and then refreshes the part of the
 /// screen this item occupies so that the change is visible right away.
 /// </summary>
-/// <param name="active">Should this item be available for selection?</param>
-void GraphicMenuImageItem::On_Enabled_Change(bool active)
+void GraphicMenuImageItem::On_Enabled_Change(bool)
 {
-	if (Image != NULL) {
-		Image->Set_Active(!Selected && (active || DisabledImage == NULL));
-	}
-	if (HighlightImage != NULL) {
-		HighlightImage->Set_Active(active && Selected);
-	}
-	if (DisabledImage != NULL) {
-		DisabledImage->Set_Active(active == false);
-	}
+	Update_Images();
 	Engine->Restore_Anims(ActiveRect);
 	Engine->Restore_And_Advance();
+}
+
+
+/// <summary>
+/// Takes the item's artwork off the page, or puts it back.
+/// </summary>
+void GraphicMenuImageItem::On_Visible_Change(bool)
+{
+	Update_Images();
+	Engine->Restore_Anims(ActiveRect);
+	Engine->Restore_And_Advance();
+}
+
+
+/// <summary>
+/// Activates the one image the item's current state shows.
+/// </summary>
+void GraphicMenuImageItem::Update_Images(void)
+{
+	if (Image != NULL) {
+		Image->Set_Active(Visible && !Selected && (Enabled || DisabledImage == NULL));
+	}
+	if (HighlightImage != NULL) {
+		HighlightImage->Set_Active(Visible && Enabled && Selected);
+	}
+	if (DisabledImage != NULL) {
+		DisabledImage->Set_Active(Visible && !Enabled);
+	}
 }
 
 

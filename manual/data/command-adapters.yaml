@@ -345,9 +345,10 @@ fixed_exclusions:
     reason: Core gadget input translation; callers own the resulting button actions.
   - sites:
       - { file: code/grphmenu.cpp, function: GraphicMenu::Presentation, expression: KN_NONE }
-      - { file: code/grphmenu.cpp, function: GraphicMenu::Presentation, expression: KN_LMOUSE }
+      - { file: code/grphmenu.cpp, function: GraphicMenu::Presentation, expression: KN_RLSE_BIT+KN_LMOUSE }
+      - { file: code/grphmenu.cpp, function: GraphicMenu::Presentation, expression: KN_RLSE_BIT }
       - { file: code/grphmenu.cpp, function: GraphicMenu::Presentation, expression: KN_RETURN }
-    reason: Generic graphic-menu polling and activation, not a named application control.
+    reason: Generic graphic-menu polling and activation, not a named application control; the release bit only tells the button's press from its release.
   - site: { file: code/grphmsct.cpp, function: GM_Build_Key, expression: VK_NONE }
     reason: Sentinel used while translating a menu accelerator into a virtual key.
   - site: { file: code/init.cpp, function: Main_Menu, expression: KN_RLSE_BIT }

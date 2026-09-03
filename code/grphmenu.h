@@ -87,6 +87,12 @@ class GraphicMenuString
 		char * Buffer;
 };
 
+/*
+ * Presentation returns this, not a choice, when the frame is moving to a new
+ * size; the caller builds the page again against the new frame.
+ */
+int const GMENU_REDISPLAY = -2;
+
 class GraphicMenu
 {
 	friend GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name);
@@ -99,10 +105,12 @@ class GraphicMenu
 
 		void Set_Animation(MSAnim * anim);
 		void Set_Theme_Name(const char * name);
+		void Set_Theme_Playing(bool playing) { ThemeIsPlaying = playing; }
 
 		void Add_Item(GraphicMenuItem * item);
 
 		void Set_Item_Enabled(int item_id, bool enabled);
+		void Set_Item_Visible(int item_id, bool visible);
 		int Presentation(void);
 		GraphicMenuItem * Get_Item_Under_Mouse(Point2D const & mouse);
 		GraphicMenuItem * Get_Item_For_Key(KeyNumType key);
@@ -135,6 +143,19 @@ class GraphicMenu
 		 * let it play out before drawing over it.
 		 */
 		MSAnim * CurrentAnim;
+
+		/*
+		 * The backdrop size the items were placed against, and so the design
+		 * space the page is magnified out of; empty until a backdrop supplies
+		 * one, which leaves the page drawn at frame size.
+		 */
+		Point2D LayoutSize;
+
+		/*
+		 * A page put up again to follow the frame to a new size takes over the
+		 * music from the copy it replaces rather than restarting the track.
+		 */
+		bool ThemeIsPlaying;
 
 		/*
 		 * These are the items the player may pick from. The menu owns them and destroys

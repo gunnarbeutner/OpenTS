@@ -568,6 +568,11 @@ BOOL CALLBACK Resize_Dialog(HWND window, LPARAM lParam)
 	static int resize_dialog_scale_x = 300;
 	static int resize_dialog_scale_y = 163;
 
+	// IDD_TEMPLATE's size in dialog units, per Sun.rc. The scale pair above is
+	// what those units measured in pixels where the artwork was drawn.
+	static int const resize_dialog_units_x = 200;
+	static int const resize_dialog_units_y = 100;
+
 	LONG w;
 	LONG wheight;
 	RECT rcl;
@@ -592,12 +597,23 @@ BOOL CALLBACK Resize_Dialog(HWND window, LPARAM lParam)
 
 	if (resize_dialog_width == 0) {
 		HWND win = CreateDialogParam(ProgramInstance, (LPCSTR)198, NULL, Resize_Dialog_Proc, NULL);
-		GetClientRect(win, &wrcl);
-		DestroyWindow(win);
-		w = wrcl.right;
-		wheight = wrcl.bottom;
-		resize_dialog_width = w;
-		resize_dialog_height = wheight;
+		if (win != NULL) {
+			GetClientRect(win, &wrcl);
+			DestroyWindow(win);
+			resize_dialog_width = wrcl.right;
+			resize_dialog_height = wrcl.bottom;
+		}
+
+		// Without the reference template the dialog base units measure the same
+		// design space, which keeps the divisor below from being zero.
+		if (resize_dialog_width <= 0 || resize_dialog_height <= 0) {
+			DWORD units = GetDialogBaseUnits();
+			resize_dialog_width = resize_dialog_units_x * (int)LOWORD(units) / 4;
+			resize_dialog_height = resize_dialog_units_y * (int)HIWORD(units) / 8;
+		}
+
+		w = resize_dialog_width;
+		wheight = resize_dialog_height;
 	} else {
 		w = resize_dialog_width;
 		wheight = resize_dialog_height;
