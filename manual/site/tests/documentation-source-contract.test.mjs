@@ -610,3 +610,31 @@ test('A match against other machines is assembled whole and wired to its network
 		'the seat order the machines share is what the name and color rules are held for',
 	);
 });
+
+test('The scenario file is kept from its first read and carried in the save', () => {
+	const scenario = source('code/scenario.cpp');
+
+	assertOrdered(functionBody(scenario, 'static int Load_Scenario_File(CCINIClass & ini, char const * name, bool withdigest)'), [
+		'Scen->SourceFile.Matches(name)',
+		'Load_Held_Scenario_File(ini, name, withdigest)',
+		'CCFileClass file(name);',
+		'Scen->SourceFile.Assign(name, std::move(bytes));',
+	], 'a name the scenario already holds is served from memory, and a fresh read is kept');
+
+	assertOrdered(functionBody(scenario, 'bool Read_Scenario_INI(char const * fname, bool)'), [
+		'Load_Scenario_File(ini, fname, true)',
+		'strcpy(Scen->ScenarioName, fname);',
+	], 'the scenario is read through the holder');
+
+	assertOrdered(functionBody(scenario, 'bool Read_Scenario_INI(CCINIClass const & ini, bool is_mapgen)'), [
+		'Scen->SourceFile.Clear();',
+		'Scen->SourceFile.Matches(buffer)',
+		'Load_Held_Scenario_File(mini, buffer, false);',
+	], 'a generated map holds no file, and the sidecar comes from the holder when it is the same file');
+
+	assert.match(
+		functionBody(scenario, 'void ScenarioClass::Serialize(SaveStreamClass & stream)'),
+		/stream\.Serialize\(SourceFile\);/,
+		'the held file travels with the scenario record',
+	);
+});

@@ -168,10 +168,13 @@
 #include "waypoint.h"
 #include "win.h"
 #include "wsproto.h"
+#include "xstraw.h"
 
 #include "bench.hh"
 
 #include <algorithm>
+#include <utility>
+#include <vector>
 
 CDTimerClass<SystemTimerClass> ScenUnusedTimer;
 
@@ -1456,6 +1459,59 @@ void ScenarioClass::Set_Scenario_Name(char const * name)
 }
 
 
+/// <summary>
+/// Fills the database from the copy of the scenario file the scenario holds.
+/// </summary>
+/// <returns>What the INI load returned: 0 when nothing loaded.</returns>
+static int Load_Held_Scenario_File(CCINIClass & ini, char const * name, bool withdigest)
+{
+	DebugString("Load_Held_Scenario_File - %s read from the held copy (%d bytes)\n", name, Scen->SourceFile.Size());
+
+	BufferStraw straw(Scen->SourceFile.Data(), Scen->SourceFile.Size());
+	return(ini.Load(straw, withdigest, false, name));
+}
+
+
+/// <summary>
+/// Fills the database from the scenario file named: from the copy the scenario holds when
+/// that is the file, and otherwise from disk, which the scenario then holds in its place.
+/// </summary>
+/// <returns>What the INI load returned: 0 when nothing loaded.</returns>
+static int Load_Scenario_File(CCINIClass & ini, char const * name, bool withdigest)
+{
+	if (Scen->SourceFile.Matches(name)) {
+		return(Load_Held_Scenario_File(ini, name, withdigest));
+	}
+
+	CCFileClass file(name);
+	if (!file.Is_Available() || !file.Open(FileClass::READ)) {
+		DebugString("Load_Scenario_File - %s is not available\n", name);
+		return(0);
+	}
+
+	std::vector<char> bytes;
+	int size = file.Size();
+	if (size > 0) {
+		bytes.resize(size);
+		int read = file.Read(bytes.data(), size);
+		bytes.resize(read > 0 ? read : 0);
+	}
+	file.Close();
+
+	if (bytes.empty()) {
+		return(0);
+	}
+	DebugString("Load_Scenario_File - %s read from the file (%d bytes)\n", name, (int)bytes.size());
+
+	BufferStraw straw(bytes.data(), (int)bytes.size());
+	int result = ini.Load(straw, withdigest, false, file.File_Name());
+	if (result != 0) {
+		Scen->SourceFile.Assign(name, std::move(bytes));
+	}
+	return(result);
+}
+
+
 /***********************************************************************************************
  * Read_Scenario_INI -- Read specified scenario INI file.                                      *
  *                                                                                             *
@@ -1487,11 +1543,10 @@ bool Read_Scenario_INI(char const * fname, bool)
 	**	Create scenario filename and read the file.
 	*/
 	CCINIClass ini;
-	CCFileClass file(fname);
 
 	DebugString("Read_Scenario_INI - Filename is %s\n", fname);
 
-	int result = ini.Load(file, true);
+	int result = Load_Scenario_File(ini, fname, true);
 
 	if (result == 0) {
 		DebugString("Scenario ini load failed!\n");
@@ -1697,6 +1752,11 @@ bool Read_Scenario_INI(CCINIClass const & ini, bool is_mapgen)
 
 	DebugString("Clearing old scenario\n");
 	Clear_Scenario();
+
+	// A generated map has no file to hold.
+	if (is_mapgen) {
+		Scen->SourceFile.Clear();
+	}
 
 	if (Session.Type == GAME_NORMAL) {
 		Scen->Difficulty = Session.CampaignDifficulty;
@@ -2009,7 +2069,11 @@ bool Read_Scenario_INI(CCINIClass const & ini, bool is_mapgen)
 		strcat(buffer, ".INI");
 		cfile.Set_Name(buffer);
 
-		if (cfile.Is_Available() == true) {
+		// When this is the scenario file itself, a restart must apply what the launch applied.
+		if (Scen->SourceFile.Matches(buffer)) {
+			Load_Held_Scenario_File(mini, buffer, false);
+			Rule->Addition(mini);
+		} else if (cfile.Is_Available() == true) {
 			mini.Load(cfile, false);
 			Rule->Addition(mini);
 		}
@@ -3320,6 +3384,7 @@ void ScenarioClass::Serialize(SaveStreamClass & stream)
 	stream.Serialize(Stage);
 	stream.Serialize(IsInputLocked);
 	stream.Serialize(IsMPAIBaseNodes);
+	stream.Serialize(SourceFile);
 }
 
 

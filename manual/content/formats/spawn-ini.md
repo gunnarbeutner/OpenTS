@@ -53,7 +53,9 @@ names no host leaves the first seat in charge from the start.
 `LoadSaveGame=yes` resumes the saved game `SaveGameName` names, and decides the kind of game
 on its own: a saved game carries the kind of game it was, the options it was played under
 and the houses that played it, so nothing else in the file decides those. A client resuming a
-campaign writes little more than the name of the save.
+campaign writes little more than the name of the save. The file `Scenario` names is not read;
+the save carries [its own copy](/formats/save-games/#what-the-file-holds) of the scenario,
+which a restart reads too.
 
 The name is a file inside the game's saved-games folder, and a name written with a path of
 its own is reduced to its last part. A save the folder does not hold, or one made by
