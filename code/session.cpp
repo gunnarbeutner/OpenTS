@@ -171,6 +171,7 @@ SessionClass::SessionClass(void)
 	Options.AITakeover = true;
 	Options.BuildOffAlly = false;
 	Options.AutoDeployMCV = false;
+	Options.AttackNeutralUnits = false;
 	Options.AIDifficulty = DIFF_NORMAL;
 
 	UniqueID = 0;
@@ -603,6 +604,7 @@ bool SessionClass::Log_To_File(FILE *out)
 	fprintf(out,"Options.AITakeover = %d\n", Options.AITakeover);
 	fprintf(out,"Options.BuildOffAlly = %d\n", Options.BuildOffAlly);
 	fprintf(out,"Options.AutoDeployMCV = %d\n", Options.AutoDeployMCV);
+	fprintf(out,"Options.AttackNeutralUnits = %d\n", Options.AttackNeutralUnits);
 	fprintf(out,"ObiWan = %d\n", ObiWan);
 	fprintf(out,"AIOnly = %d\n", AIOnly);
 
@@ -1386,6 +1388,7 @@ void GameOptionsType::Serialize(SaveStreamClass & stream)
 	stream.Serialize(AITakeover);
 	stream.Serialize(BuildOffAlly);
 	stream.Serialize(AutoDeployMCV);
+	stream.Serialize(AttackNeutralUnits);
 	stream.Serialize(ScenarioDescription);
 }
 

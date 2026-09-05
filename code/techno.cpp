@@ -2090,7 +2090,7 @@ bool TechnoClass::Evaluate_Object(ThreatType method, int mask, int range, Techno
 		return(false);		// Mask failure.
 	}
 
-	if (Session.Type != GAME_NORMAL && object->House->Class->IsMultiplayPassive) {
+	if (Session.Type != GAME_NORMAL && object->House->Class->IsMultiplayPassive && !Session.Options.AttackNeutralUnits) {
 		BEnd(BENCH_EVAL_OBJECT);
 		return(false);
 	}
@@ -2151,9 +2151,11 @@ bool TechnoClass::Evaluate_Object(ThreatType method, int mask, int range, Techno
 	**	if the building is not aggressive. That is, unless it is part of a team. A team
 	**	is allowed to pick any target it so chooses.
 	*/
+	// A weapon that reaches nowhere leaves the building as harmless as an unarmed one.
 	if ((!Is_Foot() || !((FootClass *)this)->Team != NULL) &&
 			House->Is_Human_Player() && !object->Considered_Vehicle() &&
-			otype == RTTI_BUILDING && object->PrimaryWeapon == NULL) {
+			otype == RTTI_BUILDING &&
+			(object->PrimaryWeapon == NULL || object->PrimaryWeapon->Range == 0)) {
 
 		if (!engineer) {
 			BEnd(BENCH_EVAL_OBJECT);

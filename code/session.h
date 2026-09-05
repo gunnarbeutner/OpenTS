@@ -453,6 +453,7 @@ struct GameOptionsType {
 	bool		AITakeover;			/// A departed player's house is handed to the computer rather than destroyed.
 	bool		BuildOffAlly;		// A mutually allied house's buildings anchor this player's placements.
 	bool		AutoDeployMCV;		// Every house's starting base unit deploys as the match begins.
+	bool		AttackNeutralUnits;	// A target scan considers a neutral house's objects.
 	char		ScenarioDescription [DESCRIP_MAX];	//Used on client machines only
 
 	bool Save(IStream * stream);
