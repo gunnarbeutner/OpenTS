@@ -979,9 +979,10 @@ BEGIN
     LISTBOX         IDC_DESYNC_PLAYER_LIST,30,35,120,105,NOT LBS_NOTIFY |
                     LBS_OWNERDRAWFIXED | LBS_HASSTRINGS |
                     LBS_NOINTEGRALHEIGHT | LBS_NOSEL | NOT WS_BORDER
-    LTEXT           "The game has gone out of sync.\r\n\r\nLoad Game loads a saved game of this match on every machine, which brings them back into step.\r\n\r\nContinue plays on without the players that are out of sync. They play on in a game of their own.",
+    LTEXT           "The game has gone out of sync.\r\n\r\nPress ""Load Game"" to load a saved game from this session, re-syncing the game for all players.\r\n\r\nPress ""Continue"" to continue playing without the desynced players. They will continue in a separate game session.",
                     -1,160,25,180,82,NOT WS_GROUP
-    LTEXT           "Quit leaves the game.",-1,160,127,180,22,NOT WS_GROUP
+    LTEXT           "Press ""Quit"" to exit the game.",-1,160,127,180,22,
+                    NOT WS_GROUP
     LISTBOX         IDC_DESYNC_CHAT_LIST,30,145,300,60,NOT LBS_NOTIFY |
                     LBS_OWNERDRAWFIXED | LBS_HASSTRINGS |
                     LBS_NOINTEGRALHEIGHT | LBS_NOSEL | NOT WS_BORDER
@@ -1009,9 +1010,10 @@ BEGIN
     LISTBOX         IDC_DESYNC_PLAYER_LIST,30,35,120,105,NOT LBS_NOTIFY |
                     LBS_OWNERDRAWFIXED | LBS_HASSTRINGS |
                     LBS_NOINTEGRALHEIGHT | LBS_NOSEL | NOT WS_BORDER
-    LTEXT           "The game has gone out of sync.\r\n\r\nThe host can load a saved game of this match on every machine, which brings them back into step, or continue without the players that are out of sync.",
+    LTEXT           "The game has gone out of sync.\r\n\r\nIf there are saves available from this session, the game host can attempt to load a save to re-sync the game.\r\n\r\nAlternatively, the host can choose for the desynced players to continue playing in separate game sessions.",
                     -1,160,25,180,82,NOT WS_GROUP
-    LTEXT           "Waiting for the host to decide.",-1,160,127,180,22,
+    LTEXT           "Please wait while the host is making a decision.",-1,160,
+                    127,180,22,
                     NOT WS_GROUP
     LISTBOX         IDC_DESYNC_CHAT_LIST,30,145,300,60,NOT LBS_NOTIFY |
                     LBS_OWNERDRAWFIXED | LBS_HASSTRINGS |
@@ -2549,8 +2551,8 @@ BEGIN
     TXT_MOVIE_SKIP_MANY     "%d players want to skip the video."
     TXT_MOVIE_SKIP_AGREE    "Press ESC to agree. (%d/%d)"
     TXT_MOVIE_SKIP_WAIT     "Waiting for other players... (%d/%d)"
-    TXT_SYNC_STATUS_OUT     "Out of sync"
-    TXT_SYNC_STATUS_LEFT    "Left"
+    TXT_SYNC_STATUS_OUT     "Desynced"
+    TXT_SYNC_STATUS_LEFT    "Quit"
     TXT_LOADING_IN_SECONDS  "Loading in %d seconds..."
     TXT_LOADING_IN_SECOND   "Loading in 1 second..."
     TXT_LOADING_SAVED_GAME  "Loading the saved game..."

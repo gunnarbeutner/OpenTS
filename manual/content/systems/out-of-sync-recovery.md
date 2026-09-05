@@ -25,7 +25,7 @@ chooses between loading a saved game, continuing, and quitting; everyone else wa
 choice, and can quit after ten seconds.
 
 Both dialogs list the players. The host icon marks the master, and each player is shown as
-`OK`, as `Out of sync` when their checksum disagreed with this machine's, or as `Left`. A chat
+`OK`, as `Desynced` when their checksum disagreed with this machine's, or as `Quit`. A chat
 box under the list reaches everyone, and a line typed there is shown in the message list as
 well, as [in-game chat](/systems/chat/) is.
 
