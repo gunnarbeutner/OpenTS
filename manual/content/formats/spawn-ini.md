@@ -302,6 +302,9 @@ How far ahead the machines run and how often they exchange their orders are set 
 and no launch file changes them. `MapHash` is not read either: the machines compare the games
 they have loaded before play begins, which settles the same question for themselves.
 
+`AimableSams` is not read: a defense whose weapon reaches only the air is aimable at a chosen
+aircraft, which [`SAM`](/keys/sam/) owns.
+
 `ContinueWithoutHumans` is not read. A match ends once no person is left playing it, except
 one every seat of which is [watching](/systems/observers/) rather than playing, which runs on
 until one side remains.
