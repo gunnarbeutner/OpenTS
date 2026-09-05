@@ -15,6 +15,10 @@ targets:
 breaking: false
 credit:
 - ZivDero
+- Iran
+- AlexB
+- CCHyper
+- tomsons26
 ---
 
 `BuildOffAlly=Yes` admits a mutually allied house's buildings as placement anchors alongside
@@ -25,3 +29,6 @@ by a rule that never looks at an ally.
 
 `[MultiplayerDefaults] BuildOffAllyAnyStructure` narrows which of the ally's buildings
 qualify, from all of them to construction yards alone.
+
+Iran is credited for the CnCNet spawner feature this follows, AlexB for the ts-patches patch
+that corrected it, and CCHyper and tomsons26 for the Vinifera version.

@@ -12,6 +12,7 @@ targets:
 breaking: false
 credit:
 - ZivDero
+- dkeeton
 ---
 
 A defense whose weapon reaches only the air takes an attack order against an airborne aircraft
@@ -20,3 +21,6 @@ and open ground offer nothing. A launcher so ordered fires at what it is given i
 choosing for itself, which is the point of the order against a group of aircraft.
 
 `AimableSams` is not read.
+
+dkeeton is credited for the ts-patches patch this follows, whose `AimableSams` gate the
+order here does without.
