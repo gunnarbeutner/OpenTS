@@ -111,6 +111,13 @@ class OptionsClass {
 		bool SidebarCameoText;
 
 		/*
+		 * If the sidebar cameos are to be sorted rather than left in the order they were
+		 * offered, then this flag will be true. Clearing it stops further sorting without
+		 * undoing any already done.
+		 */
+		bool SidebarSorting;
+
+		/*
 		 * If selected objects are to draw a line to their target, then this flag will be true.
 		 */
 		bool ActionLines;

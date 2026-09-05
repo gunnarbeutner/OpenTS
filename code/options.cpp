@@ -119,6 +119,7 @@ OptionsClass::OptionsClass(void) :
 	IsScoreShuffle(false),
 	IsSidebarOnRight(true),
 	SidebarCameoText(true),
+	SidebarSorting(true),
 	ActionLines(true),
 	ToolTips(true),
 	TextBackgroundColor(0),
@@ -385,6 +386,9 @@ void OptionsClass::Load_Settings(void)
 	SidebarCameoText = ConfigINI.Get_Bool("Options", "SidebarCameoText", SidebarCameoText);
 	DebugString("Sidebar Text is %s\n", SidebarCameoText == true ? "ON" : "OFF");
 
+	SidebarSorting = ConfigINI.Get_Bool("Options", "SidebarSorting", SidebarSorting);
+	DebugString("Sidebar Sorting is %s\n", SidebarSorting == true ? "ON" : "OFF");
+
 	ActionLines = ConfigINI.Get_Bool("Options", "UnitActionLines", ActionLines);
 	DebugString("ActionLines are %s\n", ActionLines == true ? "ON" : "OFF");
 
@@ -463,6 +467,7 @@ void OptionsClass::Save_Settings (void)
 	ConfigINI.Put_Bool("Options", "AutoScroll", AutoScroll);
 	ConfigINI.Put_Int("Options", "DetailLevel", DetailLevel);
 	ConfigINI.Put_Bool("Options", "SidebarCameoText", SidebarCameoText);
+	ConfigINI.Put_Bool("Options", "SidebarSorting", SidebarSorting);
 	ConfigINI.Put_Bool("Options", "UnitActionLines", ActionLines);
 	ConfigINI.Put_Bool("Options", "ToolTips", ToolTips);
 	ConfigINI.Put_Int("Options", "TextBackgroundColor", TextBackgroundColor);
