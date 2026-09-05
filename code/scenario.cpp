@@ -2811,6 +2811,9 @@ static void Create_Units(bool official)
 				if (Scen->Special.IsCaptureTheFlag) {
 					hptr->Flag_Attach((UnitClass *)obj, true);
 				}
+				if (Session.Options.AutoDeployMCV) {
+					obj->Set_Mission(MISSION_UNLOAD);
+				}
 			}
 		} else {
 

@@ -100,8 +100,8 @@ which mirrors `DifficultyModeComputer`: `0` is named Hard, `1` Medium and `2` Ea
 
 Read from `[Settings]`: `Bases`, `Credits`, `BridgeDestroy`, `Crates`, `ShortGame`,
 `GameSpeed`, `MultiEngineer`, `UnitCount`, `AIPlayers`, `AIDifficulty`, `AlliesAllowed`,
-`FogOfWar`, `MCVRedeploy`, `TechLevel`, `Firestorm`, `Seed`, `CoachMode`, `AutoSurrender`,
-`BuildOffAlly`, and `PlayMoviesInMultiplayer`.
+`FogOfWar`, `MCVRedeploy`, `AutoDeployMCV`, `TechLevel`, `Firestorm`, `Seed`, `CoachMode`,
+`AutoSurrender`, `BuildOffAlly`, and `PlayMoviesInMultiplayer`.
 
 `CoachMode` decides what a defeated player keeps;
 [observers and coach mode](/systems/observers/#coach-mode) owns it.
@@ -111,6 +111,9 @@ instead; [leaving a match](/systems/leaving-a-match/) owns it. Every file must c
 answer. Each machine acts on it alone, so machines that disagree fall out of step the moment
 somebody leaves, and the [out-of-sync report](/using/out-of-sync-reports/) names the
 difference.
+
+`AutoDeployMCV=yes` deploys every house's starting base unit as the match opens;
+[starting forces](/systems/starting-forces/#the-base-unit) owns what that leaves on the map.
 
 `BuildOffAlly=yes` lets a player place buildings against a mutually allied house's base as
 well as their own; [base placement and adjacency](/systems/base-adjacency/#building-off-an-ally)

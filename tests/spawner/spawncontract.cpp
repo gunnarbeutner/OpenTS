@@ -176,6 +176,7 @@ int main(void)
 			"the unwritten waits are the ones every spawner has kept");
 		Check(config.AutoSurrender, "a departing player surrenders unless the file says otherwise");
 		Check(!config.BuildOffAlly, "nobody builds off an ally unless the file asks for it");
+		Check(!config.AutoDeployMCV, "a starting base unit waits to be deployed by hand");
 
 		bool any = false;
 		for (bool flag : config.GlobalFlags) {
@@ -277,6 +278,25 @@ int main(void)
 		config = Read(spelled, sizeof(spelled) - 1);
 
 		Check(config.BuildOffAlly, "the option is read whichever way it spells yes");
+	}
+
+	/*
+	 * Deploying the starting base unit is asked for by the file alone.
+	 */
+	{
+		char const on[] =
+			"[Settings]\n"
+			"AutoDeployMCV=Yes\n";
+		SpawnerConfigClass config = Read(on, sizeof(on) - 1);
+
+		Check(config.AutoDeployMCV, "the base unit deploys itself when the file says so");
+
+		char const spelled[] =
+			"[Settings]\n"
+			"AutoDeployMCV=True\n";
+		config = Read(spelled, sizeof(spelled) - 1);
+
+		Check(config.AutoDeployMCV, "the option is read whichever way it spells yes");
 	}
 
 	/*
@@ -466,6 +486,11 @@ int main(void)
 		ally.BuildOffAlly = !ally.BuildOffAlly;
 		Check(one.Session_Identity_CRC() != ally.Session_Identity_CRC(),
 			"building next to an ally moves the identity");
+
+		SpawnerConfigClass deploy = Read(_Skirmish, sizeof(_Skirmish) - 1);
+		deploy.AutoDeployMCV = !deploy.AutoDeployMCV;
+		Check(one.Session_Identity_CRC() != deploy.Session_Identity_CRC(),
+			"deploying the starting base unit moves the identity");
 
 		SpawnerConfigClass waits = Read(_Skirmish, sizeof(_Skirmish) - 1);
 		waits.ConnTimeout = one.ConnTimeout + 60;

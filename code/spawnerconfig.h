@@ -106,6 +106,7 @@ class SpawnerConfigClass
 		bool HarvesterTruce = false;
 		bool FogOfWar = false;
 		bool MCVRedeploy = true;
+		bool AutoDeployMCV = false;
 		int Seed = 0;
 		int TechLevel = 10;
 		bool Firestorm = true;

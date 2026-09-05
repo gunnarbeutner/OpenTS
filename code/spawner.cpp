@@ -228,6 +228,7 @@ static void Spawner_Bind_Options(void)
 	Session.Options.MCVRedeploy = SpawnConfig.MCVRedeploy;
 	Session.Options.CoachMode = SpawnConfig.CoachMode;
 	Session.Options.BuildOffAlly = SpawnConfig.BuildOffAlly;
+	Session.Options.AutoDeployMCV = SpawnConfig.AutoDeployMCV;
 
 	// The file names what a departing player does; the session names what becomes of the seat.
 	Session.Options.AITakeover = !SpawnConfig.AutoSurrender;

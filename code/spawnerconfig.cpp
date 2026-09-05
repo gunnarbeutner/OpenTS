@@ -266,6 +266,7 @@ int SpawnerConfigClass::Session_Identity_CRC(void) const
 	crc(HarvesterTruce);
 	crc(FogOfWar);
 	crc(MCVRedeploy);
+	crc(AutoDeployMCV);
 	crc(Seed);
 	crc(TechLevel);
 	crc(Firestorm);
@@ -521,6 +522,7 @@ void SpawnerConfigClass::Read_INI(INIClass const & ini)
 	HarvesterTruce = ini.Get_Bool(SETTINGS, "HarvesterTruce", HarvesterTruce);
 	FogOfWar = ini.Get_Bool(SETTINGS, "FogOfWar", FogOfWar);
 	MCVRedeploy = ini.Get_Bool(SETTINGS, "MCVRedeploy", MCVRedeploy);
+	AutoDeployMCV = ini.Get_Bool(SETTINGS, "AutoDeployMCV", AutoDeployMCV);
 	Seed = ini.Get_Int(SETTINGS, "Seed", Seed);
 	TechLevel = ini.Get_Int(SETTINGS, "TechLevel", TechLevel);
 	Firestorm = ini.Get_Bool(SETTINGS, "Firestorm", Firestorm);

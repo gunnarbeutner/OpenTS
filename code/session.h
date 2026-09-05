@@ -452,6 +452,7 @@ struct GameOptionsType {
 	bool		CoachMode;			// A defeated player keeps allied vision and private chat, and gets no map reveal.
 	bool		AITakeover;			/// A departed player's house is handed to the computer rather than destroyed.
 	bool		BuildOffAlly;		// A mutually allied house's buildings anchor this player's placements.
+	bool		AutoDeployMCV;		// Every house's starting base unit deploys as the match begins.
 	char		ScenarioDescription [DESCRIP_MAX];	//Used on client machines only
 
 	bool Save(IStream * stream);
