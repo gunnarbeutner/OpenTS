@@ -27,7 +27,7 @@ class SpawnerConfigClass
 	public:
 
 		// Counts changes to what the game makes of a launch file, never the file's own vocabulary.
-		static constexpr int SCHEMA_VERSION = 2;
+		static constexpr int SCHEMA_VERSION = 1;
 
 		// One seat per house a match may hold, and the fifty scenario flags the engine keeps.
 		static constexpr int SLOT_COUNT = 8;

@@ -175,6 +175,7 @@ int main(void)
 		Check(config.ConnTimeout == 3600 && config.ReconnectTimeout == 2400,
 			"the unwritten waits are the ones every spawner has kept");
 		Check(config.AutoSurrender, "a departing player surrenders unless the file says otherwise");
+		Check(!config.BuildOffAlly, "nobody builds off an ally unless the file asks for it");
 
 		bool any = false;
 		for (bool flag : config.GlobalFlags) {
@@ -257,6 +258,25 @@ int main(void)
 		config = Read(spelled, sizeof(spelled) - 1);
 
 		Check(!config.AutoSurrender, "a forced option is read whichever way it spells no");
+	}
+
+	/*
+	 * Building next to an ally's base is asked for by the file alone.
+	 */
+	{
+		char const on[] =
+			"[Settings]\n"
+			"BuildOffAlly=Yes\n";
+		SpawnerConfigClass config = Read(on, sizeof(on) - 1);
+
+		Check(config.BuildOffAlly, "an ally's base anchors a placement when the file says so");
+
+		char const spelled[] =
+			"[Settings]\n"
+			"BuildOffAlly=True\n";
+		config = Read(spelled, sizeof(spelled) - 1);
+
+		Check(config.BuildOffAlly, "the option is read whichever way it spells yes");
 	}
 
 	/*
@@ -441,6 +461,11 @@ int main(void)
 		surrender.AutoSurrender = !surrender.AutoSurrender;
 		Check(one.Session_Identity_CRC() != surrender.Session_Identity_CRC(),
 			"what becomes of a departing player's base moves the identity");
+
+		SpawnerConfigClass ally = Read(_Skirmish, sizeof(_Skirmish) - 1);
+		ally.BuildOffAlly = !ally.BuildOffAlly;
+		Check(one.Session_Identity_CRC() != ally.Session_Identity_CRC(),
+			"building next to an ally moves the identity");
 
 		SpawnerConfigClass waits = Read(_Skirmish, sizeof(_Skirmish) - 1);
 		waits.ConnTimeout = one.ConnTimeout + 60;

@@ -227,6 +227,7 @@ static void Spawner_Bind_Options(void)
 	Session.Options.FogOfWar = SpawnConfig.FogOfWar;
 	Session.Options.MCVRedeploy = SpawnConfig.MCVRedeploy;
 	Session.Options.CoachMode = SpawnConfig.CoachMode;
+	Session.Options.BuildOffAlly = SpawnConfig.BuildOffAlly;
 
 	// The file names what a departing player does; the session names what becomes of the seat.
 	Session.Options.AITakeover = !SpawnConfig.AutoSurrender;
@@ -255,8 +256,7 @@ static void Spawner_Bind_Options(void)
 	 *   SaveGameName                  - read to decide the kind of launch and name the save.
 	 *   Tournament, GameID,
 	 *   WriteStatistics               - naming a match and reporting how it went.
-	 *   BuildOffAlly, AttackNeutralUnits,
-	 *   ScrapMetal                    - options the game has no setting of its own for yet.
+	 *   AttackNeutralUnits, ScrapMetal - options the game has no setting of its own for yet.
 	 *   QuickMatch                    - what a player is shown around the match.
 	 *
 	 * Spawner_Bind_Presentation binds SkipScoreScreen, CustomLoadScreen, CustomLoadScreenX,

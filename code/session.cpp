@@ -169,6 +169,7 @@ SessionClass::SessionClass(void)
 	Options.MCVRedeploy=false;
 	Options.CoachMode = false;
 	Options.AITakeover = true;
+	Options.BuildOffAlly = false;
 	Options.AIDifficulty = DIFF_NORMAL;
 
 	UniqueID = 0;
@@ -599,6 +600,7 @@ bool SessionClass::Log_To_File(FILE *out)
 	fprintf(out,"Options.AIDifficulty = %d\n", Options.AIDifficulty);
 	fprintf(out,"Options.CoachMode = %d\n", Options.CoachMode);
 	fprintf(out,"Options.AITakeover = %d\n", Options.AITakeover);
+	fprintf(out,"Options.BuildOffAlly = %d\n", Options.BuildOffAlly);
 	fprintf(out,"ObiWan = %d\n", ObiWan);
 	fprintf(out,"AIOnly = %d\n", AIOnly);
 
@@ -1380,6 +1382,7 @@ void GameOptionsType::Serialize(SaveStreamClass & stream)
 	stream.Serialize(MCVRedeploy);
 	stream.Serialize(CoachMode);
 	stream.Serialize(AITakeover);
+	stream.Serialize(BuildOffAlly);
 	stream.Serialize(ScenarioDescription);
 }
 

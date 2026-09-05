@@ -101,7 +101,7 @@ which mirrors `DifficultyModeComputer`: `0` is named Hard, `1` Medium and `2` Ea
 Read from `[Settings]`: `Bases`, `Credits`, `BridgeDestroy`, `Crates`, `ShortGame`,
 `GameSpeed`, `MultiEngineer`, `UnitCount`, `AIPlayers`, `AIDifficulty`, `AlliesAllowed`,
 `FogOfWar`, `MCVRedeploy`, `TechLevel`, `Firestorm`, `Seed`, `CoachMode`, `AutoSurrender`,
-and `PlayMoviesInMultiplayer`.
+`BuildOffAlly`, and `PlayMoviesInMultiplayer`.
 
 `CoachMode` decides what a defeated player keeps;
 [observers and coach mode](/systems/observers/#coach-mode) owns it.
@@ -111,6 +111,12 @@ instead; [leaving a match](/systems/leaving-a-match/) owns it. Every file must c
 answer. Each machine acts on it alone, so machines that disagree fall out of step the moment
 somebody leaves, and the [out-of-sync report](/using/out-of-sync-reports/) names the
 difference.
+
+`BuildOffAlly=yes` lets a player place buildings against a mutually allied house's base as
+well as their own; [base placement and adjacency](/systems/base-adjacency/#building-off-an-ally)
+owns what counts as an anchor. The game tests this only where the placement is made, so a
+file that disagrees with the others costs its own player the reach rather than putting the
+match out of step.
 
 `PlayMoviesInMultiplayer=yes` plays the scenario's movies in the game the file starts, which a
 skirmish or a game against other machines otherwise leaves out. Every machine's file must
@@ -300,5 +306,4 @@ reads and an identity that game stamps into its saves; the picture a mission wan
 this game through `CustomLoadScreen` instead.
 
 These keys are read but change nothing yet: `Tournament`, `GameID`,
-`WriteStatistics`, `BuildOffAlly`,
-`AttackNeutralUnits`, `ScrapMetal`, and `QuickMatch`.
+`WriteStatistics`, `AttackNeutralUnits`, `ScrapMetal`, and `QuickMatch`.

@@ -451,6 +451,7 @@ struct GameOptionsType {
 	bool		MCVRedeploy;		/// A construction yard can be sold back into an MCV.
 	bool		CoachMode;			// A defeated player keeps allied vision and private chat, and gets no map reveal.
 	bool		AITakeover;			/// A departed player's house is handed to the computer rather than destroyed.
+	bool		BuildOffAlly;		// A mutually allied house's buildings anchor this player's placements.
 	char		ScenarioDescription [DESCRIP_MAX];	//Used on client machines only
 
 	bool Save(IStream * stream);
