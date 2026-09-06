@@ -20,6 +20,14 @@ class SaveStreamClass;
 // CLSID_NULL when it is not one of ours.
 CLSID Locomotion_Class_ID(ILocomotion * locomotion);
 
+// A new, unlinked locomotor of the registered class, or NULL when the identifier names
+// no locomotor.
+ILocomotion * Create_Locomotor(CLSID const & classid);
+
+// The locomotor whose record is next in the stream, or NULL when the record names
+// something that is not one, which fails the stream.
+ILocomotion * Load_Locomotor(SaveStreamClass & stream);
+
 
 class LocomotionClass : public IPersistent, public ILocomotion
 {
