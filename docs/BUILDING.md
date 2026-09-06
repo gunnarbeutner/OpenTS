@@ -17,8 +17,11 @@
 | C++ language level | C++20 |
 | Configurations | Debug and Release |
 
-Other generators, compilers, architectures, and configurations are currently
-unsupported.
+Other generators, compilers, architectures, and configurations are not
+supported by the current tree. A WebAssembly target and a native macOS target
+are in progress on branches of their own; the
+[Win32 substitute](#other-toolchains-and-the-win32-substitute) they build on is
+in this tree, and it is not supported.
 
 Install Visual Studio 2022 with the **Desktop development with C++** workload,
 a Windows SDK, and CMake 3.23 or newer. Git for Windows is needed to clone the
@@ -110,13 +113,115 @@ With the recommended extensions installed, the repository provides:
 Standard VS Code shortcuts such as `Ctrl+Shift+B`, `F5`, and `Ctrl+F5` work as
 usual.
 
+## Other toolchains and the Win32 substitute
+
+> [!WARNING]
+> Nothing in this section is a support claim. Visual Studio 2022 Win32 remains
+> the supported target; what follows is the platform layer the other targets
+> are built on, and it is verified only by the harnesses named below.
+
+The build accepts the Emscripten toolchain and Apple clang on macOS alongside
+MSVC. Under either the engine compiles against the Win32 substitute described
+below rather than the Windows SDK: `code/win32compat/` carries the substitute's
+headers under the SDK's own names, the build puts that directory on the include
+path, and every include site stays as it is written for MSVC. Emscripten's
+wasm32 is ILP32 like Win32 x86; macOS is the one LP64 host, and the substitute
+pins every Windows scalar to its Windows width there.
+
+The substitute answers the operating system, not the machine the game runs on.
+What it needs from a host, the window the renderer presents into, the pointer
+and keys, the frame pacing, and the yields the engine's waits make, is declared
+in `code/browser.h` and supplied by a host on a branch of its own. Without a
+host the executable is left out of the default build on these toolchains, and
+the substitute library and its harnesses still build:
+
+```bash
+cmake -S . -B build-macos -G Ninja -DCMAKE_BUILD_TYPE=Debug
+ninja -C build-macos
+ctest --test-dir build-macos
+
+source /path/to/emsdk/emsdk_env.sh
+emcmake cmake -S . -B build-wasm -G Ninja -DCMAKE_BUILD_TYPE=Debug
+ninja -C build-wasm
+ctest --test-dir build-wasm
+```
+
+A host branch names itself by setting `OPENTS_HOST` in the build, which puts the
+executable back into the default build, and adds the sources that answer
+`code/browser.h`.
+
+### The Win32 substitute
+
+`code/win32compat/` holds headers named and partitioned as the Windows SDK and
+the MSVC C runtime partition theirs, so `#include <windows.h>` and its kin
+resolve there on a substitute target and to the SDK under MSVC, where the
+directory is never on the include path. The build defines
+`OPENTS_WIN32_SUBSTITUTE` for every toolchain but MSVC; what remains guarded by
+it in the engine is behaviour, not includes.
+
+`windows.h` is the umbrella it is under the SDK: it takes in `windef.h`,
+`winbase.h`, `wingdi.h`, `winuser.h`, `winnls.h`, `wincon.h`, `winver.h` and
+`winreg.h`, and without `WIN32_LEAN_AND_MEAN` also `mmsystem.h`,
+`winsock.h` and `shellapi.h`. Each header owns what its SDK namesake owns:
+`winnt.h` and `basetsd.h` the fundamental types at their Win32 widths,
+`winerror.h` the error codes, `commctrl.h` and `windowsx.h` the controls and
+their message wrappers, and `iphlpapi.h`, `winioctl.h`, `tlhelp32.h` and
+`dbghelp.h` the subsystems the engine reaches by name. Nothing of COM or OLE
+is in the tree: the engine creates its objects through its own class table
+and names them by an identifier of its own.
+
+On the runtime side `crtcompat.h` carries the MSVC spellings that MSVC keeps in
+the standard headers (`stricmp`, `itoa`, `_MAX_PATH`, the `ctype` masks,
+`__int64`); `always.h` includes it on every toolchain and it is inert under
+MSVC. What MSVC keeps in headers of its own sits under those names: `io.h`,
+`conio.h`, `malloc.h`, `sys/timeb.h`, `sal.h`, `new.h`, `direct.h`, `dos.h`,
+`share.h`, `eh.h` and `intrin.h`.
+
+`substitute.h` is the one header with no SDK namesake: the substitute's own
+contract for how an unimplemented entry point reports itself.
+
+The definitions are
+split by subject, and on a substitute target they compile once into the
+`Win32Substitute` static library that the engine and the harnesses link:
+
+| File | Implements |
+| --- | --- |
+| `code/win32compat/win32compat.cpp` | The filesystem, the layout assertions, clocks, mutexes and events, the heap, resources and version information, locale formatting, the C runtime, the Windows-only half of Winsock, and stubs for the registry, profile and console entry points |
+| `code/win32compat/win32user.cpp` | An in-process window manager: window classes, handles, the message queue, `SendMessage` and `DispatchMessage`, the dialog-item protocol, dialog templates, and a message box drawn into the page |
+| `code/win32compat/win32ctrl.cpp` | The stock controls: button, static, edit, list box, combo box, scroll bar, track bar, progress bar and hot key |
+| `code/win32compat/win32gdi.cpp` | Device contexts, GDI objects, font measurement and text drawing onto the engine's surfaces; the raster half is stubbed |
+| `code/win32compat/win32window.cpp` | The canvas: its size, the pointer position, the cursor, the code page, and display-mode enumeration |
+| `code/win32compat/win32process.cpp` | The module name and handle, the command line, locks and critical sections on a single thread, and stubs for the module, thread, process and DbgHelp entry points |
+| `code/win32compat/win32timer.cpp` | `Sleep` and the multimedia timers as main-loop polls |
+| `code/win32compat/win32disk.cpp` | Free-space reporting from `navigator.storage.estimate` |
+
+[The Win32 substitute](WIN32-SUBSTITUTE.md) records the layout and ABI
+constraints the substitute is held to and how stubs report themselves.
+
+### Tests
+
+`tests/` builds under both toolchains. The Emscripten toolchain file points
+`CMAKE_CROSSCOMPILING_EMULATOR` at the emsdk's node, so `ctest` runs the
+harnesses there without further configuration. Eight tests build on any
+substitute target: `sosparity`, `unvqdelta`, `win32file`, `resources`, `win32process`,
+`win32user`, `win32window`, and `save`;
+`timer` substitutes the millisecond clock and builds under Emscripten alone.
+None of them reads game data.
+
+`save` drives the file a saved game is kept in. It builds `code/savefile.cpp`
+with the engine's LZO codec on every target, so the same writer and reader are
+checked everywhere; [the format](SAVE-FORMAT.md) lists what it covers.
+
 ## Build identity
 
 The top-level `CMakeLists.txt` declares the project version in
 `project(OpenTS VERSION ...)`. Since `project()` accepts only numbers, any
 SemVer prerelease label goes in `OPENTS_VERSION_PRERELEASE`. Both values must
 match the development entry in the manual's release registry;
-`python manual/tools/manage.py check` verifies this.
+`python manual/tools/manage.py check` verifies this. That tool runs on its own
+pinned Python and packages rather than on whatever `python` resolves to; the
+[manual's README](../manual/README.md) owns setting it up, and
+`manage.py doctor` reports what is missing.
 
 Each build writes two generated headers from that version and the repository
 state:
