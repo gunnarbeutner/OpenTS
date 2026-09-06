@@ -2180,7 +2180,7 @@ fixed_controls:
   availability: *id001
   bindings:
   - Escape
-  context: VQA playback
+  context: Full-screen movie playback
   _provenance:
     source: code/movieskip.cpp
     guard: null
