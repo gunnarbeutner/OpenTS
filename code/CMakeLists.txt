@@ -69,6 +69,12 @@ foreach(f ${OPENTS_RAW})
         set(EXCLUDED TRUE)
     endif()
 
+    # The block source is the substitute's too, but its headers stay beside the engine's
+    # because cdfile.h includes them on every toolchain.
+    if(OPENTS_WIN32_SUBSTITUTE AND f MATCHES "/blocksource\\.cpp$")
+        set(EXCLUDED TRUE)
+    endif()
+
     if(NOT EXCLUDED)
         list(APPEND OPENTS_SRC "${f}")
     endif()
@@ -291,6 +297,7 @@ add_dependencies(OpenTS OpenTSBuildStamp)
 # executable that links it.
 if(OPENTS_WIN32_SUBSTITUTE)
     add_library(Win32Substitute STATIC
+        blocksource.cpp
         win32compat/peresource.cpp
         win32compat/win32compat.cpp
         win32compat/win32ctrl.cpp

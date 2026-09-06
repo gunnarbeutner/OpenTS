@@ -33,6 +33,27 @@
 #pragma once
 
 #include "bfiofile.h"
+#include "blocksource.hh"
+
+// How the engine will read an archive, which decides how much of it is worth
+// having before any of it is asked for. Size is not the distinction; only the
+// code registering the archive knows how it will be read.
+enum PrefetchType {
+	PREFETCH_WHOLE,		// Read across, so every part of it is wanted.
+	PREFETCH_STREAMED	// Streamed one entry at a time; only its directory is.
+};
+
+/*
+ * This class is derived from the BufferIOFileClass, and adds the ability to search across
+ * several directories for a file. A file this player's own game wrote is found first, then
+ * the current directory, then every directory in the search list in turn.
+ *
+ * A file opened for writing, created or deleted is not searched for at all. It resolves to
+ * the player's own directory, so that what a deployment ships is read from and never written
+ * over. A name that already carries a directory of its own is left exactly as it was given.
+ *
+ * The search order is whatever order the directories were handed to Add_Search_Drive().
+ */
 class CDFileClass : public BufferIOFileClass
 {
 		typedef BufferIOFileClass BASECLASS;
@@ -52,6 +73,10 @@ class CDFileClass : public BufferIOFileClass
 		virtual int Open(char const *filename, int rights=READ) override;
 		virtual int Open(int rights=READ) override;
 
+		// Hides RawFileClass::Bias, which reaches for the operating system file
+		// handle that a file read out of an image does not have.
+		void Bias(int start, int length=-1);
+
 		void Searching(int on) {IsDisabled = !on;};
 
 		static void Add_Search_Drive(char const * path);
@@ -60,6 +85,20 @@ class CDFileClass : public BufferIOFileClass
 
 		static void Set_User_Path(char const * path);
 		static char const * User_Path(void);
+
+		/// <summary>
+		/// Advisory notice that a file, plain or embedded in a mixfile, will
+		/// probably be wanted soon. Nothing is fetched here: the name is
+		/// resolved to the run of bytes it occupies and the entry supplying
+		/// it is told.
+		/// </summary>
+		static void Prefetch(char const * filename, PrefetchType how = PREFETCH_WHOLE);
+
+		/// <summary>
+		/// Advisory notice that this object has stopped reading, which stops
+		/// fetching ahead of it; harmless on an object that declared nothing.
+		/// </summary>
+		void Abandon(void);
 
 		static bool Find_First_File(char *buffer);
 		static bool Find_Next_File(char *buffer);
@@ -72,6 +111,7 @@ class CDFileClass : public BufferIOFileClass
 
 		static bool Has_Directory(char const * filename);
 		static bool User_Path_For(char const * filename, char * buffer, int size);
+		void Hint_Extent(BlockHintType kind);
 
 		/*
 		**	Is multi-drive searching disabled for this file object?

@@ -186,7 +186,7 @@ split by subject, and on a substitute target they compile once into the
 
 | File | Implements |
 | --- | --- |
-| `code/win32compat/win32compat.cpp` | The filesystem, the layout assertions, clocks, mutexes and events, the heap, resources and version information, locale formatting, the C runtime, the Windows-only half of Winsock, and stubs for the registry, profile and console entry points |
+| `code/win32compat/win32compat.cpp` | The filesystem and its manifest lookup, the layout assertions, clocks, mutexes and events, the heap, resources and version information, locale formatting, the C runtime, the Windows-only half of Winsock, and stubs for the registry, profile and console entry points |
 | `code/win32compat/win32user.cpp` | An in-process window manager: window classes, handles, the message queue, `SendMessage` and `DispatchMessage`, the dialog-item protocol, dialog templates, and a message box drawn into the page |
 | `code/win32compat/win32ctrl.cpp` | The stock controls: button, static, edit, list box, combo box, scroll bar, track bar, progress bar and hot key |
 | `code/win32compat/win32gdi.cpp` | Device contexts, GDI objects, font measurement and text drawing onto the engine's surfaces; the raster half is stubbed |
@@ -202,9 +202,9 @@ constraints the substitute is held to and how stubs report themselves.
 
 `tests/` builds under both toolchains. The Emscripten toolchain file points
 `CMAKE_CROSSCOMPILING_EMULATOR` at the emsdk's node, so `ctest` runs the
-harnesses there without further configuration. Eight tests build on any
-substitute target: `sosparity`, `unvqdelta`, `win32file`, `resources`, `win32process`,
-`win32user`, `win32window`, and `save`;
+harnesses there without further configuration. Ten tests build on any
+substitute target: `blocksource`, `lcwstream`, `sosparity`, `unvqdelta`, `win32file`,
+`resources`, `win32process`, `win32user`, `win32window`, and `save`;
 `timer` substitutes the millisecond clock and builds under Emscripten alone.
 None of them reads game data.
 

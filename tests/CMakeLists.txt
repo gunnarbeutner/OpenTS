@@ -41,6 +41,7 @@ endif()
 
 # These cover portable code and carry no platform dependency, so they build wherever the
 # engine does. None of them reads game data.
+add_subdirectory(blocksource)
 add_subdirectory(lcw)
 add_subdirectory(sosparity)
 add_subdirectory(unvqdelta)

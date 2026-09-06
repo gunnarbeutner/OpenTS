@@ -595,6 +595,12 @@ int VQAClass::Play_VQA(int last_frame_to_play, bool nobreakout)
 
 		if (!nobreakout && Keyboard->Check() && Keyboard->Get() == (KN_ESC|WWKEY_RLS_BIT)) {
 			brokeout = true;
+
+			// Said before the close so the rest of a film nobody is watching
+			// stops arriving at once.
+			if (IsFileOpen) {
+				FileHandle.Abandon();
+			}
 		}
 	}
 

@@ -17,6 +17,7 @@
 #include "mmsystem.h"
 #include "shellapi.h"
 
+#include "blocksource.h"
 #include "browser.h"
 #include "crtcompat.h"
 #include "misc.h"
@@ -428,18 +429,22 @@ static void Flush_Persistent_Storage(void)
 
 // A handle is a table slot's index plus one, so it collides with neither
 // reserved value and can carry its kind, the path a delete-on-close open must
-// remove, and a search's position; a mutex is a further kind.
+// remove, and a search's position; an image file and a mutex are further kinds.
 enum HandleKindType
 {
 	HANDLE_KIND_FREE,
 	HANDLE_KIND_FILE,
 	HANDLE_KIND_FIND,
+	HANDLE_KIND_IMAGE,
 	HANDLE_KIND_MUTEX
 };
 
+// The host directory and the image answer for a name's size and date
+// differently, so each match remembers its side.
 struct FindMatchType
 {
 	std::string Name;
+	BlockEntryClass Image;
 };
 
 struct HandleEntryType
@@ -449,6 +454,10 @@ struct HandleEntryType
 	int Descriptor = -1;
 	bool DeleteOnClose = false;
 	std::string Path;
+
+	std::shared_ptr<BlockFileClass> Volume;
+	BlockEntryClass Image;
+	std::uint32_t Cursor = 0;
 
 	unsigned int Held = 0;
 
@@ -495,9 +504,14 @@ static HandleEntryType * Entry_From_Handle(HANDLE handle, HandleKindType kind)
 }
 
 
+// Accepts a handle to either kind of file.
 static HandleEntryType * Entry_From_File_Handle(HANDLE handle)
 {
-	return(Entry_From_Handle(handle, HANDLE_KIND_FILE));
+	HandleEntryType * const entry = Entry_From_Handle(handle);
+
+	if (entry == nullptr) return(nullptr);
+	if (entry->Kind != HANDLE_KIND_FILE && entry->Kind != HANDLE_KIND_IMAGE) return(nullptr);
+	return(entry);
 }
 
 
@@ -520,10 +534,134 @@ static void Release_Handle(HandleEntryType * entry)
 	entry->Descriptor = -1;
 	entry->DeleteOnClose = false;
 	entry->Path.clear();
+	entry->Volume.reset();
+	entry->Image.Reset();
+	entry->Cursor = 0;
 	entry->Held = 0;
 	entry->Directory.clear();
 	entry->Matches.clear();
 	entry->Position = 0;
+}
+
+
+
+// The image is asked for a path relative to the volume root, drive letter and
+// leading separator removed; a path that climbs out of the volume is refused.
+static bool Image_Path(char const * path, std::string & inside)
+{
+	inside.clear();
+
+	if (path == nullptr) return(false);
+
+	std::string translated(path);
+
+	for (char & character : translated) {
+		if (character == '\\') character = '/';
+	}
+
+	if (translated.size() >= 2 && translated[1] == ':') translated.erase(0, 2);
+
+	std::size_t cursor = 0;
+
+	while (cursor < translated.size()) {
+		std::size_t separator = translated.find('/', cursor);
+		if (separator == std::string::npos) separator = translated.size();
+
+		std::string const component(translated, cursor, separator - cursor);
+		cursor = separator + 1;
+
+		if (component.empty() || component == ".") continue;
+		if (component == "..") return(false);
+
+		if (!inside.empty()) inside += '/';
+		inside += component;
+	}
+
+	return(true);
+}
+
+
+// Only the last path component is looked up, because the manifest carries no
+// directories and one name answers to exactly one archive.
+static std::shared_ptr<BlockFileClass> Image_Entry(char const * filename, BlockEntryClass & entry)
+{
+	std::string inside;
+	if (!Image_Path(filename, inside) || inside.empty()) return(nullptr);
+
+	std::size_t const slash = inside.find_last_of('/');
+	std::string leaf = (slash == std::string::npos) ? inside : inside.substr(slash + 1);
+
+		// The manifest's keys are uppercase DOS 8.3, matched without regard to
+		// case as the ISO9660 reader's Find does.
+	for (char & character : leaf) {
+		character = (char)::toupper((unsigned char)character);
+	}
+
+	// The manifest belongs to the page; a host with a filesystem has nothing beneath it.
+	(void)leaf;
+	(void)entry;
+	return(nullptr);
+}
+
+
+bool Win32_Hint_Handle(HANDLE file, BlockHintType kind, unsigned int offset, unsigned int length)
+{
+	HandleEntryType * const entry = Entry_From_File_Handle(file);
+
+	if (entry == nullptr || entry->Kind != HANDLE_KIND_IMAGE || !entry->Volume) return(false);
+	if (offset >= entry->Image.Size) return(false);
+
+	std::uint32_t const span = (length != 0) ? (std::uint32_t)length : (entry->Image.Size - offset);
+
+	entry->Volume->Hint(entry->Image, kind, (std::uint32_t)offset, span);
+	return(true);
+}
+
+
+bool Win32_Hint_File(char const * filename, BlockHintType kind, unsigned int offset, unsigned int length)
+{
+	if (filename == nullptr || *filename == '\0') return(false);
+
+	BlockEntryClass found;
+	std::shared_ptr<BlockFileClass> volume = Image_Entry(filename, found);
+
+	if (!volume) return(false);
+	if (offset >= found.Size) return(false);
+
+	std::uint32_t const span = (length != 0) ? (std::uint32_t)length : (found.Size - offset);
+
+	volume->Hint(found, kind, (std::uint32_t)offset, span);
+	return(true);
+}
+
+
+bool Win32_Prefetch_File(char const * filename, unsigned int offset, unsigned int length)
+{
+	if (filename == nullptr || *filename == '\0') return(false);
+
+	BlockEntryClass found;
+	std::shared_ptr<BlockFileClass> volume = Image_Entry(filename, found);
+
+	if (!volume) return(false);
+	if (offset >= found.Size) return(false);
+
+	std::uint32_t const span = (length != 0) ? (std::uint32_t)length : (found.Size - offset);
+
+	return(volume->Prefetch(found, (std::uint32_t)offset, span));
+}
+
+
+unsigned long long Win32_Stored_Bytes(char const * filename)
+{
+	if (filename == nullptr || *filename == '\0') return(0);
+
+	BlockEntryClass found;
+	std::shared_ptr<BlockFileClass> volume = Image_Entry(filename, found);
+
+	if (!volume) return(0);
+
+	unsigned long long const held = volume->Stored_Bytes();
+	return((held > found.Size) ? found.Size : held);
 }
 
 
@@ -559,6 +697,19 @@ static FILETIME Filetime_From_Host(struct timespec const & stamp)
 #define HOST_STAT_ACCESS(info)	((info).st_atim)
 #define HOST_STAT_WRITE(info)	((info).st_mtim)
 #endif
+
+
+// A record whose date the volume left unset reports no time at all.
+static FILETIME Filetime_From_Image(unsigned int datetime)
+{
+	FILETIME result = {0, 0};
+
+	if (datetime != 0) {
+		DosDateTimeToFileTime((WORD)(datetime >> 16), (WORD)(datetime & 0xFFFF), &result);
+	}
+
+	return(result);
+}
 
 
 static long long Ticks_From_Filetime(FILETIME const * filetime)
@@ -722,6 +873,32 @@ HANDLE CreateFileA(LPCSTR filename, DWORD access, DWORD sharemode, LPSECURITY_AT
 		return(INVALID_HANDLE_VALUE);
 	}
 
+		// The image is read-only, so only an open that would read an existing
+		// file resolves there; anything that would create or write goes to the
+		// host.
+	if (!present && !wantswrite && (creation == OPEN_EXISTING || creation == OPEN_ALWAYS)) {
+		BlockEntryClass found;
+		std::shared_ptr<BlockFileClass> volume = Image_Entry(filename, found);
+
+		if (volume) {
+			std::size_t const index = Allocate_Handle();
+			HandleEntryType & entry = Handle_Table()[index];
+
+			entry.Kind = HANDLE_KIND_IMAGE;
+			entry.Path = filename;
+			entry.Volume = std::move(volume);
+			entry.Image = found;
+			entry.Cursor = 0;
+
+				// A network-backed image reads ahead from the first block on
+				// this hint and never past the end of the file.
+			entry.Volume->Hint(entry.Image, BLOCK_HINT_SEQUENTIAL, 0, entry.Image.Size);
+
+			SetLastError(NO_ERROR);
+			return(Handle_From_Index(index));
+		}
+	}
+
 	int const descriptor = ::open(path.c_str(), openflags,
 		((flags & FILE_ATTRIBUTE_READONLY) != 0) ? (mode_t)0444 : (mode_t)0666);
 	if (descriptor < 0) {
@@ -768,6 +945,32 @@ BOOL ReadFile(HANDLE file, LPVOID buffer, DWORD toread, LPDWORD read, LPOVERLAPP
 		return(FALSE);
 	}
 
+	if (entry->Kind == HANDLE_KIND_IMAGE) {
+
+			// The volume reports a transport failure the same way as the end of
+			// the file, so the count the file could answer is worked out first
+			// and anything less is a failure.
+		DWORD const available = (entry->Cursor < entry->Image.Size)
+			? (DWORD)(entry->Image.Size - entry->Cursor) : (DWORD)0;
+		DWORD const wanted = (toread < available) ? toread : available;
+
+		int const got = entry->Volume->Read(entry->Image, entry->Cursor, buffer, wanted);
+
+		entry->Cursor += (std::uint32_t)(got > 0 ? got : 0);
+		if (read != nullptr) *read = (DWORD)(got > 0 ? got : 0);
+
+		if (got < 0 || (DWORD)got != wanted) {
+
+				// A read the volume declined has not failed; the caller asked
+				// for one that may say the bytes are not here yet.
+			SetLastError(DeferredReadClass::Declined_Now() ? ERROR_IO_PENDING : ERROR_READ_FAULT);
+			return(FALSE);
+		}
+
+		SetLastError(NO_ERROR);
+		return(TRUE);
+	}
+
 		// Win32 fills the whole request from a file on disk, so a short host
 		// read is resumed; only the end of the file stops early.
 	char * const cursor = (char *)buffer;
@@ -800,6 +1003,11 @@ BOOL WriteFile(HANDLE file, LPCVOID buffer, DWORD towrite, LPDWORD written, LPOV
 	if (overlapped != nullptr) {
 		SetLastError(ERROR_INVALID_PARAMETER);
 		return(WIN32_UNSUPPORTED("WriteFile with an overlapped request", FALSE));
+	}
+
+	if (Entry_From_Handle(file, HANDLE_KIND_IMAGE) != nullptr) {
+		SetLastError(ERROR_ACCESS_DENIED);
+		return(FALSE);
 	}
 
 	HandleEntryType const * const entry = Entry_From_Handle(file, HANDLE_KIND_FILE);
@@ -862,6 +1070,30 @@ DWORD SetFilePointer(HANDLE file, LONG distance, PLONG distancehigh, DWORD metho
 		? (long long)(((unsigned long long)(long long)*distancehigh << 32) | (unsigned long long)(DWORD)distance)
 		: (long long)distance;
 
+	if (entry->Kind == HANDLE_KIND_IMAGE) {
+		long long const base = (origin == SEEK_SET) ? 0
+			: ((origin == SEEK_CUR) ? (long long)entry->Cursor : (long long)entry->Image.Size);
+		long long const wanted = base + offset;
+
+			// Win32 allows a seek past the end and refuses one before the
+			// start.
+		if (wanted < 0) {
+			SetLastError(ERROR_NEGATIVE_SEEK);
+			return(INVALID_SET_FILE_POINTER);
+		}
+
+		if (wanted > (long long)0xFFFFFFFFLL) {
+			SetLastError(ERROR_SEEK);
+			return(INVALID_SET_FILE_POINTER);
+		}
+
+		entry->Cursor = (std::uint32_t)wanted;
+		if (distancehigh != nullptr) *distancehigh = 0;
+
+		SetLastError(NO_ERROR);
+		return((DWORD)entry->Cursor);
+	}
+
 	off_t const position = ::lseek(entry->Descriptor, (off_t)offset, origin);
 	if (position < 0) {
 		SetLastError(Win32_Error_From_Errno(errno));
@@ -888,12 +1120,13 @@ DWORD GetFileSize(HANDLE file, LPDWORD sizehigh)
 
 	struct stat info;
 
-	if (::fstat(entry->Descriptor, &info) != 0) {
+	if (entry->Kind == HANDLE_KIND_FILE && ::fstat(entry->Descriptor, &info) != 0) {
 		SetLastError(Win32_Error_From_Errno(errno));
 		return(INVALID_FILE_SIZE);
 	}
 
-	unsigned long long const size = (unsigned long long)info.st_size;
+	unsigned long long const size = (entry->Kind == HANDLE_KIND_IMAGE)
+		? (unsigned long long)entry->Image.Size : (unsigned long long)info.st_size;
 
 		// With no high word there is nowhere to put the upper half of a size
 		// that needs one.
@@ -911,6 +1144,11 @@ DWORD GetFileSize(HANDLE file, LPDWORD sizehigh)
 
 BOOL SetEndOfFile(HANDLE file)
 {
+	if (Entry_From_Handle(file, HANDLE_KIND_IMAGE) != nullptr) {
+		SetLastError(ERROR_ACCESS_DENIED);
+		return(FALSE);
+	}
+
 	HandleEntryType const * const entry = Entry_From_Handle(file, HANDLE_KIND_FILE);
 	if (entry == nullptr) {
 		SetLastError(ERROR_INVALID_HANDLE);
@@ -930,6 +1168,11 @@ BOOL SetEndOfFile(HANDLE file)
 
 BOOL FlushFileBuffers(HANDLE file)
 {
+	if (Entry_From_Handle(file, HANDLE_KIND_IMAGE) != nullptr) {
+		SetLastError(ERROR_ACCESS_DENIED);
+		return(FALSE);
+	}
+
 	HandleEntryType const * const entry = Entry_From_Handle(file, HANDLE_KIND_FILE);
 	if (entry == nullptr) {
 		SetLastError(ERROR_INVALID_HANDLE);
@@ -962,6 +1205,13 @@ BOOL CloseHandle(HANDLE object)
 	if (entry == nullptr) {
 		SetLastError(ERROR_INVALID_HANDLE);
 		return(FALSE);
+	}
+
+	if (entry->Kind == HANDLE_KIND_IMAGE) {
+		Release_Handle(entry);
+
+		SetLastError(NO_ERROR);
+		return(TRUE);
 	}
 
 	bool const closed = (::close(entry->Descriptor) == 0);
@@ -1148,6 +1398,15 @@ DWORD GetFileAttributesA(LPCSTR filename)
 
 	if (::stat(path.c_str(), &info) != 0) {
 		int const failure = errno;
+		BlockEntryClass found;
+
+			// A name CreateFileA can open must be reported here, or a caller
+			// that tests before opening decides the file is missing.
+		if (Image_Entry(filename, found)) {
+			SetLastError(NO_ERROR);
+			return(FILE_ATTRIBUTE_READONLY);
+		}
+
 		SetLastError(Win32_Error_From_Errno(failure));
 		return(INVALID_FILE_ATTRIBUTES);
 	}
@@ -1203,6 +1462,17 @@ BOOL GetFileTime(HANDLE file, LPFILETIME creation, LPFILETIME access, LPFILETIME
 		return(FALSE);
 	}
 
+	if (entry->Kind == HANDLE_KIND_IMAGE) {
+		FILETIME const recorded = Filetime_From_Image(entry->Image.DateTime);
+
+		if (creation != nullptr) *creation = recorded;
+		if (access != nullptr) *access = recorded;
+		if (write != nullptr) *write = recorded;
+
+		SetLastError(NO_ERROR);
+		return(TRUE);
+	}
+
 	struct stat info;
 	if (::fstat(entry->Descriptor, &info) != 0) {
 		SetLastError(Win32_Error_From_Errno(errno));
@@ -1223,6 +1493,11 @@ BOOL GetFileTime(HANDLE file, LPFILETIME creation, LPFILETIME access, LPFILETIME
 BOOL SetFileTime(HANDLE file, FILETIME const * creation, FILETIME const * access, FILETIME const * write)
 {
 	(void)creation;
+
+	if (Entry_From_Handle(file, HANDLE_KIND_IMAGE) != nullptr) {
+		SetLastError(ERROR_ACCESS_DENIED);
+		return(FALSE);
+	}
 
 	HandleEntryType const * const entry = Entry_From_Handle(file, HANDLE_KIND_FILE);
 	if (entry == nullptr) {
@@ -1272,6 +1547,27 @@ BOOL GetFileInformationByHandle(HANDLE file, LPBY_HANDLE_FILE_INFORMATION inform
 		return(FALSE);
 	}
 
+	if (entry->Kind == HANDLE_KIND_IMAGE) {
+		FILETIME const recorded = Filetime_From_Image(entry->Image.DateTime);
+
+		memset(information, 0, sizeof(*information));
+
+		information->dwFileAttributes = FILE_ATTRIBUTE_READONLY;
+		information->ftCreationTime = recorded;
+		information->ftLastAccessTime = recorded;
+		information->ftLastWriteTime = recorded;
+		information->nFileSizeLow = (DWORD)entry->Image.Size;
+		information->nNumberOfLinks = 1;
+
+			// The first logical block is the nearest thing to an index the
+			// volume records.
+		information->nFileIndexLow = entry->Image.Extents.empty()
+			? (DWORD)0 : (DWORD)entry->Image.Extents.front().Start;
+
+		SetLastError(NO_ERROR);
+		return(TRUE);
+	}
+
 	struct stat info;
 	if (::fstat(entry->Descriptor, &info) != 0) {
 		SetLastError(Win32_Error_From_Errno(errno));
@@ -1302,7 +1598,16 @@ static void Fill_Find_Data(LPWIN32_FIND_DATAA data, std::string const & director
 
 	struct stat info;
 
-	if (::stat(Host_Path((directory + match.Name).c_str()).c_str(), &info) == 0) {
+	if (match.Image.Is_Valid()) {
+		FILETIME const recorded = Filetime_From_Image(match.Image.DateTime);
+
+		data->dwFileAttributes = FILE_ATTRIBUTE_READONLY;
+		data->ftCreationTime = recorded;
+		data->ftLastAccessTime = recorded;
+		data->ftLastWriteTime = recorded;
+		data->nFileSizeLow = (DWORD)match.Image.Size;
+
+	} else if (::stat(Host_Path((directory + match.Name).c_str()).c_str(), &info) == 0) {
 		data->dwFileAttributes = Attributes_From_Stat(match.Name.c_str(), info);
 		data->ftCreationTime = Filetime_From_Host(HOST_STAT_CHANGE(info));
 		data->ftLastAccessTime = Filetime_From_Host(HOST_STAT_ACCESS(info));
@@ -1346,6 +1651,18 @@ static void Persistent_Matches(std::string const & directory, std::string const 
 	}
 
 	::closedir(scan);
+}
+
+
+// The manifest joins a search of the root only, since it carries no
+// directories; matches use Match_Wildcard for the "*.*" rule, and a name
+// already answered is left alone so a search reports the copy CreateFileA
+// opens.
+static void Image_Matches(std::string const & directory, std::string const & leaf, std::vector<FindMatchType> & matches)
+{
+	(void)directory;
+	(void)leaf;
+	(void)matches;
 }
 
 
@@ -1407,6 +1724,10 @@ HANDLE FindFirstFileA(LPCSTR filename, LPWIN32_FIND_DATAA data)
 	}
 
 	Persistent_Matches(requested, leaf, matches);
+
+		// The image is searched under the caller's spelling, since the two
+		// filesystems answer for case separately.
+	Image_Matches(requested, leaf, matches);
 
 	std::sort(matches.begin(), matches.end(), [](FindMatchType const & left, FindMatchType const & right) {
 		int const order = ::strcasecmp(left.Name.c_str(), right.Name.c_str());

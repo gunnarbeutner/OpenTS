@@ -40,7 +40,14 @@
 #include "always.h"
 
 #include "cdfile.h"
+#include "globals.h"
+#include "mixfile.h"
 
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+#include "substitute.h"
+#endif
+
+#include <cstring>
 #include <string>
 
 /*
@@ -119,6 +126,98 @@ int CDFileClass::Create(void)
 	Point_At_Own_Copy();
 
 	return(BASECLASS::Create());
+}
+
+
+void CDFileClass::Bias(int start, int length)
+{
+	BASECLASS::Bias(start, length);
+	Hint_Extent(BLOCK_HINT_SEQUENTIAL);
+}
+
+void CDFileClass::Hint_Extent(BlockHintType kind)
+{
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	// A substitute build reads its archives through the file API, so the handle
+	// names the run.
+	if (!BASECLASS::Is_Open()) return;
+
+	Win32_Hint_Handle(Get_File_Handle(), kind,
+		(unsigned int)((BiasStart > 0) ? BiasStart : 0),
+		(unsigned int)((BiasLength > 0) ? BiasLength : 0));
+#else
+	(void)kind;
+#endif
+}
+
+
+void CDFileClass::Abandon(void)
+{
+	Hint_Extent(BLOCK_HINT_DONE);
+}
+
+
+void CDFileClass::Prefetch(char const * filename, PrefetchType how)
+{
+	// A mixfile directory is twelve bytes an entry behind a short header, so
+	// this covers many thousands of entries and the first file besides.
+	static int const _head = 2 * 1024 * 1024;
+
+	if (filename == NULL || *filename == '\0') return;
+
+	// A prefetch is not a read, so a capture must not record it as one.
+
+	// A profile has already fetched every run it names.
+
+	// Mixfile lookup uppercases what it is given, and the caller's name may be
+	// a literal.
+	char name[_MAX_PATH];
+
+	std::strncpy(name, filename, sizeof(name) - 1);
+	name[sizeof(name) - 1] = '\0';
+
+	int start = 0;
+	int length = -1;
+
+	void * resident = NULL;
+	MixFileClass * mixfile = NULL;
+
+	if (MixFileClass::Offset(name, &resident, &mixfile, &start, &length)) {
+
+		// The offset is measured from the start of the mixfile; a resident
+		// file needs nothing fetched.
+		if (resident != NULL || mixfile == NULL || mixfile->Filename == NULL) return;
+		if (length <= 0) return;
+
+		std::strncpy(name, mixfile->Filename, sizeof(name) - 1);
+		name[sizeof(name) - 1] = '\0';
+	} else {
+		start = 0;
+		length = -1;
+	}
+
+	if (how == PREFETCH_STREAMED && (length < 0 || length > _head)) {
+		length = _head;
+	}
+
+	CDFileClass locator;
+
+	locator.Set_Name(name);
+
+	// A top-level archive's length is not known yet, and a hint without a
+	// length is discarded; Set_Name already resolved the name, so Size costs no
+	// more than that.
+	if (how == PREFETCH_WHOLE && length < 0) {
+		int const whole = locator.Size();
+		if (whole > 0) length = whole;
+	}
+
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	// A substitute build reads its archives through the file API, so the name is
+	// put to the image the way an open would.
+	Win32_Hint_File(name, BLOCK_HINT_SOON, (unsigned int)((start > 0) ? start : 0),
+		(unsigned int)((length > 0) ? length : 0));
+#endif
 }
 
 

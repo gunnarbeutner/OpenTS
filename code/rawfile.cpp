@@ -51,6 +51,7 @@
 
 #include "rawfile.h"
 
+#include "blocksource.h"
 
 #include <cstddef>
 #include <cstdio>
@@ -473,6 +474,10 @@ int RawFileClass::Read(void * buffer, int size)
 			buffer = (char *)buffer + bytesread;
 			size -= bytesread;
 			total += bytesread;
+
+			// A declined read has not failed; it is reported short and the
+			// caller comes back for the rest.
+			if (DeferredReadClass::Declined_Now()) break;
 
 			Error(GetLastError(), true, Filename);
 			continue;

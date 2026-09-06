@@ -101,7 +101,7 @@ let two machines with the same files disagree. Matching uses the DOS rule that
 
 A handle is a slot in a table plus one, so it collides with neither reserved
 value, and the slot remembers what a descriptor cannot: the kind of object
-(file, search, a mutex), the path a
+(file, search, an archive the manifest names, a mutex), the path a
 delete-on-close open must remove, and a search's position. The table is built
 on first use rather than during static initialization, where the engine's own
 static objects open files.
@@ -131,6 +131,17 @@ IndexedDB is reached asynchronously and the engine cannot wait on it, so the
 transfer is started after a write and finishes on its own; the page counts the
 transfers that complete, which is what the harness waits for before it
 reloads.
+
+**Manifest names.** A name neither directory answers is looked up in the
+manifest, the WebAssembly host's catalogue of the archives it serves. The manifest sits underneath
+the host, never over it, so a file the engine writes shadows the one it
+shipped with. Only the last path component is looked up, since the manifest
+carries no directories and one name answers to exactly one archive, and the
+lookup ignores case. A wildcard search of the root adds what the manifest
+holds, after what the host answered. `CreateFileA` resolving a read-only open
+to an archive also tells the block source what the reads cannot say: these
+bytes are one file, about to be read front to back, ending where the file
+does.
 
 ## 4 The window manager
 
