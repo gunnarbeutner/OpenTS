@@ -50,12 +50,31 @@ static AutosaveClass::KindType Single_Player_Kind(void)
 }
 
 
+// Not 0: every other notice takes that, and so does a chat line from the first house.
+static constexpr int SAVE_ANNOUNCEMENT_ID = -1;
+
+
 void SaveManagerClass::Service(void)
 {
 	Autosave_Service();
 	Quick_Save_Service();
 	Process_Pending_Save_Game();
+	Post_Pending_Notice();
 	Process_Pending_Load_Game();
+}
+
+
+static int Save_Message_Timeout(void)
+{
+	return(int(Rule->MessageDelay * TICKS_PER_MINUTE));
+}
+
+
+static void Add_Save_Message(int id, int text)
+{
+	Session.Messages.Add_Message(NULL, id, Fetch_String(text), PlayerPtr->Scheme,
+		TextPrintType(TPF_6PT_GRAD|TPF_USE_GRAD_PAL|TPF_FULLSHADOW), Save_Message_Timeout());
+	Map.Flag_To_Redraw();
 }
 
 
@@ -64,9 +83,7 @@ void SaveManagerClass::Service(void)
 /// </summary>
 void SaveManagerClass::Post_Save_Notice(int text)
 {
-	Session.Messages.Add_Message(NULL, 0, Fetch_String(text), PlayerPtr->Scheme,
-		TextPrintType(TPF_6PT_GRAD|TPF_USE_GRAD_PAL|TPF_FULLSHADOW), int(Rule->MessageDelay * TICKS_PER_MINUTE));
-	Map.Flag_To_Redraw();
+	Add_Save_Message(0, text);
 }
 
 
@@ -74,24 +91,29 @@ void SaveManagerClass::Post_Save_Notice(int text)
 /// Accepts a save request at the boundary shared by every engine caller.
 /// Solo and skirmish games save immediately. A synchronized multiplayer request is held
 /// until the frame has finished retiring dead objects. A quiet request is written without
-/// the saving box; the first request of a frame decides.
+/// the saving box; the first request of a frame settles that and what the save reports.
 /// </summary>
 /// <returns>Returns true when the save completed or the multiplayer request was accepted.</returns>
-bool SaveManagerClass::Request_Save_Game(char const * file_name, char const * descr, bool quiet)
+bool SaveManagerClass::Request_Save_Game(char const * file_name, char const * descr, bool quiet,
+	NoticeType notice)
 {
 	if (file_name == NULL || descr == NULL) return(false);
 
 	if (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) {
-		return(Save_Game(file_name, descr));
+		bool saved = Save_Game(file_name, descr);
+		Record_Save_Outcome(notice, saved);
+		return(saved);
 	}
 
 	if (!MultiplayerSavingAllowed) {
 		DebugString("Ignoring multiplayer save request because a player has left this match\n");
+		Record_Save_Outcome(notice, false);
 		return(false);
 	}
 
 	if (MultiplayerLoad.Is_Pending()) {
 		DebugString("Ignoring multiplayer save request because a load is pending\n");
+		Record_Save_Outcome(notice, false);
 		return(false);
 	}
 
@@ -103,6 +125,7 @@ bool SaveManagerClass::Request_Save_Game(char const * file_name, char const * de
 	PendingSaveFileName = file_name;
 	PendingSaveDescription = descr;
 	MultiplayerSaveQuiet = quiet;
+	PendingSaveNotice = notice;
 	MultiplayerSavePending = true;
 	return(true);
 }
@@ -121,8 +144,10 @@ void SaveManagerClass::Process_Pending_Save_Game(void)
 	file_name.swap(PendingSaveFileName);
 	description.swap(PendingSaveDescription);
 	bool quiet = MultiplayerSaveQuiet;
+	NoticeType notice = PendingSaveNotice;
 	MultiplayerSavePending = false;
 	MultiplayerSaveQuiet = false;
+	PendingSaveNotice = NoticeType::None;
 
 	if (MultiplayerSavingAllowed) {
 		HWND dialog = 0;
@@ -136,11 +161,55 @@ void SaveManagerClass::Process_Pending_Save_Game(void)
 		if (dialog != 0) {
 			OwnerDraw::End_Dialog(dialog);
 		}
-		if (!saved) {
-			Post_Save_Notice(TXT_SAVE_FAILED);
-		} else if (SpawnCopyPending) {
+		Record_Save_Outcome(notice, saved);
+		if (saved && SpawnCopyPending) {
 			Write_Spawn_Copy();
 		}
+	}
+}
+
+
+/// <summary>
+/// Holds the outcome of a completed request until the frame boundary reports it. A request
+/// with no notice of its own leaves an outcome already waiting untouched.
+/// </summary>
+void SaveManagerClass::Record_Save_Outcome(NoticeType notice, bool saved)
+{
+	if (notice == NoticeType::None) return;
+
+	OutcomeNotice = notice;
+	OutcomeSaved = saved;
+}
+
+
+/// <summary>
+/// Reports the outcome of the save that completed this frame. A save the game asked for
+/// reports in place of the announcement it posted, and says nothing about a success it never
+/// announced. An outcome that cannot be shown is dropped rather than held over.
+/// </summary>
+void SaveManagerClass::Post_Pending_Notice(void)
+{
+	if (OutcomeNotice == NoticeType::None) return;
+
+	NoticeType notice = OutcomeNotice;
+	bool saved = OutcomeSaved;
+	OutcomeNotice = NoticeType::None;
+	OutcomeSaved = false;
+
+	if (!ScenarioActive || Session.Play || PlayerPtr == NULL) return;
+
+	if (notice == NoticeType::Requested) {
+		Post_Save_Notice(saved ? TXT_GAME_SAVED : TXT_SAVE_FAILED);
+		return;
+	}
+
+	int text = saved ? TXT_GAME_AUTO_SAVED : TXT_AUTOSAVE_FAILED;
+	if (Session.Messages.Replace_Message(SAVE_ANNOUNCEMENT_ID, 0, Fetch_String(text), Save_Message_Timeout())) {
+		Map.Flag_To_Redraw();
+		return;
+	}
+	if (!saved) {
+		Post_Save_Notice(text);
 	}
 }
 
@@ -155,7 +224,10 @@ void SaveManagerClass::Reset_Multiplayer_Save_State(void)
 	MultiplayerSavePending = false;
 	PendingSaveFileName.clear();
 	PendingSaveDescription.clear();
+	PendingSaveNotice = NoticeType::None;
 	QuickSaveRequested = false;
+	OutcomeNotice = NoticeType::None;
+	OutcomeSaved = false;
 }
 
 
@@ -168,6 +240,7 @@ void SaveManagerClass::Disable_Multiplayer_Saving(void)
 	MultiplayerSavePending = false;
 	PendingSaveFileName.clear();
 	PendingSaveDescription.clear();
+	PendingSaveNotice = NoticeType::None;
 }
 
 
@@ -195,7 +268,6 @@ void SaveManagerClass::Autosave_Service(void)
 	if (Autosave.Take_Armed()) {
 		Autosave.Schedule(Frame);
 
-		bool saved;
 		if (single) {
 			AutosaveClass::KindType kind = Single_Player_Kind();
 			int slot = Autosave.Advance(kind);
@@ -203,13 +275,9 @@ void SaveManagerClass::Autosave_Service(void)
 			char buffer[512];
 			std::snprintf(buffer, sizeof(buffer), Fetch_String(TXT_AUTOSAVE_DESCRIPTION), slot + 1, Scen->Description);
 
-			saved = Request_Save_Game(AutosaveClass::File_Name(kind, slot).c_str(), buffer, true);
+			Request_Save_Game(AutosaveClass::File_Name(kind, slot).c_str(), buffer, true, NoticeType::Automatic);
 		} else {
-			saved = Request_Multiplayer_Save(Fetch_String(TXT_AUTOSAVE_MULTIPLAYER), true);
-		}
-
-		if (!saved) {
-			Post_Save_Notice(TXT_AUTOSAVE_FAILED);
+			Request_Multiplayer_Save(Fetch_String(TXT_AUTOSAVE_MULTIPLAYER), true, NoticeType::Automatic);
 		}
 		return;
 	}
@@ -217,7 +285,7 @@ void SaveManagerClass::Autosave_Service(void)
 	// Timed multiplayer saves require a shared launch-file interval.
 	if ((single || Spawner_Is_Active()) && Autosave.Is_Due(Frame)) {
 		Autosave.Arm();
-		Post_Save_Notice(TXT_AUTOSAVING);
+		Add_Save_Message(SAVE_ANNOUNCEMENT_ID, TXT_AUTOSAVING);
 	}
 }
 
@@ -250,11 +318,11 @@ void SaveManagerClass::Quick_Save_Service(void)
 	if (dialog != 0) {
 		OwnerDraw::Display_Dialog(dialog);
 	}
-	bool saved = Request_Save_Game(Quick_Save_File_Name(Single_Player_Kind()).c_str(), description);
+	Request_Save_Game(Quick_Save_File_Name(Single_Player_Kind()).c_str(), description, false,
+		NoticeType::Requested);
 	if (dialog != 0) {
 		OwnerDraw::End_Dialog(dialog);
 	}
-	Post_Save_Notice(saved ? TXT_GAME_WAS_SAVED : TXT_SAVE_FAILED);
 }
 
 
@@ -274,9 +342,10 @@ int SaveManagerClass::Next_Multiplayer_Save_Slot(void)
 /// Requests a save under the next free numbered multiplayer name, so every machine writes
 /// the same number for the same frame.
 /// </summary>
-bool SaveManagerClass::Request_Multiplayer_Save(char const * descr, bool quiet)
+bool SaveManagerClass::Request_Multiplayer_Save(char const * descr, bool quiet, NoticeType notice)
 {
-	return(Request_Save_Game(Multiplayer_Save_File_Name(Next_Multiplayer_Save_Slot()).c_str(), descr, quiet));
+	return(Request_Save_Game(Multiplayer_Save_File_Name(Next_Multiplayer_Save_Slot()).c_str(), descr, quiet,
+		notice));
 }
 
 

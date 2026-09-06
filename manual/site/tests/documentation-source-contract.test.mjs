@@ -492,8 +492,9 @@ test('Automatic saves are serviced at the frame boundary ahead of the pending wr
 		'Autosave_Service();',
 		'Quick_Save_Service();',
 		'Process_Pending_Save_Game();',
+		'Post_Pending_Notice();',
 		'Process_Pending_Load_Game();',
-	], 'an automatic save is written after the frame has retired its dead objects, and an agreed load after that');
+	], 'an automatic save is written after the frame has retired its dead objects, its outcome is reported once the file is written, and an agreed load comes after both');
 });
 
 // A definition that shares its text with a forward declaration is found from the end.

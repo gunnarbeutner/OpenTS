@@ -2503,7 +2503,7 @@ BEGIN
     TXT_CHAT_TO_ALLIES      "Message to Team"
     TXT_CHAT_TO_ALLIES_DESC "Starts a message to your allies, or to the other observers while you watch."
     TXT_AUTOSAVING          "Auto-saving..."
-    TXT_AUTOSAVE_FAILED     "Auto-save failed."
+    TXT_AUTOSAVE_FAILED     "The game could not be auto-saved."
     TXT_AUTOSAVE_DESCRIPTION "Auto-Save %d: %s"
     TXT_AUTOSAVE_MULTIPLAYER "Multiplayer Game (Auto-Save)"
     TXT_SAVE_FAILED         "The game could not be saved."
@@ -2566,6 +2566,8 @@ BEGIN
     TXT_DIFFICULTY_LEVEL    "Difficulty: %s"
     TXT_ADD_TO_TEAM         "Add To Team %2d"
     TXT_ADD_TO_TEAM_DESC    "Adds the selected units to team %d and selects the whole team."
+    TXT_GAME_SAVED          "Game saved."
+    TXT_GAME_AUTO_SAVED     "Game auto-saved."
 END
 
 #endif    // English (U.S.) resources

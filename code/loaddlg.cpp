@@ -525,7 +525,10 @@ bool LoadOptionsClass::Dialog(void)
 										WWMessageBox().Process(TXT_ERROR_SAVING_GAME, TXT_OK, TXT_NONE, TXT_NONE);
 										State = STATE_PENDING;
 									} else {
-										WWMessageBox().Process(TXT_GAME_WAS_SAVED, TXT_OK, TXT_NONE, TXT_NONE);
+										int confirmation = Save_Confirmation();
+										if (confirmation != TXT_NONE) {
+											WWMessageBox().Process(confirmation, TXT_OK, TXT_NONE, TXT_NONE);
+										}
 										if (Description) {
 											strcpy(Description, buffer);
 										}
@@ -876,11 +879,22 @@ bool LoadOptionsClass::Save_File(const char * file_name, const char * descr)
 	if (dialog != 0) {
 		OwnerDraw::Display_Dialog(dialog);
 	}
-	bool saved = SaveManager.Request_Save_Game(file_name, descr);
+	bool saved = SaveManager.Request_Save_Game(file_name, descr, false,
+		SaveManagerClass::NoticeType::Requested);
 	if (dialog != 0) {
 		OwnerDraw::End_Dialog(dialog);
 	}
 	return(saved);
+}
+
+
+/// <summary>
+/// A saved game reports itself in the message list at the frame boundary, so the dialog shows
+/// no box of its own.
+/// </summary>
+int LoadOptionsClass::Save_Confirmation(void) const
+{
+	return(TXT_NONE);
 }
 
 

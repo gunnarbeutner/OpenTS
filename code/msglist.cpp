@@ -569,6 +569,39 @@ TextLabelClass * MessageListClass::Get_Label(int id)
 }	// end of Get_Label
 
 
+/// <summary>
+/// Replaces the text, id and remaining lifetime of the message carrying the id given, leaving
+/// it where it stands in the list. The new id retires the one it was found by, so a later
+/// search does not return the same message again. The text must fit a message buffer and must
+/// not need wrapping; only the first label of a wrapped message is reached.
+/// </summary>
+/// <returns>bool; Was a message carrying that id found?</returns>
+bool MessageListClass::Replace_Message(int id, int new_id, char const * txt, int timeout)
+{
+	if (txt == NULL) {
+		return(false);
+	}
+
+	TextLabelClass * label = Get_Label(id);
+	if (label == NULL) {
+		return(false);
+	}
+
+	// The eviction and expiry paths free a buffer by comparing it against the label's text
+	// pointer, so that pointer has to go on pointing into MessageBuffers.
+	for (int i = 0; i < MAX_NUM_MESSAGES; i++) {
+		if (label->Text == MessageBuffers[i]) {
+			std::snprintf(MessageBuffers[i], sizeof(MessageBuffers[i]), "%s", txt);
+			label->UserData1 = (timeout == -1) ? 0 : TickCount + timeout;
+			label->UserData2 = new_id;
+			return(true);
+		}
+	}
+
+	return(false);
+}
+
+
 /***************************************************************************
  * MessageListClass::Concat_Message -- concats the given message           *
  *                                                                         *

@@ -4422,6 +4422,16 @@ bool MapSeedClass::Save_File(const char * file_name, const char * descr)
 
 
 /// <summary>
+/// Saved settings are not a game, and this dialog runs with no scenario behind it, so it
+/// confirms a save with a box of its own rather than through the message list.
+/// </summary>
+int MapSeedClass::Save_Confirmation(void) const
+{
+	return(TXT_GAME_WAS_SAVED);
+}
+
+
+/// <summary>
 /// Loads a saved set of map generator settings.
 /// Name a file to read it directly. Pass NULL instead and the standard load dialog asks the
 /// player which of the saved maps to bring back.

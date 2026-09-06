@@ -121,6 +121,9 @@ class LoadOptionsClass
 		// How many of the newest files the list reads headers for; reading one costs a disk open.
 		virtual std::size_t Scan_Limit(void) const {return(SIZE_MAX);}
 
+		// The box a completed save confirms itself with, or TXT_NONE when it reports elsewhere.
+		virtual int Save_Confirmation(void) const;
+
 		/*
 		 * These handlers are members so that they can reach the dialog's protected data.
 		 */

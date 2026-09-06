@@ -130,6 +130,9 @@ class MessageListClass {
 		char * Get_Message (int id);
 		TextLabelClass * Get_Label (int id);
 
+		// Rewrites a message already on the list rather than adding a second one.
+		bool Replace_Message (int id, int new_id, char const * txt, int timeout);
+
 		//.....................................................................
 		// Message-editing support routines
 		//.....................................................................

@@ -23,12 +23,19 @@ class SaveManagerClass
 {
 	public:
 
+		// Which line a completed request leaves in the message list.
+		enum class NoticeType {
+			None,       // the caller reports the outcome itself
+			Requested,  // a save the player asked for
+			Automatic,  // a save the game asked for, reported in place of its announcement
+		};
+
 		AutosaveClass Autosave;
 		MultiplayerLoadClass MultiplayerLoad;
 
-		bool Request_Save_Game(char const * file_name, char const * descr, bool quiet = false);
+		bool Request_Save_Game(char const * file_name, char const * descr, bool quiet, NoticeType notice);
 		void Request_Quick_Save(void);
-		bool Request_Multiplayer_Save(char const * descr, bool quiet);
+		bool Request_Multiplayer_Save(char const * descr, bool quiet, NoticeType notice);
 		void Post_Save_Notice(int text);
 
 		void Reset_Multiplayer_Save_State(void);
@@ -52,6 +59,8 @@ class SaveManagerClass
 		void Autosave_Service(void);
 		void Quick_Save_Service(void);
 		void Process_Pending_Save_Game(void);
+		void Record_Save_Outcome(NoticeType notice, bool saved);
+		void Post_Pending_Notice(void);
 		void Process_Pending_Load_Game(void);
 		bool Perform_Multiplayer_Load(char const * file_name);
 		int Next_Multiplayer_Save_Slot(void);
@@ -64,7 +73,12 @@ class SaveManagerClass
 		bool SpawnCopyPending = false;
 		std::string PendingSaveFileName;
 		std::string PendingSaveDescription;
+		NoticeType PendingSaveNotice = NoticeType::None;
 		bool QuickSaveRequested = false;
+
+		// The outcome the frame boundary still owes the message list.
+		NoticeType OutcomeNotice = NoticeType::None;
+		bool OutcomeSaved = false;
 };
 
 extern SaveManagerClass SaveManager;

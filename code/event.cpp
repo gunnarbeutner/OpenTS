@@ -1217,7 +1217,8 @@ void EventClass::Execute(void)
 		**	Save a multiplayer game (this event is only generated in multiplayer mode)
 		*/
 		case SAVEGAME:
-			SaveManager.Request_Multiplayer_Save(Fetch_String(TXT_MULTIPLAYER_GAME), false);
+			SaveManager.Request_Multiplayer_Save(Fetch_String(TXT_MULTIPLAYER_GAME), false,
+				SaveManagerClass::NoticeType::Requested);
 			break;
 
 		/*

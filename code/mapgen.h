@@ -343,6 +343,12 @@ class MapSeedClass : public LoadOptionsClass
 		virtual bool Delete_File(const char * file_name) override;
 		virtual bool Read_File(FileEntryClass * entry, WIN32_FIND_DATAA * ff) override;
 
+	protected:
+
+		virtual int Save_Confirmation(void) const override;
+
+	public:
+
 		/*
 		 * Dialog interaction.
 		 */
