@@ -3918,11 +3918,37 @@ class CenterBaseCommandClass : public CommandClass
 				}
 			}
 
+			// Asking a second time goes back rather than nowhere. Still being near where the
+			// last jump landed counts as being there, so looking around the base does not
+			// cost the way back; leaving it does, and the next ask is a fresh jump.
+			static Point2D _before(0, 0);
+			static Point2D _landed(0, 0);
+			static bool _away = false;
+
+			Point2D const here = TacticalMap->Get_Tactical_Position();
+			Point2D const drift = here - _landed;
+
+			bool const nearby = (abs(drift.X) <= TacticalRect.Width / 2) &&
+				(abs(drift.Y) <= TacticalRect.Height / 2);
+
+			if (_away && nearby) {
+				_away = false;
+				TacticalMap->Set_Tactical_Position(_before);
+				return;
+			}
+
+			_before = here;
+			_away = true;
+
 			if (conyard_coord != COORD_NONE) {
 				TacticalMap->Set_Tactical_Position(conyard_coord);
 			} else if (any_building_coord != COORD_NONE) {
 				TacticalMap->Set_Tactical_Position(any_building_coord);
 			}
+
+			// Where the jump actually left the view, which is what a second ask compares
+			// against; the position asked for is clamped to the map.
+			_landed = TacticalMap->Get_Tactical_Position();
 
 			if (Map.PendingObject) {
 				Map.Set_Cursor_Pos();
