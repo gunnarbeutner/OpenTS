@@ -2600,9 +2600,14 @@ static bool Init_Secondary_Mixfiles(void)
 
 	DebugStringNoPrefix(" SCORES.MIX");
 
+#if !defined(__EMSCRIPTEN__)
 	if (ScoresMix == NULL) {
 		return(false);
 	}
+#endif
+
+	// A manifest that carries a browser copy of every theme needs no archive,
+	// and Play_Song tolerates a track neither source has.
 
 	if (CCFileClass("SCORES01.MIX").Is_Available()) {
 		Scores01Mix = Register_Mixfile("SCORES01.MIX", PREFETCH_STREAMED);

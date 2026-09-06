@@ -57,6 +57,7 @@
 #include "globals.h"
 #include "houstype.h"
 #include "incdec.h"
+#include "musicbackend.h"
 #include "session.h"
 #include "vector.h"
 
@@ -173,6 +174,9 @@ void ThemeClass::Scan(void)
 		for (ThemeType theme = THEME_FIRST; theme < Themes.Count(); theme++) {
 			_makepath(name, NULL, NULL, Themes[theme]->Name, ".AUD");
 			Themes[theme]->Available = CCFileClass(name).Is_Available();
+#if defined(__EMSCRIPTEN__)
+			if (!Themes[theme]->Available) Themes[theme]->Available = Music_Browser_Available(name);
+#endif
 		}
 	}
 }
@@ -219,6 +223,9 @@ char const * ThemeClass::Base_Name(ThemeType theme) const
  *=============================================================================================*/
 ThemeClass::ThemeClass(void) :
 	Current(),
+#if defined(__EMSCRIPTEN__)
+	BrowserCurrent(-1),
+#endif
 	Score(THEME_NONE),
 	Pending(THEME_NONE),
 	Volume(255),
@@ -400,6 +407,11 @@ void ThemeClass::Queue_Song(ThemeType theme)
 		Pending = theme;
 		DebugString("Theme::QueueSong(%d)\n", theme);
 		if (Still_Playing() == true) {
+#if defined(__EMSCRIPTEN__)
+			if (BrowserCurrent != -1) {
+				Music_Browser_Fade(BrowserCurrent, THEME_FADE_MS);
+			} else
+#endif
 			{
 				Current.Fade(THEME_FADE_MS);
 			}
@@ -430,6 +442,12 @@ AudioHandle ThemeClass::Play_Song(ThemeType theme)
 		Stop(false);
 		if (theme != THEME_NONE && theme != THEME_QUIET) {
 			if (theme > THEME_NONE && Volume > 0) {
+#if defined(__EMSCRIPTEN__)
+				// An AAC copy in the manifest plays through the browser's own audio
+				// element, off the thread the game loop and the mixer share.
+				BrowserCurrent = Music_Browser_Play(Theme_File_Name(theme), Volume);
+				if (BrowserCurrent == -1)
+#endif
 				{
 					Current = AudioEngine.Open_Stream(Theme_File_Name(theme), AUDIO_GROUP_MUSIC, 1.0f, false);
 				}
@@ -438,7 +456,11 @@ AudioHandle ThemeClass::Play_Song(ThemeType theme)
 				 * Stopping a score that never started does nothing, so recording one that
 				 * failed to start as the current score would silence the game for good.
 				 */
+#if defined(__EMSCRIPTEN__)
+				bool const started = !Current.Is_Null() || BrowserCurrent != -1;
+#else
 				bool const started = !Current.Is_Null();
+#endif
 
 				if (!started) {
 					DebugString("Theme::PlaySong(%d) - Unavailable\n", theme);
@@ -533,10 +555,25 @@ int ThemeClass::Track_Length(ThemeType theme) const
  *=============================================================================================*/
 void ThemeClass::Stop(bool fade)
 {
+#if defined(__EMSCRIPTEN__)
+	bool const playing = !Current.Is_Null() || BrowserCurrent != -1;
+#else
 	bool const playing = !Current.Is_Null();
+#endif
 
 	if (ScoresPresent && AudioEngine.Is_Available() && !Debug_Quiet && playing) {
 
+#if defined(__EMSCRIPTEN__)
+		if (BrowserCurrent != -1) {
+			if (fade && Still_Playing() == true) {
+				DebugString("Theme::Stop(%d) - Fading\n", Score);
+				Music_Browser_Fade(BrowserCurrent, THEME_FADE_MS);
+			} else {
+				DebugString("Theme::Stop(%d)\n", Score);
+				Music_Browser_Stop(BrowserCurrent);
+			}
+		} else
+#endif
 		// A score already fading out is left to finish on its own.
 		if (fade && Still_Playing() == true) {
 			DebugString("Theme::Stop(%d) - Fading\n", Score);
@@ -546,6 +583,9 @@ void ThemeClass::Stop(bool fade)
 			AudioEngine.Stop_Stream(Current);
 		}
 		Current.Clear();
+#if defined(__EMSCRIPTEN__)
+		BrowserCurrent = -1;
+#endif
 		Score = THEME_NONE;
 		Pending = THEME_NONE;
 	}
@@ -569,6 +609,9 @@ void ThemeClass::Stop(bool fade)
 bool ThemeClass::Still_Playing(void) const
 {
 	if (ScoresPresent && AudioEngine.Is_Available() && Volume > 0 && !Debug_Quiet) {
+#if defined(__EMSCRIPTEN__)
+		if (BrowserCurrent != -1) return(Music_Browser_Still_Playing(BrowserCurrent));
+#endif
 		// A fading score counts until it is silent, so the next waits for it.
 		return(!Current.Is_Finished());
 	}
@@ -689,5 +732,11 @@ void ThemeClass::Set_Volume(int volume)
 {
 	Volume = std::min(volume, 255);
 
+#if defined(__EMSCRIPTEN__)
+	if (BrowserCurrent != -1) {
+		Music_Browser_Set_Volume(BrowserCurrent, Volume);
+		return;
+	}
+#endif
 	AudioEngine.Set_Group_Gain(AUDIO_GROUP_MUSIC, (float)std::max(Volume, 0) / 255.0f);
 }
