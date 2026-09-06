@@ -1697,6 +1697,11 @@ bool Parse_Command_Line(int argc, char * argv[])
 			continue;
 		}
 
+		if (stricmp(string, "-NOBRIEFING") == 0) {
+			Debug_Skip_Briefing = true;
+			continue;
+		}
+
 		if (strstr(string, "-MPDEBUG")) {
 			Session.ShowInternetDebug = true;
 		}
