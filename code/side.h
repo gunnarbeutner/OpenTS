@@ -27,7 +27,7 @@ class SideClass : public AbstractTypeClass
 		SideClass(char const * ininame = NULL);
 		virtual ~SideClass() override;
 
-		virtual HRESULT STDMETHODCALLTYPE GetClassID(CLSID * retval) override;
+		virtual HRESULT GetClassID(CLSID * retval) override;
 
 		/*
 		**	Query functions.
