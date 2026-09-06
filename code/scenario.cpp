@@ -357,6 +357,9 @@ bool Start_Scenario(char const * name, bool briefing, CampaignType campaign)
 		}
 	}
 
+	if (Debug_Skip_Briefing) {
+		briefing = false;
+	}
 	Scen->Campaign = campaign;
 
 	DebugString("\n----- Starting scnenario: %s -----\n", name);

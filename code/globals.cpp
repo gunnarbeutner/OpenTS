@@ -396,6 +396,7 @@ char Debug_PlayMovieName[32];
 int Debug_WinAfter = 0;
 
 bool Debug_Skip_Intro = false;
+bool Debug_Skip_Briefing = false;
 
 
 /***************************************************************************
