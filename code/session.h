@@ -267,6 +267,11 @@ struct RemoteFileTransferType {
 };
 
 
+// The encoded game options carry the settings, the scenario description, name and digest,
+// and a name, house and color for every player.
+#define MAX_GAMEOPT_LENGTH	(MAX_PLAYERS * (MPLAYER_NAME_MAX + 8) + 384)
+
+
 //...........................................................................
 // Packet sent over the network Global Channel
 //...........................................................................
@@ -364,7 +369,7 @@ struct GlobalPacketType {
 		 * NET_PRIV_GAMEOPT commands.
 		 */
 		struct {
-			char Buf[400];
+			char Buf[MAX_GAMEOPT_LENGTH];
 			int Color;
 			unsigned int NameCRC;
 		} Options;
