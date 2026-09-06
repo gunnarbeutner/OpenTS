@@ -149,6 +149,7 @@
 #include "ownrdraw.h"
 #include "partsys.h"
 #include "pcx.h"
+#include "pgoprofile.h"
 #include "queue.h"
 #include "phase.h"
 #include "ramfile.h"
@@ -369,6 +370,12 @@ int Init_Game(int , char * [])
 	**	handler to function.
 	*/
 	DebugString("Bootstrap.....");
+
+#if defined(__EMSCRIPTEN__)
+	// A matching profile is the whole prefetch decision, so it is applied ahead
+	// of every archive registration.
+	PGO_Profile_Apply(PGO_PROFILE_MENU);
+#endif
 
 	if (!Bootstrap()) {
 		DebugStringNoPrefix(" ..Failed to bootstrap!\n");
@@ -1776,6 +1783,11 @@ bool Parse_Command_Line(int argc, char * argv[])
 
 		if (stricmp(string, "-NOBRIEFING") == 0) {
 			Debug_Skip_Briefing = true;
+			continue;
+		}
+
+		if (stricmp(string, "-PGOCAPTURE") == 0) {
+			Debug_PGO_Capture = true;
 			continue;
 		}
 

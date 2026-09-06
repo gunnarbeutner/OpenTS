@@ -321,6 +321,8 @@ extern int Debug_WinAfter;
 extern bool Debug_Skip_Intro;
 // -NOBRIEFING starts a mission without its movies and the mission restatement.
 extern bool Debug_Skip_Briefing;
+extern bool Debug_PGO_Capture;
+extern bool PGO_Profile_In_Effect;
 
 // True only while the main menu itself is up, and not on the screens it leads to.
 extern bool Main_Menu_Is_Up;

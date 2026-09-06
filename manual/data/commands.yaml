@@ -2363,6 +2363,18 @@ launch_options:
   _provenance:
     source: code/init.cpp
     guard: null
+- id: launch:profile-capture
+  route_id: profile-capture
+  kind: launch
+  title: Fetch profile capture
+  description: Fetches archives only as they are read, so a browser run records the ranges a session touches
+    into a fetch profile.
+  audience: developer
+  availability: *id001
+  syntax: -PGOCAPTURE
+  _provenance:
+    source: code/init.cpp
+    guard: null
 - id: launch:multiplayer-debug
   route_id: multiplayer-debug
   kind: launch

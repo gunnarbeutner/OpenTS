@@ -586,6 +586,16 @@ launch_options:
     availability: *all
     sites:
       - { file: code/init.cpp, function: Parse_Command_Line, expression: 'literal:-NOBRIEFING' }
+  - id: launch:profile-capture
+    title: Fetch profile capture
+    syntax: -PGOCAPTURE
+    description: >-
+      Fetches archives only as they are read, so a browser run records the ranges a
+      session touches into a fetch profile.
+    audience: developer
+    availability: *all
+    sites:
+      - { file: code/init.cpp, function: Parse_Command_Line, expression: 'literal:-PGOCAPTURE' }
   - id: launch:multiplayer-debug
     title: Internet debug display
     syntax: -MPDEBUG

@@ -166,8 +166,10 @@ void CDFileClass::Prefetch(char const * filename, PrefetchType how)
 	if (filename == NULL || *filename == '\0') return;
 
 	// A prefetch is not a read, so a capture must not record it as one.
+	if (Debug_PGO_Capture) return;
 
 	// A profile has already fetched every run it names.
+	if (PGO_Profile_In_Effect) return;
 
 	// Mixfile lookup uppercases what it is given, and the caller's name may be
 	// a literal.

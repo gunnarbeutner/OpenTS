@@ -398,6 +398,15 @@ int Debug_WinAfter = 0;
 bool Debug_Skip_Intro = false;
 bool Debug_Skip_Briefing = false;
 
+
+// A profile-capture run reads every archive on demand so that the ranges it
+// records are only what the session touched.
+bool Debug_PGO_Capture = false;
+
+
+// A fetch profile matching the deployment's manifest stands the per-archive
+// prefetch heuristic down; what it does not name is fetched on demand.
+bool PGO_Profile_In_Effect = false;
 bool Main_Menu_Is_Up = false;
 
 
