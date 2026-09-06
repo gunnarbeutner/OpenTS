@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include "blocksource.hh"
 #include "platform/filetime.h"
 
 #include <cstdint>
@@ -66,7 +67,7 @@ class PlatformFileClass
 		bool Is_Open(void) const {return(State != nullptr);}
 
 		// Fills the whole request unless the file ends first, which is success with a short
-		// count.
+		// count. A read that DeferredReadClass declined fails with what it delivered.
 		bool Read(void * buffer, std::uint32_t length, std::uint32_t & got);
 		bool Write(void const * buffer, std::uint32_t length, std::uint32_t & put);
 
@@ -82,13 +83,17 @@ class PlatformFileClass
 		bool Modified_Time(FileTimeType & time) const;
 		bool Set_Modified_Time(FileTimeType time);
 
+		// Advises a mounted image how a run of this file is about to be used; a length of 0
+		// means the rest of the file. True when an image answers for the file.
+		bool Hint(BlockHintType kind, std::uint32_t offset, std::uint32_t length);
+
 	private:
 		struct StateType;
 		std::unique_ptr<StateType> State;
 };
 
 
-// False for a name the host has no entry for.
+// False for a name that neither the host nor a mounted image answers for.
 bool Platform_File_Info(char const * path, PlatformFileInfoType & info);
 
 bool Platform_Remove_File(char const * path);

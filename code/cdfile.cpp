@@ -41,8 +41,11 @@
 #include "always.h"
 
 #include "cdfile.h"
+#include "mixfile.h"
 #include "platform/file.h"
+#include "platform/filehint.h"
 
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -122,6 +125,85 @@ int CDFileClass::Create(void)
 	Point_At_Own_Copy();
 
 	return(BASECLASS::Create());
+}
+
+
+void CDFileClass::Bias(int start, int length)
+{
+	BASECLASS::Bias(start, length);
+	Hint_Extent(BLOCK_HINT_SEQUENTIAL);
+}
+
+void CDFileClass::Hint_Extent(BlockHintType kind)
+{
+	if (!BASECLASS::Is_Open()) return;
+
+	Get_File_Handle().Hint(kind,
+		(std::uint32_t)((BiasStart > 0) ? BiasStart : 0),
+		(std::uint32_t)((BiasLength > 0) ? BiasLength : 0));
+}
+
+
+void CDFileClass::Abandon(void)
+{
+	Hint_Extent(BLOCK_HINT_DONE);
+}
+
+
+void CDFileClass::Prefetch(char const * filename, PrefetchType how)
+{
+	// A mixfile directory is twelve bytes an entry behind a short header, so
+	// this covers many thousands of entries and the first file besides.
+	static int const _head = 2 * 1024 * 1024;
+
+	if (filename == NULL || *filename == '\0') return;
+
+	// Mixfile lookup uppercases what it is given, and the caller's name may be
+	// a literal.
+	char name[_MAX_PATH];
+
+	std::strncpy(name, filename, sizeof(name) - 1);
+	name[sizeof(name) - 1] = '\0';
+
+	int start = 0;
+	int length = -1;
+
+	void * resident = NULL;
+	MixFileClass * mixfile = NULL;
+
+	if (MixFileClass::Offset(name, &resident, &mixfile, &start, &length)) {
+
+		// The offset is measured from the start of the mixfile; a resident
+		// file needs nothing fetched.
+		if (resident != NULL || mixfile == NULL || mixfile->Filename == NULL) return;
+		if (length <= 0) return;
+
+		std::strncpy(name, mixfile->Filename, sizeof(name) - 1);
+		name[sizeof(name) - 1] = '\0';
+	} else {
+		start = 0;
+		length = -1;
+	}
+
+	if (how == PREFETCH_STREAMED && (length < 0 || length > _head)) {
+		length = _head;
+	}
+
+	CDFileClass locator;
+
+	locator.Set_Name(name);
+
+	// A top-level archive's length is not known yet, and a hint without a
+	// length is discarded; Set_Name already resolved the name, so Size costs no
+	// more than that.
+	if (how == PREFETCH_WHOLE && length < 0) {
+		int const whole = locator.Size();
+		if (whole > 0) length = whole;
+	}
+
+	// The name is put to the image the way an open would.
+	Platform_Hint_File(name, BLOCK_HINT_SOON, (std::uint32_t)((start > 0) ? start : 0),
+		(std::uint32_t)((length > 0) ? length : 0));
 }
 
 
