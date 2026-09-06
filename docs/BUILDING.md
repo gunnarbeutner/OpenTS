@@ -182,7 +182,8 @@ the game window interface in `code/hostwindow.h`, and the MSVC runtime
 spellings in `code/crtcompat.h`; [the platform layer](PLATFORM.md) records what
 each covers and which files implement it. Every toolchain, MSVC included, builds
 `code/platform/` into the `OpenTSPlatform` library the engine and the harnesses
-link.
+link. On a POSIX target the library also carries `code/blocksource.cpp`, which
+the file layer reads a mounted image's archives through.
 
 A POSIX target links the executable only when a host answers
 `code/hostwindow.h` and names itself by setting `OPENTS_HOST`. This tree has no
@@ -201,12 +202,12 @@ ctest --test-dir build-macos
 
 | Target | Tests registered |
 | --- | --- |
-| MSVC | 44: the eleven below and 33 more from the directories listed under `if(MSVC)` in `tests/CMakeLists.txt` |
-| macOS | 11 |
+| MSVC | 46: the thirteen below and 33 more from the directories listed under `if(MSVC)` in `tests/CMakeLists.txt` |
+| macOS | 13 |
 
-The eleven that build everywhere are `sosparity`, `unvqdelta`, `lzoblock`,
-`zbufring`, `priorityqueue`, `platformfile`, `save`, `uifontdialog`,
-`platformprocess`, `utf8contract` and `keyname`.
+The thirteen that build everywhere are `blocksource`, `lcwstream`, `sosparity`,
+`unvqdelta`, `lzoblock`, `zbufring`, `priorityqueue`, `platformfile`, `save`,
+`uifontdialog`, `platformprocess`, `utf8contract` and `keyname`.
 
 `platformprocess` builds `code/dbgprint.cpp` with the process and diagnostics
 files in `code/platform/`, and checks where the executable is found, the log

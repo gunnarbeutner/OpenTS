@@ -15,6 +15,9 @@
 #if !defined(_WIN32)
 
 #include "platform/file.h"
+#include "platform/filehint.h"
+
+#include "blocksource.h"
 
 #include <dirent.h>
 #include <errno.h>
@@ -33,6 +36,11 @@
 struct PlatformFileClass::StateType
 {
 	int Descriptor = -1;
+
+	// A file the manifest names is read through the volume holding it.
+	std::shared_ptr<BlockFileClass> Volume;
+	BlockEntryClass Image;
+	std::uint32_t Cursor = 0;
 };
 
 
@@ -117,6 +125,83 @@ std::string Host_Path(char const * path)
 }
 
 
+// The image is asked for a path relative to the volume root, drive letter and leading
+// separator removed; a path that climbs out of the volume is refused.
+bool Image_Path(char const * path, std::string & inside)
+{
+	inside.clear();
+
+	if (path == nullptr) return(false);
+
+	std::string translated = Forward_Slashes(path);
+
+	if (translated.size() >= 2 && translated[1] == ':') translated.erase(0, 2);
+
+	std::size_t cursor = 0;
+
+	while (cursor < translated.size()) {
+		std::size_t separator = translated.find('/', cursor);
+		if (separator == std::string::npos) separator = translated.size();
+
+		std::string const component(translated, cursor, separator - cursor);
+		cursor = separator + 1;
+
+		if (component.empty() || component == ".") continue;
+		if (component == "..") return(false);
+
+		if (!inside.empty()) inside += '/';
+		inside += component;
+	}
+
+	return(true);
+}
+
+
+// Only the last path component is looked up, because the manifest carries no directories and
+// one name answers to exactly one archive.
+std::shared_ptr<BlockFileClass> Image_Entry(char const * filename, BlockEntryClass & entry)
+{
+	std::string inside;
+	if (!Image_Path(filename, inside) || inside.empty()) return(nullptr);
+
+	std::size_t const slash = inside.find_last_of('/');
+	std::string leaf = (slash == std::string::npos) ? inside : inside.substr(slash + 1);
+
+	// The manifest's keys are uppercase DOS 8.3, matched without regard to case as the
+	// ISO9660 reader's Find does.
+	for (char & character : leaf) {
+		character = (char)::toupper((unsigned char)character);
+	}
+
+	// A host with a filesystem mounts no image, so nothing answers beneath it.
+	(void)leaf;
+	(void)entry;
+	return(nullptr);
+}
+
+
+// A record whose date the volume left unset reports no time at all.
+FileTimeType File_Time_From_Image(BlockEntryClass const & image)
+{
+	FileTimeType time;
+
+	if (image.DateTime == 0 || !File_Time_From_Dos_Date_Time(image.DateTime, time)) {
+		return(FileTimeType{});
+	}
+	return(time);
+}
+
+
+void Info_From_Image(std::string const & name, BlockEntryClass const & image, PlatformFileInfoType & info)
+{
+	info = PlatformFileInfoType{};
+	info.Name = name;
+	info.Size = image.Size;
+	info.Modified = File_Time_From_Image(image);
+	info.IsReadOnly = true;
+}
+
+
 // A name beginning with a dot is hidden, so the engine's scans skip dot files as they skip
 // hidden files on Windows.
 void Info_From_Stat(std::string const & name, struct stat const & host, PlatformFileInfoType & info)
@@ -175,6 +260,30 @@ bool Match_Wildcard(char const * pattern, char const * name)
 }
 
 
+// The host directory and the image answer for a name's size and date differently, so each
+// match remembers its side.
+struct MatchType
+{
+	std::string Name;
+	BlockEntryClass Image;
+};
+
+
+// The manifest joins a search of the root only, since it carries no directories, and a name
+// already answered is left alone so a search reports the copy an open reaches.
+void Image_Matches(std::string const & directory, std::string const & leaf, std::vector<MatchType> & matches)
+{
+	(void)directory;
+	(void)leaf;
+	(void)matches;
+}
+
+
+std::uint32_t Image_Span(BlockEntryClass const & image, std::uint32_t offset, std::uint32_t length)
+{
+	return((length != 0) ? length : (image.Size - offset));
+}
+
 }	// namespace
 
 
@@ -230,6 +339,23 @@ bool PlatformFileClass::Open(char const * path, PlatformOpenType mode)
 		return(false);
 	}
 
+	// The image is read-only, so only a read of a file the host lacks resolves there.
+	if (!present && mode == PlatformOpenType::READ) {
+		BlockEntryClass found;
+		std::shared_ptr<BlockFileClass> volume = Image_Entry(path, found);
+
+		if (volume) {
+			State = std::make_unique<StateType>();
+			State->Volume = std::move(volume);
+			State->Image = found;
+
+			// A network-backed image reads ahead from the first block on this hint and
+			// never past the end of the file.
+			State->Volume->Hint(State->Image, BLOCK_HINT_SEQUENTIAL, 0, State->Image.Size);
+			return(true);
+		}
+	}
+
 	int const descriptor = ::open(host.c_str(), flags, (mode_t)0666);
 	if (descriptor < 0) {
 		return(false);
@@ -247,7 +373,11 @@ bool PlatformFileClass::Close(void)
 		return(false);
 	}
 
-	bool const closed = (::close(State->Descriptor) == 0);
+	bool closed = true;
+
+	if (!State->Volume) {
+		closed = (::close(State->Descriptor) == 0);
+	}
 
 	State.reset();
 	return(closed);
@@ -260,6 +390,21 @@ bool PlatformFileClass::Read(void * buffer, std::uint32_t length, std::uint32_t 
 
 	if (State == nullptr || (buffer == nullptr && length != 0)) {
 		return(false);
+	}
+
+	if (State->Volume) {
+
+		// The volume reports a transport failure the same way as the end of the file, so
+		// the count the file could answer is worked out first and anything less is a
+		// failure; DeferredReadClass tells a declined read from a fault.
+		std::uint32_t const available = (State->Cursor < State->Image.Size) ? State->Image.Size - State->Cursor : 0;
+		std::uint32_t const wanted = (length < available) ? length : available;
+
+		int const read = State->Volume->Read(State->Image, State->Cursor, buffer, wanted);
+
+		got = (read > 0) ? (std::uint32_t)read : 0;
+		State->Cursor += got;
+		return(read >= 0 && got == wanted);
 	}
 
 	// A short host read is resumed; only the end of the file stops early.
@@ -285,7 +430,7 @@ bool PlatformFileClass::Write(void const * buffer, std::uint32_t length, std::ui
 {
 	put = 0;
 
-	if (State == nullptr || (buffer == nullptr && length != 0)) {
+	if (State == nullptr || State->Volume || (buffer == nullptr && length != 0)) {
 		return(false);
 	}
 
@@ -313,6 +458,20 @@ std::int64_t PlatformFileClass::Seek(std::int64_t offset, int origin)
 		return(-1);
 	}
 
+	if (State->Volume) {
+		std::int64_t const base = (origin == SEEK_SET) ? 0
+			: ((origin == SEEK_CUR) ? (std::int64_t)State->Cursor : (std::int64_t)State->Image.Size);
+		std::int64_t const wanted = base + offset;
+
+		// A seek past the end is allowed and one before the start is not, as on Windows.
+		if (wanted < 0 || wanted > (std::int64_t)0xFFFFFFFFLL) {
+			return(-1);
+		}
+
+		State->Cursor = (std::uint32_t)wanted;
+		return(wanted);
+	}
+
 	off_t const position = ::lseek(State->Descriptor, (off_t)offset, origin);
 	return((position < 0) ? -1 : (std::int64_t)position);
 }
@@ -322,6 +481,10 @@ std::int64_t PlatformFileClass::Size(void) const
 {
 	if (State == nullptr) {
 		return(-1);
+	}
+
+	if (State->Volume) {
+		return((std::int64_t)State->Image.Size);
 	}
 
 	struct stat info;
@@ -334,7 +497,7 @@ std::int64_t PlatformFileClass::Size(void) const
 
 bool PlatformFileClass::Flush(void)
 {
-	return(State != nullptr && ::fsync(State->Descriptor) == 0);
+	return(State != nullptr && !State->Volume && ::fsync(State->Descriptor) == 0);
 }
 
 
@@ -342,6 +505,11 @@ bool PlatformFileClass::Modified_Time(FileTimeType & time) const
 {
 	if (State == nullptr) {
 		return(false);
+	}
+
+	if (State->Volume) {
+		time = File_Time_From_Image(State->Image);
+		return(true);
 	}
 
 	struct stat info;
@@ -357,7 +525,7 @@ bool PlatformFileClass::Modified_Time(FileTimeType & time) const
 // The access time moves with the write time, as the DOS-era callers set both.
 bool PlatformFileClass::Set_Modified_Time(FileTimeType time)
 {
-	if (State == nullptr) {
+	if (State == nullptr || State->Volume) {
 		return(false);
 	}
 
@@ -374,6 +542,19 @@ bool PlatformFileClass::Set_Modified_Time(FileTimeType time)
 }
 
 
+bool PlatformFileClass::Hint(BlockHintType kind, std::uint32_t offset, std::uint32_t length)
+{
+	if (State == nullptr || !State->Volume || offset >= State->Image.Size) {
+		return(false);
+	}
+
+	State->Volume->Hint(State->Image, kind, offset, Image_Span(State->Image, offset, length));
+	return(true);
+}
+
+
+// A name the host lacks but the manifest carries is reported, or a caller that tests before
+// opening decides the file is missing.
 bool Platform_File_Info(char const * path, PlatformFileInfoType & info)
 {
 	if (path == nullptr) {
@@ -383,12 +564,18 @@ bool Platform_File_Info(char const * path, PlatformFileInfoType & info)
 	std::string const host = Host_Path(path);
 	struct stat status;
 
-	if (::stat(host.c_str(), &status) != 0) {
-		return(false);
+	if (::stat(host.c_str(), &status) == 0) {
+		Info_From_Stat(Leaf_Of(host), status, info);
+		return(true);
 	}
 
-	Info_From_Stat(Leaf_Of(host), status, info);
-	return(true);
+	BlockEntryClass found;
+	if (Image_Entry(path, found)) {
+		Info_From_Image(Leaf_Of(Forward_Slashes(path)), found, info);
+		return(true);
+	}
+
+	return(false);
 }
 
 
@@ -492,7 +679,7 @@ std::vector<PlatformFileInfoType> Platform_Find_Files(char const * pattern)
 	std::string const leaf = (split == std::string::npos) ? translated : translated.substr(split + 1);
 	std::string directory = requested.empty() ? requested : Host_Path(requested.c_str());
 
-	std::vector<std::string> names;
+	std::vector<MatchType> matches;
 
 	if (leaf.find_first_of("*?") == std::string::npos) {
 
@@ -502,9 +689,11 @@ std::vector<PlatformFileInfoType> Platform_Find_Files(char const * pattern)
 
 		if (::stat(resolved.c_str(), &info) == 0) {
 			std::size_t const mark = resolved.find_last_of('/');
+			MatchType match;
 
 			directory = (mark == std::string::npos) ? std::string() : resolved.substr(0, mark + 1);
-			names.push_back((mark == std::string::npos) ? resolved : resolved.substr(mark + 1));
+			match.Name = (mark == std::string::npos) ? resolved : resolved.substr(mark + 1);
+			matches.push_back(std::move(match));
 		}
 
 	} else {
@@ -514,24 +703,35 @@ std::vector<PlatformFileInfoType> Platform_Find_Files(char const * pattern)
 		if (scan != nullptr) {
 			for (struct dirent * item = ::readdir(scan); item != nullptr; item = ::readdir(scan)) {
 				if (!Match_Wildcard(leaf.c_str(), item->d_name)) continue;
-				names.push_back(item->d_name);
+
+				MatchType match;
+				match.Name = item->d_name;
+				matches.push_back(std::move(match));
 			}
 			::closedir(scan);
 		}
 	}
 
-	std::sort(names.begin(), names.end(), Platform_Name_Order);
+	// The image is searched under the caller's spelling, since the two filesystems answer
+	// for case separately.
+	Image_Matches(requested, leaf, matches);
 
-	found.reserve(names.size());
+	std::sort(matches.begin(), matches.end(), [](MatchType const & left, MatchType const & right) {
+		return(Platform_Name_Order(left.Name, right.Name));
+	});
 
-	for (std::string const & name : names) {
+	found.reserve(matches.size());
+
+	for (MatchType const & match : matches) {
 		PlatformFileInfoType entry;
 		struct stat info;
 
-		if (::stat(Host_Path((directory + name).c_str()).c_str(), &info) == 0) {
-			Info_From_Stat(name, info, entry);
+		if (match.Image.Is_Valid()) {
+			Info_From_Image(match.Name, match.Image, entry);
+		} else if (::stat(Host_Path((directory + match.Name).c_str()).c_str(), &info) == 0) {
+			Info_From_Stat(match.Name, info, entry);
 		} else {
-			entry.Name = name;
+			entry.Name = match.Name;
 		}
 
 		found.push_back(std::move(entry));
@@ -544,6 +744,47 @@ std::vector<PlatformFileInfoType> Platform_Find_Files(char const * pattern)
 std::string Platform_Host_Path(char const * path)
 {
 	return(Host_Path(path));
+}
+
+
+bool Platform_Hint_File(char const * filename, BlockHintType kind, std::uint32_t offset, std::uint32_t length)
+{
+	if (filename == nullptr || *filename == '\0') return(false);
+
+	BlockEntryClass found;
+	std::shared_ptr<BlockFileClass> volume = Image_Entry(filename, found);
+
+	if (!volume || offset >= found.Size) return(false);
+
+	volume->Hint(found, kind, offset, Image_Span(found, offset, length));
+	return(true);
+}
+
+
+bool Platform_Prefetch_File(char const * filename, std::uint32_t offset, std::uint32_t length)
+{
+	if (filename == nullptr || *filename == '\0') return(false);
+
+	BlockEntryClass found;
+	std::shared_ptr<BlockFileClass> volume = Image_Entry(filename, found);
+
+	if (!volume || offset >= found.Size) return(false);
+
+	return(volume->Prefetch(found, offset, Image_Span(found, offset, length)));
+}
+
+
+std::uint64_t Platform_Stored_Bytes(char const * filename)
+{
+	if (filename == nullptr || *filename == '\0') return(0);
+
+	BlockEntryClass found;
+	std::shared_ptr<BlockFileClass> volume = Image_Entry(filename, found);
+
+	if (!volume) return(0);
+
+	std::uint64_t const held = volume->Stored_Bytes();
+	return((held > found.Size) ? found.Size : held);
 }
 
 
