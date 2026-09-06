@@ -3308,6 +3308,37 @@ void Draw_Version_Text(Surface * surface)
 
 static char _cmd_buffer[128];
 
+
+static void Select_Team_Members(int team)
+{
+	for (int i = 0; i < Technos.Count(); i++) {
+		TechnoClass * obj = Technos[i];
+		if (obj && !obj->IsInLimbo && obj->Group == team - 1 && obj->House->Is_Player_Control()) {
+			if (!obj->IsSelected) {
+				obj->Select();
+				AllowVoice = false;
+			}
+		}
+	}
+}
+
+
+static void Assign_Selection_To_Team(int team)
+{
+	for (int i = 0; i < Technos.Count(); i++) {
+		TechnoClass * obj = Technos[i];
+		if (obj && !obj->IsInLimbo && obj->House->Is_Player_Control()) {
+			if (obj->Group == team - 1) {
+				obj->Group = -1;
+			}
+			if (obj->IsSelected) {
+				obj->Group = team - 1;
+			}
+		}
+	}
+}
+
+
 class CreateTeamCommandClass : public CommandClass
 {
 	public:
@@ -3330,17 +3361,7 @@ class CreateTeamCommandClass : public CommandClass
 		}
 
 		virtual void Execute(void) const {
-			for (int i = 0; i < Technos.Count(); i++) {
-				TechnoClass * obj = Technos[i];
-				if (obj && !obj->IsInLimbo && obj->House->Is_Player_Control()) {
-					if (obj->Group == Team - 1) {
-						obj->Group = -1;
-					}
-					if (obj->IsSelected) {
-						obj->Group = Team - 1;
-					}
-				}
-			}
+			Assign_Selection_To_Team(Team);
 		}
 
 	private:
@@ -3379,15 +3400,7 @@ class SelectTeamCommandClass : public CommandClass
 			if (CurrentObject.Count() > 0 && !already) {
 				Unselect_All();
 			}
-			for (int i = 0; i < Technos.Count(); i++) {
-				TechnoClass * obj = Technos[i];
-				if (obj && !obj->IsInLimbo && obj->Group == (Team - 1) && obj->House->Is_Player_Control()) {
-					if (!obj->IsSelected) {
-						obj->Select();
-						AllowVoice = false;
-					}
-				}
-			}
+			Select_Team_Members(Team);
 			AllowVoice = false;
 			TechnoClass::Reset_Action_Line_Timer();
 
@@ -3440,17 +3453,7 @@ class AddTeamCommandClass : public CommandClass
 			Map.Repair_Mode_Control(0);
 			Map.Sell_Mode_Control(0);
 
-			for (int i = 0; i < Technos.Count(); i++) {
-				TechnoClass * obj = Technos[i];
-
-				if (obj && !obj->IsInLimbo && obj->Group == Team-1 && obj->House->Is_Player_Control()) {
-
-					if (!obj->IsSelected) {
-						obj->Select();
-						AllowVoice = false;
-					}
-				}
-			}
+			Select_Team_Members(Team);
 		}
 
 	private:
@@ -3489,15 +3492,7 @@ class CenterTeamCommandClass : public CommandClass
 				Unselect_All();
 			}
 
-			for (int i = 0; i < Technos.Count(); i++) {
-				TechnoClass * obj = Technos[i];
-				if (obj && !obj->IsInLimbo && obj->Group == Team - 1 && obj->House->Is_Player_Control()) {
-					if (!obj->IsSelected) {
-						obj->Select();
-						AllowVoice = false;
-					}
-				}
-			}
+			Select_Team_Members(Team);
 
 			Map.Center_Map();
 			Map.Flag_To_Redraw(GS_REDRAW_TACTICAL);
