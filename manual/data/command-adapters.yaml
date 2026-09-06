@@ -358,6 +358,21 @@ fixed_exclusions:
       - { file: code/init.cpp, function: Init_Commands, expression: KN_ESC }
     reason: Initialization removes conflicting mappings before assigning the two forced bindings.
   - sites:
+      - { file: code/sdlhost.cpp, function: Poll_Key, expression: VK_NONE, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Poll_Text, expression: VK_NONE, guard: "defined(OPENTS_SDL_HOST)" }
+    reason: Sentinel for an SDL scan code that the virtual-key table does not map.
+  - sites:
+      - { file: code/sdlhost.cpp, function: Poll_Key, expression: VK_RETURN, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Poll_Key, expression: VK_BACK, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Poll_Key, expression: VK_TAB, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Poll_Key, expression: VK_ESCAPE, guard: "defined(OPENTS_SDL_HOST)" }
+    reason: Supplies the ASCII character for the named key events SDL reports without one.
+  - sites:
+      - { file: code/sdlhost.cpp, function: Browser_Apply_Modifiers, expression: VK_SHIFT, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Browser_Apply_Modifiers, expression: VK_CONTROL, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Browser_Apply_Modifiers, expression: VK_MENU, guard: "defined(OPENTS_SDL_HOST)" }
+    reason: SDL-host modifier-state encoding, not separate controls.
+  - sites:
       - { file: code/keyboard.cpp, function: WWKeyboardClass::Is_Mouse_Key, expression: VK_LBUTTON }
       - { file: code/keyboard.cpp, function: WWKeyboardClass::Is_Mouse_Key, expression: VK_MBUTTON }
       - { file: code/keyboard.cpp, function: WWKeyboardClass::Is_Mouse_Key, expression: VK_RBUTTON }
