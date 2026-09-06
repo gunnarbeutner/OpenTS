@@ -91,7 +91,7 @@ void Play_Movie(char const * name, ThemeType theme, bool clrscrn_after, bool str
 
 	Keyboard->Clear();
 
-	VQHandle * vqa = Movie_Create(name, HiddenSurface, Rect(0,0,0,0), Rect(0,0,0,0), int(Options.SoundVolume * 255.0), 1);
+	VQHandle * vqa = Movie_Create(name, HiddenSurface, Rect(0,0,0,0), Rect(0,0,0,0), 255, 1);
 
 	if (vqa != NULL) {
 
@@ -166,7 +166,7 @@ void _Play_Movie(char const * name, ThemeType theme)
 		HiddenSurface->Fill(0);
 		Update_Visible_Surface(HiddenSurface);
 		Keyboard->Clear();
-		VQHandle * vqa = Movie_Create(name, HiddenSurface, Rect(0,0,0,0), Rect(0,0,0,0), -1, true);
+		VQHandle * vqa = Movie_Create(name, HiddenSurface, Rect(0,0,0,0), Rect(0,0,0,0), 255, true);
 		if (vqa != NULL) {
 			Movie_Play(vqa, true, theme, true);
 			Movie_Destroy(vqa);
@@ -204,7 +204,7 @@ void Play_Ingame_Movie(const char * name)
 {
 	bool notavailable = CCFileClass(name).Is_Available() == false;
 	if (!notavailable && (Session.Type == GAME_NORMAL || Session.PlayMovies)) {
-		VQHandle * vqa = Movie_Create(name, SidebarSurface, Rect(0,0,0,0), SidebarSurface->Get_Rect(), int(Options.SoundVolume * 255.0), false);
+		VQHandle * vqa = Movie_Create(name, SidebarSurface, Rect(0,0,0,0), SidebarSurface->Get_Rect(), 255, false);
 		if (vqa != NULL) {
 			Movie_Queue_Ingame(vqa);
 		}

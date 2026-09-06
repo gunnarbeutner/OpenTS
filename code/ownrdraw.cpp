@@ -22,7 +22,7 @@
 #include "data.h"
 #include "dbgprint.h"
 #include "dict.h"
-#include "dsaudio.h"
+#include "audio/audioengine.h"
 #include "dsurface.h"
 #include "globals.h"
 #include "goptions.h"
@@ -587,7 +587,7 @@ static LRESULT CALLBACK ComboDropWinCtrlProc_Internal(HWND hWnd, UINT Msg, WPARA
 				break;
 			}
 
-			Sound_Effect(Rule->GenericClick, 1.0, 0);
+			Sound_Effect(Rule->GenericClick);
 
 			if (x >= 0 && y >= 0 && x <= client.right && y <= client.bottom) {
 				LRESULT item_height = SendMessage(OwnerComboHandle, CB_GETITEMHEIGHT, 0, 0);
@@ -1754,10 +1754,7 @@ cleanup:
 					 * center outward with sliding "leftbar"/"rightbar" edges.
 					 */
 					if (Options.SoundVolume > 0.0) {
-						if (MixFileClass::Retrieve("EMBLEM.AUD")) {
-							int volume = (int)(Options.SoundVolume * 64.0f);
-							Audio.Play_Sample(MixFileClass::Retrieve("EMBLEM.AUD"), 255, volume);
-						}
+						AudioEngine.Play_Sample(MixFileClass::Retrieve("EMBLEM.AUD"), AUDIO_GROUP_SFX, 64.0f / 255.0f, 255);
 					}
 
 					struct _timeb start_time;
@@ -1880,8 +1877,8 @@ cleanup:
 								Sleep(wait);
 							}
 
-							if (Audio_Available() && GameInFocus == true) {
-								Audio.Sound_Callback();
+							if (AudioEngine.Is_Available() && GameInFocus == true) {
+								AudioEngine.Sound_Callback();
 								Theme.AI();
 								Speak_AI();
 							}
@@ -2092,7 +2089,7 @@ LRESULT CALLBACK ButtonCtrlProc(HWND window, UINT message, WPARAM wparam, LPARAM
 				if (style & WS_DISABLED) {
 					updown = 'u';
 				} else if (updown == 'd' && _prev_state == 'u') {
-					Sound_Effect(Rule->GenericClick, 1.0, 0);
+					Sound_Effect(Rule->GenericClick);
 				}
 
 				int widths[2] = {7, 7};
@@ -3862,11 +3859,11 @@ LRESULT CALLBACK ListBoxCtrlProc(HWND window, UINT message, WPARAM wparam, LPARA
 			int paint_disabled = SendMessage(window, OD_DISABLEPAINT, 0, 1);
 			if ((style & LBS_MULTIPLESEL) != 0) {
 				int select = (SendMessage(window, LB_GETSEL, index, 0) == 0);
-				Sound_Effect(Rule->GenericClick, 1.0, 0);
+				Sound_Effect(Rule->GenericClick);
 				SendMessage(window, LB_SETSEL, select, index);
 				InvalidateRect(window, NULL, FALSE);
 			} else if ((style & LBS_NOSEL) == 0) {
-				Sound_Effect(Rule->GenericClick, 1.0, 0);
+				Sound_Effect(Rule->GenericClick);
 				SendMessage(window, LB_SETCURSEL, index, 0);
 				InvalidateRect(window, NULL, FALSE);
 			}
@@ -4917,7 +4914,7 @@ LRESULT CALLBACK TrackBarCtrlProc(HWND window, UINT message, WPARAM wparam, LPAR
 		SendMessage(parent, WM_HSCROLL, MAKEWPARAM(TB_THUMBTRACK, (unsigned short)(value + minimum)), (LPARAM)window);
 
 		if (play_click == true && !data->TrackBar.clickSuppress) {
-			Sound_Effect(Rule->GenericClick, 1.0f, 0);
+			Sound_Effect(Rule->GenericClick);
 		}
 	}
 

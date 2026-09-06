@@ -2263,6 +2263,24 @@ AttachedSystem:
       source: code/vanimtype.cpp
       guard: null
     level: VoxelAnimTypeClass
+Attack:
+  key: Attack
+  scopes:
+  - applies_to:
+    - Sounds
+    file: sound01.ini
+    section:
+      kind: identifier
+      source: sound
+    value_type: integer
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: VocClass
+      member: attack
+      source: code/vocini.cpp
+      guard: null
+    level: VocClass
 AttackDelay:
   key: AttackDelay
   scopes:
@@ -4241,6 +4259,24 @@ ChainReaction:
       source: code/overtype.cpp
       guard: null
     level: OverlayTypeClass
+Channels:
+  key: Channels
+  scopes:
+  - applies_to:
+    - Sounds
+    file: sound01.ini
+    section:
+      kind: literal
+      name: General
+    value_type: integer
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: VocClass
+      member: channels
+      source: code/vocini.cpp
+      guard: null
+    level: VocClass
 ChargeAnim:
   key: ChargeAnim
   scopes:
@@ -5111,6 +5147,24 @@ ContentScan:
       source: code/rules.cpp
       guard: null
     level: DifficultyClass
+Control:
+  key: Control
+  scopes:
+  - applies_to:
+    - Sounds
+    file: sound01.ini
+    section:
+      kind: identifier
+      source: sound
+    value_type: string
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: VocClass
+      member: control
+      source: code/vocini.cpp
+      guard: null
+    level: VocClass
 Conventional:
   key: Conventional
   scopes:
@@ -6112,6 +6166,24 @@ DebrisTypes:
       source: code/techtype.cpp
       guard: null
     level: TechnoTypeClass
+Decay:
+  key: Decay
+  scopes:
+  - applies_to:
+    - Sounds
+    file: sound01.ini
+    section:
+      kind: identifier
+      source: sound
+    value_type: integer
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: VocClass
+      member: decay
+      source: code/vocini.cpp
+      guard: null
+    level: VocClass
 DefaultDebrisSmokeSystem:
   key: DefaultDebrisSmokeSystem
   scopes:
@@ -6379,6 +6451,24 @@ Degenerates:
       source: code/bullettype.cpp
       guard: null
     level: BulletTypeClass
+Delay:
+  key: Delay
+  scopes:
+  - applies_to:
+    - Sounds
+    file: sound01.ini
+    section:
+      kind: identifier
+      source: sound
+    value_type: string
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: VocClass
+      member: delay
+      source: code/vocini.cpp
+      guard: null
+    level: VocClass
 DeleteOnStateLimit:
   key: DeleteOnStateLimit
   scopes:
@@ -8029,6 +8119,24 @@ ExtraUnitLight:
       source: code/rules.cpp
       guard: null
     level: RulesClass
+FShift:
+  key: FShift
+  scopes:
+  - applies_to:
+    - Sounds
+    file: sound01.ini
+    section:
+      kind: identifier
+      source: sound
+    value_type: string
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: VocClass
+      member: fshift
+      source: code/vocini.cpp
+      guard: null
+    level: VocClass
 Facings:
   key: Facings
   scopes:
@@ -12669,6 +12777,24 @@ LightningSound:
       source: code/rules.cpp
       guard: null
     level: RulesClass
+Limit:
+  key: Limit
+  scopes:
+  - applies_to:
+    - Sounds
+    file: sound01.ini
+    section:
+      kind: identifier
+      source: sound
+    value_type: integer
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: VocClass
+      member: limit
+      source: code/vocini.cpp
+      guard: null
+    level: VocClass
 LimpetFactor:
   key: LimpetFactor
   scopes:
@@ -12755,6 +12881,24 @@ Locomotor:
       source: code/techtype.cpp
       guard: null
     level: TechnoTypeClass
+Loop:
+  key: Loop
+  scopes:
+  - applies_to:
+    - Sounds
+    file: sound01.ini
+    section:
+      kind: identifier
+      source: sound
+    value_type: integer
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: VocClass
+      member: loop
+      source: code/vocini.cpp
+      guard: null
+    level: VocClass
 LoopCount:
   key: LoopCount
   scopes:
@@ -12789,6 +12933,24 @@ LoopEnd:
       source: code/animtype.cpp
       guard: null
     level: AnimTypeClass
+LoopLimit:
+  key: LoopLimit
+  scopes:
+  - applies_to:
+    - Sounds
+    file: sound01.ini
+    section:
+      kind: identifier
+      source: sound
+    value_type: integer
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: VocClass
+      member: loop
+      source: code/vocini.cpp
+      guard: null
+    level: VocClass
 LoopStart:
   key: LoopStart
   scopes:
@@ -13520,6 +13682,24 @@ MinProductionSpeed:
       source: code/rules.cpp
       guard: null
     level: RulesClass
+MinVolume:
+  key: MinVolume
+  scopes:
+  - applies_to:
+    - Sounds
+    file: sound01.ini
+    section:
+      kind: identifier
+      source: sound
+    value_type: string
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: VocClass
+      member: minvolume
+      source: code/vocini.cpp
+      guard: null
+    level: VocClass
 MinZVel:
   key: MinZVel
   scopes:
@@ -16353,13 +16533,13 @@ Priority:
     section:
       kind: identifier
       source: sound
-    value_type: integer
+    value_type: string
     status: reviewed
     _provenance:
-      default_candidate: '10'
+      default_candidate: null
       declared_in: VocClass
-      member: Priority
-      source: code/voc.cpp
+      member: priority
+      source: code/vocini.cpp
       guard: null
     level: VocClass
 Production:
@@ -17053,7 +17233,7 @@ Range:
       kind: identifier
       source: object-type
     value_type: distance (cells)
-    status: generated
+    status: needs_review
     _provenance:
       default_candidate: '0'
       declared_in: WeaponTypeClass
@@ -17061,6 +17241,21 @@ Range:
       source: code/weapon.cpp
       guard: null
     level: WeaponTypeClass
+  - applies_to:
+    - Sounds
+    file: sound01.ini
+    section:
+      kind: identifier
+      source: sound
+    value_type: integer
+    status: needs_review
+    _provenance:
+      default_candidate: null
+      declared_in: VocClass
+      member: range
+      source: code/vocini.cpp
+      guard: null
+    level: VocClass
 Ranged:
   key: Ranged
   scopes:
@@ -19397,6 +19592,24 @@ SoundVolume:
       source: code/options.cpp
       guard: null
     level: OptionsClass
+Sounds:
+  key: Sounds
+  scopes:
+  - applies_to:
+    - Sounds
+    file: sound01.ini
+    section:
+      kind: identifier
+      source: sound
+    value_type: string
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: VocClass
+      member: sounds
+      source: code/vocini.cpp
+      guard: null
+    level: VocClass
 SparkSpawnFrames:
   key: SparkSpawnFrames
   scopes:
@@ -23282,6 +23495,21 @@ Type:
       source: code/session.cpp
       guard: null
     level: SessionClass
+  - applies_to:
+    - Sounds
+    file: sound01.ini
+    section:
+      kind: identifier
+      source: sound
+    value_type: string
+    status: needs_review
+    _provenance:
+      default_candidate: null
+      declared_in: VocClass
+      member: typeflags
+      source: code/vocini.cpp
+      guard: null
+    level: VocClass
 TypeImmune:
   key: TypeImmune
   scopes:
@@ -23702,6 +23930,24 @@ UseTurretShadow:
       source: code/unittype.cpp
       guard: null
     level: UnitTypeClass
+VShift:
+  key: VShift
+  scopes:
+  - applies_to:
+    - Sounds
+    file: sound01.ini
+    section:
+      kind: identifier
+      source: sound
+    value_type: string
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: VocClass
+      member: vshift
+      source: code/vocini.cpp
+      guard: null
+    level: VocClass
 VSync:
   key: VSync
   scopes:
@@ -24361,13 +24607,13 @@ Volume:
     section:
       kind: identifier
       source: sound
-    value_type: floating point
+    value_type: string
     status: generated
     _provenance:
-      default_candidate: '1.0'
+      default_candidate: null
       declared_in: VocClass
-      member: Volume
-      source: code/voc.cpp
+      member: volume
+      source: code/vocini.cpp
       guard: null
     level: VocClass
 Voxel:

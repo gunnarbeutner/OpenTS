@@ -156,6 +156,7 @@
 #include "teamtype.h"
 #include "terrain.h"
 #include "theme.h"
+#include "voc.h"
 #include "tiberium.h"
 #include "tracker.h"
 #include "trigger.h"
@@ -1004,6 +1005,7 @@ void Post_Load_Game(void)
  *=============================================================================================*/
 void Clear_Scenario(void)
 {
+	Stop_All_Sound_Effects();
 	Sync_Recorder_Disarm();
 
 	int index;

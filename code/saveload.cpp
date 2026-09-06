@@ -133,6 +133,8 @@
 #include "vein.h"
 #include "vox.h"
 #include "warhead.h"
+#include "ambient.h"
+#include "voc.h"
 #include "wave.h"
 #include "waypoint.h"
 #include "weapon.h"
@@ -1202,6 +1204,11 @@ static void Serialize_Misc_Values(SaveStreamClass & stream)
 
 	// The scenario's own tutorial lines travel here, since a load never re-reads the map.
 	stream.Serialize(TutorialText);
+
+	// Placed sounds and the sounds attached to objects come back on the next
+	// sound tick; the playing sounds themselves are not saved.
+	Static_Sounds_Serialize(stream);
+	AmbientSounds.Serialize(stream);
 }
 
 
