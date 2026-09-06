@@ -31,6 +31,8 @@
 
 #pragma once
 
+#if defined(_WIN32)
+
 #include "win.h"
 
 #include <sal.h>
@@ -47,6 +49,12 @@
 #define EXCEPTION_OPENTS_PURECALL			0xE0545303
 #define EXCEPTION_OPENTS_INVALID_PARAMETER	0xE0545304
 
+#else
+
+#define _Printf_format_string_
+
+#endif
+
 void Install_Exception_Handler(void);
 void Exception_Register_Log_File(char const * path);
 bool Describe_Code_Address(void const * address, char * buffer, unsigned size);
@@ -56,4 +64,4 @@ void Exception_Run_Immediate_Test(void);
 void Exception_Run_Post_Window_Test(void);
 void Exception_Wndproc_Test_Fault(void);
 
-void __cdecl Fatal(_Printf_format_string_ char const * message, ...);
+void Fatal(_Printf_format_string_ char const * message, ...);

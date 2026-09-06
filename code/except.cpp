@@ -46,6 +46,9 @@
 
 #include "except.h"
 
+// The subsystem is Windows only; other platforms get the inert stubs at the end of the file.
+#if defined(_WIN32)
+
 #include "misc.h"
 #include "resource.h"
 #include "version.h"
@@ -77,6 +80,52 @@
 #define DUMPER_TIMEOUT_MS					60000
 #define LOG_TAIL_BYTES						(256 * 1024)
 #define EXCEPTION_FOLDER_DAYS				30
+
+#if defined(_M_X64)
+
+#define MACHINE_TYPE						IMAGE_FILE_MACHINE_AMD64
+#define ADDRESS_FORMAT						"%016IX"
+#define ADDRESS_UNREADABLE					"????????????????"
+
+static DWORD_PTR Instruction_Pointer(CONTEXT const * context)
+{
+	return((DWORD_PTR)context->Rip);
+}
+
+static DWORD_PTR Stack_Pointer(CONTEXT const * context)
+{
+	return((DWORD_PTR)context->Rsp);
+}
+
+static DWORD_PTR Frame_Pointer(CONTEXT const * context)
+{
+	return((DWORD_PTR)context->Rbp);
+}
+
+#elif defined(_M_IX86)
+
+#define MACHINE_TYPE						IMAGE_FILE_MACHINE_I386
+#define ADDRESS_FORMAT						"%08IX"
+#define ADDRESS_UNREADABLE					"????????"
+
+static DWORD_PTR Instruction_Pointer(CONTEXT const * context)
+{
+	return(context->Eip);
+}
+
+static DWORD_PTR Stack_Pointer(CONTEXT const * context)
+{
+	return(context->Esp);
+}
+
+static DWORD_PTR Frame_Pointer(CONTEXT const * context)
+{
+	return(context->Ebp);
+}
+
+#else
+#error "The crash handler supports x86 and x64 only."
+#endif
 
 // DbgHelp is not reentrant, and it is also the part of the report most likely to fault on a
 // corrupt stack. Everything that enters it, MiniDumpWriteDump included, holds this.
@@ -389,7 +438,7 @@ static void Append_Address_Details(DWORD_PTR address)
 /// <param name="prefix">Text placed before the address, normally indentation.</param>
 static void Append_Address(DWORD_PTR address, char const * prefix)
 {
-	Exception_Printf("%s0x%08IX", prefix, address);
+	Exception_Printf("%s0x" ADDRESS_FORMAT, prefix, address);
 	Append_Address_Details(address);
 	Exception_Printf("\r\n");
 }
@@ -422,7 +471,7 @@ static BOOL Guarded_Sym_Get_Line(DWORD_PTR address, DWORD * displacement, IMAGEH
 static BOOL Guarded_Stack_Walk(STACKFRAME64 * frame, CONTEXT * context)
 {
 	__try {
-		return(StackWalk64(IMAGE_FILE_MACHINE_I386, GetCurrentProcess(), GetCurrentThread(),
+		return(StackWalk64(MACHINE_TYPE, GetCurrentProcess(), GetCurrentThread(),
 					frame, context, NULL, SymFunctionTableAccess64, SymGetModuleBase64, NULL));
 	} __except (EXCEPTION_EXECUTE_HANDLER) {
 		return(FALSE);
@@ -613,7 +662,7 @@ static void Append_Exception_Description(EXCEPTION_RECORD const * record)
 				break;
 		}
 
-		Exception_Printf("Access      : 0x%08IX was %s.\r\n", (DWORD_PTR)record->ExceptionInformation[1], operation);
+		Exception_Printf("Access      : 0x" ADDRESS_FORMAT " was %s.\r\n", (DWORD_PTR)record->ExceptionInformation[1], operation);
 	}
 
 	// The engine's own codes carry their message as the first parameter, pointing into static
@@ -638,11 +687,38 @@ static void Append_Exception_Description(EXCEPTION_RECORD const * record)
 			break;
 		}
 
-		Exception_Printf("Nested      : 0x%08X at 0x%08IX\r\n", nested->ExceptionCode, (DWORD_PTR)nested->ExceptionAddress);
+		Exception_Printf("Nested      : 0x%08X at 0x" ADDRESS_FORMAT "\r\n", nested->ExceptionCode, (DWORD_PTR)nested->ExceptionAddress);
 		nested = nested->ExceptionRecord;
 	}
 }
 
+
+#if defined(_M_X64)
+
+/// <summary>
+/// Appends the integer, segment and debug registers.
+/// </summary>
+static void Append_Registers(CONTEXT const * context)
+{
+	Exception_Printf("\r\nRegisters\r\n---------\r\n");
+	Exception_Printf("Rip:%016I64X  Rsp:%016I64X  Rbp:%016I64X\r\n", context->Rip, context->Rsp, context->Rbp);
+	Exception_Printf("Rax:%016I64X  Rbx:%016I64X  Rcx:%016I64X\r\n", context->Rax, context->Rbx, context->Rcx);
+	Exception_Printf("Rdx:%016I64X  Rsi:%016I64X  Rdi:%016I64X\r\n", context->Rdx, context->Rsi, context->Rdi);
+	Exception_Printf("R8 :%016I64X  R9 :%016I64X  R10:%016I64X\r\n", context->R8, context->R9, context->R10);
+	Exception_Printf("R11:%016I64X  R12:%016I64X  R13:%016I64X\r\n", context->R11, context->R12, context->R13);
+	Exception_Printf("R14:%016I64X  R15:%016I64X\r\n", context->R14, context->R15);
+	Exception_Printf("EFlags:%08X\r\n", context->EFlags);
+	Exception_Printf("CS:%04X  SS:%04X  DS:%04X  ES:%04X  FS:%04X  GS:%04X\r\n",
+				context->SegCs, context->SegSs, context->SegDs, context->SegEs, context->SegFs, context->SegGs);
+
+	if ((context->ContextFlags & CONTEXT_DEBUG_REGISTERS) == CONTEXT_DEBUG_REGISTERS) {
+		Exception_Printf("Dr0:%016I64X  Dr1:%016I64X  Dr2:%016I64X  Dr3:%016I64X\r\n",
+					context->Dr0, context->Dr1, context->Dr2, context->Dr3);
+		Exception_Printf("Dr6:%016I64X  Dr7:%016I64X\r\n", context->Dr6, context->Dr7);
+	}
+}
+
+#elif defined(_M_IX86)
 
 /// <summary>
 /// Appends the integer, segment and debug registers.
@@ -664,6 +740,58 @@ static void Append_Registers(CONTEXT const * context)
 	}
 }
 
+#endif
+
+
+static void Append_X87_Register(unsigned index, BYTE const * bytes)
+{
+	Exception_Printf("ST%u : ", index);
+	for (int position = 9; position >= 0; position--) {
+		Exception_Printf("%02X", bytes[position]);
+	}
+	Exception_Printf("   %+.17e\r\n", Read_X87_Register(bytes));
+}
+
+
+static void Append_Xmm_Register(unsigned index, BYTE const * bytes)
+{
+	unsigned word[4];
+	memcpy(word, bytes, sizeof(word));
+	Exception_Printf("XMM%u: %08X %08X %08X %08X\r\n", index, word[3], word[2], word[1], word[0]);
+}
+
+
+#if defined(_M_X64)
+
+/// <summary>
+/// Appends the x87 control state, the eight x87 registers, and the SSE state.
+/// </summary>
+static void Append_Floating_Point(CONTEXT const * context)
+{
+	if ((context->ContextFlags & CONTEXT_FLOATING_POINT) != CONTEXT_FLOATING_POINT) {
+		return;
+	}
+
+	XMM_SAVE_AREA32 const & save = context->FltSave;
+
+	Exception_Printf("\r\nFloating point\r\n--------------\r\n");
+	// The tag is the abridged FXSAVE form, one valid bit per register rather than two.
+	Exception_Printf("Control:%04X  Status:%04X  Tag:%02X\r\n", save.ControlWord, save.StatusWord, save.TagWord);
+	Exception_Printf("ErrorOffset:%08X  ErrorSelector:%04X\r\n", save.ErrorOffset, save.ErrorSelector);
+	Exception_Printf("DataOffset:%08X  DataSelector:%04X\r\n", save.DataOffset, save.DataSelector);
+
+	for (unsigned index = 0; index < 8; index++) {
+		Append_X87_Register(index, (BYTE const *)&save.FloatRegisters[index]);
+	}
+
+	Exception_Printf("MXCSR:%08X\r\n", context->MxCsr);
+
+	for (unsigned index = 0; index < 16; index++) {
+		Append_Xmm_Register(index, (BYTE const *)&save.XmmRegisters[index]);
+	}
+}
+
+#elif defined(_M_IX86)
 
 /// <summary>
 /// Appends the x87 control state, the eight x87 registers, and the SSE state.
@@ -682,13 +810,7 @@ static void Append_Floating_Point(CONTEXT const * context)
 	Exception_Printf("DataOffset:%08X  DataSelector:%08X\r\n", save.DataOffset, save.DataSelector);
 
 	for (unsigned index = 0; index < 8; index++) {
-		BYTE const * const bytes = &save.RegisterArea[index * 10];
-
-		Exception_Printf("ST%u : ", index);
-		for (int position = 9; position >= 0; position--) {
-			Exception_Printf("%02X", bytes[position]);
-		}
-		Exception_Printf("   %+.17e\r\n", Read_X87_Register(bytes));
+		Append_X87_Register(index, &save.RegisterArea[index * 10]);
 	}
 
 	// The engine is built for SSE2, so the XMM registers are as much a part of the machine
@@ -702,12 +824,12 @@ static void Append_Floating_Point(CONTEXT const * context)
 		Exception_Printf("MXCSR:%08X\r\n", mxcsr);
 
 		for (unsigned index = 0; index < 8; index++) {
-			unsigned word[4];
-			memcpy(word, fxsave + 160 + (index * 16), sizeof(word));
-			Exception_Printf("XMM%u: %08X %08X %08X %08X\r\n", index, word[3], word[2], word[1], word[0]);
+			Append_Xmm_Register(index, fxsave + 160 + (index * 16));
 		}
 	}
 }
+
+#endif
 
 
 /// <summary>
@@ -715,7 +837,7 @@ static void Append_Floating_Point(CONTEXT const * context)
 /// </summary>
 static void Append_Code_Bytes(CONTEXT const * context)
 {
-	BYTE const * const code = (BYTE const *)context->Eip;
+	BYTE const * const code = (BYTE const *)Instruction_Pointer(context);
 
 	Exception_Printf("Bytes       : ");
 	for (unsigned index = 0; index < NUM_CODE_BYTES; index++) {
@@ -728,6 +850,58 @@ static void Append_Code_Bytes(CONTEXT const * context)
 	Exception_Printf("\r\n");
 }
 
+
+#if defined(_M_X64)
+
+/// <summary>
+/// Appends the return addresses reachable by unwinding through the loaded images' unwind tables.
+/// </summary>
+/// <remarks>
+/// This needs no symbol handler, so it still produces a usable list of return addresses when
+/// the symbol driven walk below fails outright.
+/// </remarks>
+static void Append_Frame_Chain(CONTEXT const * context)
+{
+	Exception_Printf("\r\nCall stack (unwind tables)\r\n--------------------------\r\n");
+
+	// The walk yields return addresses, so the faulting instruction is not in it and is
+	// listed here for the two walks to start from the same place.
+	Append_Address(Instruction_Pointer(context), "  ");
+
+	CONTEXT working = *context;
+	DWORD64 previous = 0;
+
+	for (unsigned depth = 0; depth < MAX_FRAME_DEPTH; depth++) {
+		DWORD64 image_base = 0;
+		RUNTIME_FUNCTION * const entry = RtlLookupFunctionEntry(working.Rip, &image_base, NULL);
+
+		if (entry == NULL) {
+			// Only the faulting frame can be a leaf with no table entry; every caller reached
+			// by unwinding contains a call, so a miss there ends the stack.
+			if (depth != 0 || IsBadReadPtr((void const *)working.Rsp, sizeof(DWORD64))) {
+				break;
+			}
+			working.Rip = *(DWORD64 const *)working.Rsp;
+			working.Rsp += sizeof(DWORD64);
+		} else {
+			PVOID handler_data = NULL;
+			DWORD64 establisher = 0;
+			RtlVirtualUnwind(UNW_FLAG_NHANDLER, image_base, working.Rip, entry, &working,
+						&handler_data, &establisher, NULL);
+		}
+
+		// The stack grows down, so a frame that does not move to a higher address is a
+		// corrupt or looping chain rather than a caller.
+		if (working.Rip == 0 || working.Rsp <= previous) {
+			break;
+		}
+
+		Append_Address((DWORD_PTR)working.Rip, "  ");
+		previous = working.Rsp;
+	}
+}
+
+#elif defined(_M_IX86)
 
 /// <summary>
 /// Appends the return addresses reachable by following the saved frame pointer chain.
@@ -767,6 +941,8 @@ static void Append_Frame_Chain(CONTEXT const * context)
 	}
 }
 
+#endif
+
 
 /// <summary>
 /// Appends the call stack as reconstructed by the symbol handler.
@@ -786,11 +962,11 @@ static void Append_Call_Stack(CONTEXT const * context)
 
 	STACKFRAME64 frame;
 	memset(&frame, 0, sizeof(frame));
-	frame.AddrPC.Offset = working.Eip;
+	frame.AddrPC.Offset = Instruction_Pointer(&working);
 	frame.AddrPC.Mode = AddrModeFlat;
-	frame.AddrFrame.Offset = working.Ebp;
+	frame.AddrFrame.Offset = Frame_Pointer(&working);
 	frame.AddrFrame.Mode = AddrModeFlat;
-	frame.AddrStack.Offset = working.Esp;
+	frame.AddrStack.Offset = Stack_Pointer(&working);
 	frame.AddrStack.Mode = AddrModeFlat;
 
 	for (unsigned depth = 0; depth < MAX_FRAME_DEPTH; depth++) {
@@ -816,7 +992,7 @@ static void Append_Module_List(void)
 
 	for (unsigned index = 0; index < ModuleCount; index++) {
 		ModuleEntryType const & module = ModuleTable[index];
-		Exception_Printf("0x%08IX - 0x%08IX  %s\r\n", module.Base, module.End, module.Path);
+		Exception_Printf("0x" ADDRESS_FORMAT " - 0x" ADDRESS_FORMAT "  %s\r\n", module.Base, module.End, module.Path);
 	}
 }
 
@@ -853,18 +1029,18 @@ static void Append_Stack_Dump(CONTEXT const * context)
 	Exception_Printf("\r\nStack dump (* marks a possible code address)\r\n");
 	Exception_Printf("-------------------------------------------\r\n");
 
-	DWORD_PTR const * const stack = (DWORD_PTR const *)context->Esp;
+	DWORD_PTR const * const stack = (DWORD_PTR const *)Stack_Pointer(context);
 
 	for (unsigned index = 0; index < MAX_STACK_DUMP; index++) {
 		DWORD_PTR const * const slot = stack + index;
 
 		if (IsBadReadPtr(slot, sizeof(DWORD_PTR))) {
-			Exception_Printf("0x%08IX: ????????\r\n", (DWORD_PTR)slot);
+			Exception_Printf("0x" ADDRESS_FORMAT ": " ADDRESS_UNREADABLE "\r\n", (DWORD_PTR)slot);
 			continue;
 		}
 
 		DWORD_PTR const value = *slot;
-		Exception_Printf("0x%08IX: 0x%08IX", (DWORD_PTR)slot, value);
+		Exception_Printf("0x" ADDRESS_FORMAT ": 0x" ADDRESS_FORMAT, (DWORD_PTR)slot, value);
 
 		if (Module_For_Address(value) != NULL) {
 			Exception_Printf(" *");
@@ -895,7 +1071,7 @@ static void Guarded_Crash_Site(CONTEXT const * context)
 {
 	__try {
 		Exception_Printf("\r\nCrash site\r\n----------\r\n");
-		Append_Address((DWORD_PTR)context->Eip, "Address     : ");
+		Append_Address(Instruction_Pointer(context), "Address     : ");
 		Append_Code_Bytes(context);
 	} __except (EXCEPTION_EXECUTE_HANDLER) {
 		Exception_Printf("  <crash site faulted>\r\n");
@@ -2023,3 +2199,46 @@ void Exception_Wndproc_Test_Fault(void)
 {
 	*(volatile int *)16 = 1;
 }
+
+#else
+
+void Install_Exception_Handler(void)
+{
+}
+
+
+void Exception_Register_Log_File(char const *)
+{
+}
+
+
+bool Describe_Code_Address(void const *, char * buffer, unsigned size)
+{
+	if (buffer != NULL && size != 0) {
+		buffer[0] = '\0';
+	}
+
+	return(false);
+}
+
+
+void Exception_Set_Test_Mode(char const *)
+{
+}
+
+
+void Exception_Run_Immediate_Test(void)
+{
+}
+
+
+void Exception_Run_Post_Window_Test(void)
+{
+}
+
+
+void Exception_Wndproc_Test_Fault(void)
+{
+}
+
+#endif

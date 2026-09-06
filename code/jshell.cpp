@@ -48,9 +48,10 @@
 /// <param name="message">A printf style description of what went wrong.</param>
 /// <remarks>
 /// The message is raised as an exception rather than printed, so that the crash handler
-/// reports it with the machine state that produced it. This never returns.
+/// reports it with the machine state that produced it. A platform without the handler prints
+/// it instead. This never returns.
 /// </remarks>
-void __cdecl Fatal(char const * message, ...)
+void Fatal(char const * message, ...)
 {
 	// Static because the report reads it from the raised exception, after this frame is gone.
 	static char _text[1024];
@@ -60,8 +61,14 @@ void __cdecl Fatal(char const * message, ...)
 	vsnprintf(_text, sizeof(_text), message, va);
 	va_end(va);
 
+#if defined(_WIN32)
 	ULONG_PTR const argument = (ULONG_PTR)_text;
 	RaiseException(EXCEPTION_OPENTS_FATAL, EXCEPTION_NONCONTINUABLE, 1, &argument);
 
 	TerminateProcess(GetCurrentProcess(), EXIT_FAILURE);
+#else
+	fputs(_text, stderr);
+	fputc('\n', stderr);
+	abort();
+#endif
 }
