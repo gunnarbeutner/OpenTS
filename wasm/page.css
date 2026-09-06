@@ -1,0 +1,411 @@
+
+	:root { color-scheme: dark; }
+	html, body { height: 100%; }
+	body {
+		margin: 0;
+		overflow: hidden;
+		background: #101216;
+		color: #d8dbe0;
+		font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	}
+	/* The game fills the window. The module measures this box and asks the renderer for a
+	   drawing buffer of the same size in device pixels, so nothing may pad or border it. */
+	#canvas {
+		position: fixed;
+		inset: 0;
+		display: block;
+		width: 100%;
+		height: 100%;
+		background: #000;
+
+		/* A touch on the canvas belongs to the game. Without these the browser claims the
+		   gesture first: touch-action keeps it from becoming a pan or a pinch zoom, and
+		   user-select keeps a band-select drag from becoming a text selection, which is
+		   what inverts the canvas under the finger on iOS. The callout is the menu a long
+		   press raises, and the tap highlight is the grey flash iOS paints over what was
+		   touched. They are on the canvas alone: the diagnostic panel hands selection
+		   back on purpose so its log can be copied. */
+		touch-action: none;
+		-webkit-user-select: none;
+		user-select: none;
+		-webkit-touch-callout: none;
+		-webkit-tap-highlight-color: transparent;
+	}
+	/* The canvas takes the tab index so that it can be given the keyboard at all, which
+	   also makes focusing it draw the browser's ring around the whole game. Chrome counts
+	   a click on it as focus-visible, so :focus-visible does not tell the two apart here
+	   and the ring is dropped outright: the canvas is the only thing on the page that
+	   takes focus, and the game draws its own cursor and its own interface, so a ring
+	   around all of it says nothing a player can act on. */
+	#canvas:focus { outline: none; }
+	/* Floated over the canvas and transparent to the mouse: the game gets every click, and
+	   the panel growing never changes the size of the game. Being unhittable also makes the
+	   text unselectable, so #grab turns hit testing back on when the log is worth reading. */
+	#panel {
+		position: fixed;
+		left: 0;
+		bottom: 0;
+		max-width: min(680px, 100%);
+		padding: 6px 10px 8px;
+		pointer-events: none;
+		background: rgba(16, 18, 22, .72);
+		border-top: 1px solid rgba(120, 132, 148, .25);
+		border-right: 1px solid rgba(120, 132, 148, .25);
+		font-size: 11px;
+	}
+	#panel.off { display: none; }
+
+	/* Sits where the panel would be, and only while the panel is not there. Reading how
+	   fast the discs are coming down is the one diagnostic worth having without asking
+	   for the rest, because a first visit spends its opening seconds fetching. */
+	#speed {
+		position: fixed;
+		left: 8px;
+		bottom: 6px;
+		padding: 1px 6px;
+		pointer-events: none;
+		background: rgba(16, 18, 22, .72);
+		border: 1px solid rgba(120, 132, 148, .25);
+		border-radius: 3px;
+		color: #8f98a3;
+		font-size: 11px;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		opacity: 0;
+		transition: opacity .4s;
+	}
+	#speed.on { opacity: 1; }
+
+	/* Centred over the canvas while the profile's own fetch runs, which is before the
+	   engine has drawn anything and while the window is otherwise black. It goes as soon
+	   as the fetch is done, so the engine is never drawing underneath it. */
+	#loading {
+		position: fixed;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		pointer-events: none;
+	}
+	#loading[hidden] { display: none; }
+	#loading > div { width: min(340px, 62vw); }
+	#loading .label {
+		margin: 0 0 6px;
+		color: #8f98a3;
+		font-size: 11px;
+		letter-spacing: .04em;
+	}
+	#loading .note {
+		margin: 6px 0 0;
+		color: #6f7883;
+		font-size: 11px;
+		font-variant-numeric: tabular-nums;
+	}
+	#loading .track {
+		height: 4px;
+		background: rgba(120, 132, 148, .2);
+		border-radius: 2px;
+		overflow: hidden;
+	}
+	#loading .fill {
+		height: 100%;
+		width: 0%;
+		background: #6fae4a;
+		transition: width .25s linear;
+	}
+
+	/* A browser makes no sound until the page has been interacted with, and nothing on
+	   screen says so: the opening films play silently and the reader is left to guess. This
+	   asks for that one gesture and takes it itself rather than letting it through to the
+	   game. A touch that reaches the canvas while a film is playing is the engine's own
+	   request to stop it, so unlocking the sound there would skip the film in the same
+	   stroke. It sits at the top because the bottom of a film is where its captions are. */
+	#sound {
+		position: fixed;
+		inset: 0;
+		display: flex;
+		align-items: flex-start;
+		justify-content: center;
+		padding: 4vh 0 0;
+		margin: 0;
+		border: 0;
+		background: transparent;
+		font: inherit;
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
+	}
+	#sound[hidden] { display: none; }
+	#sound span {
+		padding: 9px 16px;
+		border: 1px solid rgba(120, 132, 148, .35);
+		border-radius: 999px;
+		background: rgba(16, 18, 22, .88);
+		color: #d8dbe0;
+		font-size: 12px;
+		letter-spacing: .04em;
+	}
+
+
+	/* Collapsed is the default: the log is a diagnostic, not part of the game, so it stays
+	   out of the way until it is asked for. */
+	#panel.collapsed { background: none; border: 0; padding: 4px 6px; }
+	#panel.collapsed h1,
+	#panel.collapsed #status,
+	#panel.collapsed #log,
+	#panel.collapsed #grab { display: none; }
+
+	#toggle {
+		pointer-events: auto;
+		cursor: pointer;
+		user-select: none;
+		display: inline-block;
+		padding: 1px 6px;
+		border: 1px solid rgba(120, 132, 148, .35);
+		border-radius: 3px;
+		background: rgba(16, 18, 22, .72);
+		color: #7d8794;
+		font-size: 10px;
+	}
+	#toggle:hover { color: #cfd6df; border-color: rgba(180, 195, 215, .6); }
+	#panel:not(.collapsed) #toggle { position: absolute; top: 4px; right: 52px; }
+	#panel.grabbed { pointer-events: auto; user-select: text; }
+	#panel.grabbed #log { max-height: 40vh; overflow: auto; }
+
+	/* The one part of the panel that always takes a click, so the mode can be left again. */
+	#grab {
+		position: absolute;
+		top: 4px;
+		right: 6px;
+		pointer-events: auto;
+		cursor: pointer;
+		user-select: none;
+		padding: 0 5px;
+		border: 1px solid rgba(120, 132, 148, .35);
+		border-radius: 3px;
+		color: #7d8794;
+		font-size: 10px;
+	}
+	#panel.grabbed #grab { color: #cfd6df; border-color: rgba(180, 195, 215, .6); }
+	h1 { margin: 0 0 2px; font-size: 11px; font-weight: 600; letter-spacing: .05em; color: #7d8794; }
+	#status { color: #8f98a3; white-space: pre-wrap; }
+	#log {
+		margin: 4px 0 0;
+		max-height: 9em;
+		overflow: hidden;
+		color: #6f7883;
+		white-space: pre-wrap;
+	}
+
+	/* Stands in for the game rather than floating over it: when this is shown there is no
+	   canvas behind it to see, because no module was loaded. */
+	#unsupported {
+		position: fixed;
+		inset: 0;
+		box-sizing: border-box;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 24px;
+		background: #101216;
+	}
+	/* The attribute's own rule is display:none, which the flex above would otherwise beat. */
+	#unsupported[hidden] { display: none; }
+	#unsupported > div {
+		max-width: 34em;
+		padding: 18px 22px;
+		border: 1px solid rgba(120, 132, 148, .25);
+		background: rgba(22, 25, 30, .9);
+		color: #8f98a3;
+	}
+	#unsupported h1 {
+		margin: 0 0 10px;
+		font-size: 15px;
+		font-weight: 600;
+		letter-spacing: 0;
+		color: #d8dbe0;
+	}
+	#unsupported p { margin: 0; }
+	#unsupported .eyebrow { margin: 0 0 8px; font-size: 11px; letter-spacing: .05em; color: #7d8794; }
+	#unsupported .quiet { margin: 16px 0 0; font-size: 11px; color: #6f7883; }
+
+	/* Bottom left: the game draws its copyright notice in the opposite corner. */
+	#downloads {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		position: fixed;
+		left: max(12px, env(safe-area-inset-left));
+		bottom: max(12px, env(safe-area-inset-bottom));
+		z-index: 4;
+		font-size: 12px;
+		color: #d8dbe0;
+	}
+	#downloads[hidden] { display: none; }
+	#downloads button {
+		font: inherit;
+		color: inherit;
+		cursor: pointer;
+		border: 1px solid rgba(120, 132, 148, .35);
+		border-radius: 999px;
+		background: rgba(16, 18, 22, .88);
+		padding: 8px 14px;
+		letter-spacing: .04em;
+	}
+	#downloads button:hover { border-color: rgba(120, 132, 148, .6); }
+	#downloads-open {
+		display: flex;
+		align-items: center;
+		gap: 7px;
+	}
+	#downloads-open.small { padding: 7px 9px; }
+	#downloads-open svg { display: block; }
+	#downloads-list {
+		width: min(320px, 78vw);
+		margin: 0 0 8px;
+		padding: 12px;
+		border: 1px solid rgba(120, 132, 148, .35);
+		border-radius: 10px;
+		background: rgba(16, 18, 22, .94);
+	}
+	#downloads-list[hidden] { display: none; }
+	#downloads-list h2 {
+		margin: 0 0 10px;
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: .05em;
+		color: #7d8794;
+		text-transform: uppercase;
+	}
+	#downloads-list a {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin: 0 0 6px;
+		padding: 8px 10px;
+		border: 1px solid rgba(120, 132, 148, .25);
+		border-radius: 8px;
+		color: #d8dbe0;
+		text-decoration: none;
+	}
+	#downloads-list a:hover { border-color: rgba(120, 132, 148, .55); }
+	#downloads-list a .arrow { flex: none; color: #7d8794; }
+	#downloads-list a:hover .arrow { color: #d8dbe0; }
+	#downloads-list a .meta { display: block; margin-top: 3px; font-size: 11px; color: #7d8794; }
+	#downloads-list a.mine { border-color: rgba(126, 176, 126, .5); }
+	#downloads-more {
+		width: 100%;
+		margin: 2px 0 0;
+		padding: 6px 0;
+		border: 0;
+		border-radius: 0;
+		background: transparent;
+		color: #7d8794;
+		font-size: 11px;
+		text-align: left;
+	}
+	#downloads-more:hover { color: #d8dbe0; border-color: transparent; }
+	#downloads-more[hidden] { display: none; }
+	#downloads-others { margin-top: 6px; }
+	#downloads-others[hidden] { display: none; }
+	#downloads-list .notice { margin: 10px 0 0; font-size: 10px; line-height: 1.5; color: #6f7883; }
+	#offline {
+		margin: 12px 0 0;
+		padding: 10px 0 0;
+		border-top: 1px solid rgba(120, 132, 148, .25);
+	}
+	/* A prototype: a strip of the player's control groups, absent until one exists. */
+	/* Left aligned so a chip appearing at the end does not move the ones already there. */
+	#groups {
+		position: fixed;
+		left: max(10px, env(safe-area-inset-left));
+		bottom: max(10px, env(safe-area-inset-bottom));
+		z-index: 3;
+		display: flex;
+		align-items: flex-end;
+		gap: 6px;
+		font-size: 11px;
+		color: #d8dbe0;
+	}
+	#groups[hidden] { display: none; }
+	#groups button {
+		box-sizing: border-box;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 1px;
+		width: 46px;
+		height: 46px;
+		padding: 4px 2px;
+		border: 1px solid rgba(120, 132, 148, .4);
+		border-radius: 7px;
+		background: rgba(16, 18, 22, .88);
+		color: inherit;
+		font: inherit;
+		line-height: 1.2;
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
+		touch-action: manipulation;
+	}
+	#groups button:hover { border-color: rgba(120, 132, 148, .7); }
+	@keyframes opents-group-alarm {
+		50% { border-color: rgba(226, 92, 82, .95); color: #ffb4ad; }
+	}
+	#groups button.alarm { animation: opents-group-alarm .6s ease-in-out infinite; }
+
+	/* A steady mark rather than none, for a reader who has asked motion to stop. */
+	@media (prefers-reduced-motion: reduce) {
+		#groups button.alarm {
+			animation: none;
+			border-color: rgba(226, 92, 82, .95);
+			color: #ffb4ad;
+		}
+	}
+	#groups button .slot { font-weight: 600; letter-spacing: .04em; }
+	#groups button .slot { font-size: 13px; }
+	#groups button .what { font-size: 9px; color: #7d8794; max-width: 100%;
+		overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	#groups .chip { display: flex; flex-direction: column; align-items: stretch; }
+	#groups .chip button:last-child:not(:only-child) {
+		border-top-left-radius: 0;
+		border-top-right-radius: 0;
+	}
+	/* Sits above its chip rather than beside it, so offering it widens nothing and the
+	   chips keep their places. */
+	#groups button.merge {
+		flex-direction: row;
+		gap: 4px;
+		height: 26px;
+		border-bottom-left-radius: 0;
+		border-bottom-right-radius: 0;
+		border-bottom-width: 0;
+		font-weight: 600;
+		color: #7d8794;
+	}
+	#groups button.merge:hover { color: #d8dbe0; }
+	#groups button.store { border-style: dashed; color: #7d8794; }
+	#groups button.clear { color: #7d8794; }
+	/* Neither acts on a group, so neither sits flush against the ones that do. */
+	#groups button.home { margin-right: 6px; }
+	#groups button.drop { margin-left: 6px; }
+	#groups button.clear:hover { color: #d8dbe0; }
+	/* The group the selection already is, so storing it again would change nothing. */
+	#groups button.current {
+		border-color: rgba(126, 176, 126, .85);
+		background: rgba(30, 46, 30, .92);
+		color: #d8e6d8;
+	}
+	#downloads-heading[hidden] { display: none; }
+	#downloads-heading[hidden] ~ #offline { margin-top: 0; padding-top: 0; border-top: 0; }
+	#offline[hidden] { display: none; }
+	#offline-start { width: 100%; text-align: center; }
+	#offline-start[disabled] { opacity: .6; cursor: default; }
+	#offline-start[hidden] { display: none; }
+	.offline-note { margin: 8px 0 0; font-size: 11px; line-height: 1.5; color: #7d8794; }
+	#downloads-list .close {
+		float: right;
+		margin: -4px -4px 0 0;
+		padding: 0 6px;
+		border: 0;
+		background: transparent;
+		color: #7d8794;
+	}

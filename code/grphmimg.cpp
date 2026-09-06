@@ -118,6 +118,20 @@ GraphicMenuImageItem::GraphicMenuImageItem(int id, MSEngine & engine, Point2D co
 		}
 	}
 
+#if defined(__EMSCRIPTEN__)
+	// Few choices ship disabled artwork, so a dimmed copy of the ordinary face
+	// stands in where the highlight shows which pixels are lettering.
+	if (highlight != NULL && strlen(image)) {
+		MSPCXAnim * dimmed = new MSPCXAnim(image, engine.Get_Anims(), origin, true);
+		if (dimmed->Dim_Lettering(*highlight)) {
+			DisabledImage = dimmed;
+			dimmed->Set_Active(false);
+			engine.Add_Animation(dimmed);
+		} else {
+			delete dimmed;
+		}
+	}
+#endif
 
 	if (DisabledImage == NULL && strlen(disabled_image)) {
 		DisabledImage = new MSPCXAnim(disabled_image, engine.Get_Anims(), origin, true);

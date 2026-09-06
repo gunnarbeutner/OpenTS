@@ -171,7 +171,12 @@ bool Is_Suspended(void)
 /// </summary>
 void Service_Suspension(void)
 {
+#if defined(__EMSCRIPTEN__)
+	// The yield is the wait; the page's visibility drives GameInFocus.
+	Browser_Yield();
+#else
 	Sleep(500);
+#endif
 	Windows_Message_Handler();
 }
 
@@ -207,7 +212,11 @@ bool Main_Loop(void)
 	// A game with peers cannot park, so it pumps the queue once and plays on.
 	// Game_Frame parks every other session type before it reaches here.
 	if (!GameInFocus && Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
+#if defined(__EMSCRIPTEN__)
+		Browser_Yield();
+#else
 		Sleep(10);
+#endif
 		Windows_Message_Handler();
 	}
 
@@ -612,11 +621,17 @@ void Service_Frame(void)
 				return;
 			}
 		}
+#if defined(__EMSCRIPTEN__)
+		// This is the engine's hottest wait, and the yield here is what keeps
+		// the tab answering.
+		Browser_Yield();
+#else
 		if (GameInFocus || (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH)) {
 			Sleep(0);
 		} else {
 			Sleep(16 * FrameTimer);
 		}
+#endif
 	}
 }
 

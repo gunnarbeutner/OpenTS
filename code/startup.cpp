@@ -33,6 +33,15 @@
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include "always.h"
+#if defined(__EMSCRIPTEN__)
+#include <emscripten/emscripten.h>
+
+// Terminate the native client; a browser page defines no OpenTS_Quit and stays put.
+static void OpenTS_Host_Quit(void)
+{
+	EM_ASM({ if (typeof window !== "undefined" && window.OpenTS_Quit) { window.OpenTS_Quit(); } });
+}
+#endif
 
 #include "_alpha.h"
 #include "_command.h"
@@ -377,6 +386,7 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 
 	// A module is the whole process, and the AutoPlay wait below never ends
 	// without a mutex, so both mutexes are skipped.
+#if !defined(__EMSCRIPTEN__)
 
 	/*
 	 * Create a mutex with a unique name to TibSun in order to determine if
@@ -448,6 +458,7 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 		DebugString ("Got AutoPlayMutex okay.\n");
 	}
 
+#endif
 
 	atexit(Prog_End);
 
@@ -561,12 +572,18 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 		if (!Win_Window_Drawable_Size(MainWindow, drawablewidth, drawableheight)
 			|| !Video_Init(nativewindow, drawablewidth, drawableheight, refreshrate)) {
 			MessageBox(MainWindow, Fetch_String(TXT_VIDEO_ERROR), Fetch_String(TXT_SHORT_TITLE), MB_ICONWARNING);
+#if defined(__EMSCRIPTEN__)
+			OpenTS_Host_Quit();
+#endif
 			exit(EXIT_FAILURE);
 		}
 
 		VisibleSurface = DSurface::Create_Primary();
 		if (VisibleSurface == NULL) {
 			MessageBox(MainWindow, Fetch_String(TXT_VIDEO_ERROR), Fetch_String(TXT_SHORT_TITLE), MB_ICONWARNING);
+#if defined(__EMSCRIPTEN__)
+			OpenTS_Host_Quit();
+#endif
 			exit(EXIT_FAILURE);
 		}
 
@@ -606,7 +623,11 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 		if (!Special.IsFromInstall && !Spawner_Is_Requested()) {
 			// A page installs nothing, so the install sequence plays only when
 			// asked for by name.
+#if defined(__EMSCRIPTEN__)
+			bool const wanted = false;
+#else
 			bool const wanted = true;
+#endif
 			Special.IsFromInstall = ConfigINI.Get_Bool("Intro", "PlayIntro", wanted);
 		}
 
@@ -672,6 +693,9 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 		Debug_Console_Hold();
 	}
 
+#if defined(__EMSCRIPTEN__)
+	OpenTS_Host_Quit();
+#endif
 
 	return(error_code);
 }
@@ -731,6 +755,9 @@ void __cdecl Prog_End(void)
 
 	GameActive = false;
 
+#if defined(__EMSCRIPTEN__)
+	OpenTS_Host_Quit();
+#endif
 
 	Session.Free_Scenario_Descriptions();
 

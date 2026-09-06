@@ -23,7 +23,9 @@
 
 #if defined(OPENTS_WIN32_SUBSTITUTE)
 
-#if   defined(__APPLE__)
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#elif defined(__APPLE__)
 #include <crt_externs.h>
 #endif
 
@@ -131,6 +133,28 @@ DWORD GetModuleFileNameA(HMODULE module, LPSTR filename, DWORD size)
 // own; main reassembles them, so this says exactly what startup.cpp was given.
 // The internal name is read first so that a host supplying arguments another
 // way is still answered.
+#if defined(__EMSCRIPTEN__)
+EM_JS(int, Process_Argument_Count, (void), {
+	var args = (typeof programArgs !== "undefined" && programArgs) ||
+		(typeof Module !== "undefined" && Module["arguments"]) || [];
+	return args.length;
+});
+
+EM_JS(int, Process_Argument, (int index, char * buffer, int size), {
+	var args = (typeof programArgs !== "undefined" && programArgs) ||
+		(typeof Module !== "undefined" && Module["arguments"]) || [];
+	var text = (index >= 0 && index < args.length) ? "" + args[index] : "";
+
+	var count = 0;
+	while (count < text.length && count + 1 < size) {
+		var code = text.charCodeAt(count);
+		HEAPU8[buffer + count] = (code > 127) ? 63 : code;
+		count++;
+	}
+	HEAPU8[buffer + count] = 0;
+	return count;
+});
+#else
 static int Process_Argument_Count(void)
 {
 #if defined(__APPLE__)
@@ -156,6 +180,7 @@ static int Process_Argument(int index, char * buffer, int size)
 	buffer[count] = '\0';
 	return(count);
 }
+#endif
 
 
 // Quoted the way CommandLineToArgvW expects: the backslashes before a quote, or

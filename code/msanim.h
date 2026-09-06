@@ -452,6 +452,7 @@ class MSPCXAnim : public MSAnim
 		virtual bool Has_Finished(void) const override;
 		virtual void Restore(Rect const & rect) override;
 
+		bool Dim_Lettering(MSPCXAnim const & alternate);
 
 	public:
 		/*

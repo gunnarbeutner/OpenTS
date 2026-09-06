@@ -428,6 +428,34 @@ static void Flush_Persistent_Storage(void)
 	if (!PersistentDirty) return;
 	PersistentDirty = false;
 
+#if defined(__EMSCRIPTEN__)
+	MAIN_THREAD_EM_ASM({
+		if (typeof FS === "undefined") return;
+
+		var again = function () {
+			FS.syncfs(false, function (error) {
+				if (error) {
+					console.error("OpenTS: writing persistent storage failed: " + error);
+				}
+				Module.OpenTS_Syncs = (Module.OpenTS_Syncs || 0) + 1;
+
+				if (Module.OpenTS_SyncAgain) {
+					Module.OpenTS_SyncAgain = false;
+					again();
+				} else {
+					Module.OpenTS_SyncRunning = false;
+				}
+			});
+		};
+
+		if (Module.OpenTS_SyncRunning) {
+			Module.OpenTS_SyncAgain = true;
+		} else {
+			Module.OpenTS_SyncRunning = true;
+			again();
+		}
+	});
+#endif
 }
 
 
@@ -2420,6 +2448,20 @@ int GetTimeFormatA(LCID, DWORD flags, SYSTEMTIME const * time, LPCSTR format, LP
 	bool const seconds = (flags & (TIME_NOSECONDS | TIME_NOMINUTESORSECONDS)) == 0;
 	bool const minutes = (flags & TIME_NOMINUTESORSECONDS) == 0;
 
+#if defined(__EMSCRIPTEN__)
+	return(EM_ASM_INT({
+		var options = {hour: "numeric"};
+		if ($4) options.minute = "2-digit";
+		if ($3) options.second = "2-digit";
+
+		var text = new Date(2000, 0, 1, $0, $1, $2).toLocaleTimeString(undefined, options);
+		var size = lengthBytesUTF8(text) + 1;
+
+		if (size > $6) return 0;
+		stringToUTF8(text, $5, $6);
+		return size;
+	}, time->wHour, time->wMinute, time->wSecond, seconds, minutes, text, count));
+#else
 	// The C locale stands in for the user locale off the page.
 	struct tm parts = {};
 	parts.tm_hour = time->wHour;
@@ -2429,6 +2471,7 @@ int GetTimeFormatA(LCID, DWORD flags, SYSTEMTIME const * time, LPCSTR format, LP
 	parts.tm_mday = 1;
 	size_t const length = strftime(text, (size_t)count, seconds ? "%H:%M:%S" : (minutes ? "%H:%M" : "%H"), &parts);
 	return(length > 0 ? (int)length + 1 : 0);
+#endif
 }
 
 
@@ -2440,12 +2483,23 @@ int GetDateFormatA(LCID, DWORD, SYSTEMTIME const * date, LPCSTR format, LPSTR te
 		return(WIN32_UNSUPPORTED("GetDateFormatA: a picture string of its own", 0));
 	}
 
+#if defined(__EMSCRIPTEN__)
+	return(EM_ASM_INT({
+		var text = new Date($0, $1 - 1, $2).toLocaleDateString();
+		var size = lengthBytesUTF8(text) + 1;
+
+		if (size > $4) return 0;
+		stringToUTF8(text, $3, $4);
+		return size;
+	}, date->wYear, date->wMonth, date->wDay, text, count));
+#else
 	struct tm parts = {};
 	parts.tm_year = date->wYear - 1900;
 	parts.tm_mon = date->wMonth - 1;
 	parts.tm_mday = date->wDay;
 	size_t const length = strftime(text, (size_t)count, "%x", &parts);
 	return(length > 0 ? (int)length + 1 : 0);
+#endif
 }
 
 

@@ -1136,7 +1136,7 @@ void MSPrintAnim::Redraw(Surface * surface, Rect const * rect)
 		int y = YPos;
 
 		unsigned printed = Get_Printed_Char_Count();
-		size_t end = std::min<size_t>(printed, strlen(String));
+		unsigned end = std::min<unsigned>(printed, (unsigned)strlen(String));
 
 		for (unsigned char_index = LineStart; char_index < end; ) {
 			char const * cursor = String + char_index;
@@ -1666,4 +1666,100 @@ Rect MSPCXAnim::Get_Rect(void) const
 bool MSPCXAnim::Has_Finished(void) const
 {
 	return(Drawn);
+}
+
+
+// Nine sixteenths matches the brightness the shipped disabled artwork holds its
+// lettering at.
+enum {
+	DIM_LEVEL = 9,
+	DIM_WHOLE = 16
+};
+
+// The color BlitTrans treats as a hole; dimming must neither disturb nor
+// produce it.
+enum {
+	TRANSPARENT_PIXEL = 0
+};
+
+
+/// <summary>
+/// Dims the lettering of this picture and leaves the backdrop baked into it
+/// alone, using another face of the same subject over the identical backdrop to
+/// tell the two apart.
+/// </summary>
+/// <returns>bool; Was the lettering dimmed?</returns>
+bool MSPCXAnim::Dim_Lettering(MSPCXAnim const & alternate)
+{
+	Surface * face = Image;
+	Surface const * other = alternate.Image;
+
+	if (face == NULL || other == NULL) {
+		return(false);
+	}
+
+	// A paletted picture holds color indices, which cannot be darkened.
+	if (face->Bytes_Per_Pixel() != (int)sizeof(unsigned short) || other->Bytes_Per_Pixel() != (int)sizeof(unsigned short)) {
+		return(false);
+	}
+	if (face->Get_Width() != other->Get_Width() || face->Get_Height() != other->Get_Height()) {
+		return(false);
+	}
+
+	unsigned short * dest = (unsigned short *)face->Lock();
+	unsigned short const * source = (unsigned short const *)other->Lock();
+	int peak = 0;
+
+	if (dest != NULL && source != NULL) {
+		int width = face->Get_Width();
+		int height = face->Get_Height();
+		int dest_pitch = face->Stride() / (int)sizeof(unsigned short);
+		int source_pitch = other->Stride() / (int)sizeof(unsigned short);
+
+		// The widest disagreement between the faces is a full strength stroke,
+		// the scale everything else is weighed against.
+		for (int y = 0; y < height; y++) {
+			unsigned short const * dest_row = dest + y * dest_pitch;
+			unsigned short const * source_row = source + y * source_pitch;
+			for (int x = 0; x < width; x++) {
+				if (dest_row[x] != TRANSPARENT_PIXEL) {
+					int difference = DSurface::Deconstruct_Hicolor_Pixel(dest_row[x]).Difference(DSurface::Deconstruct_Hicolor_Pixel(source_row[x]));
+					if (difference > peak) {
+						peak = difference;
+					}
+				}
+			}
+		}
+
+		if (peak > 0) {
+			for (int y = 0; y < height; y++) {
+				unsigned short * dest_row = dest + y * dest_pitch;
+				unsigned short const * source_row = source + y * source_pitch;
+				for (int x = 0; x < width; x++) {
+					if (dest_row[x] == TRANSPARENT_PIXEL) {
+						continue;
+					}
+
+					RGBClass rgb = DSurface::Deconstruct_Hicolor_Pixel(dest_row[x]);
+					int difference = rgb.Difference(DSurface::Deconstruct_Hicolor_Pixel(source_row[x]));
+					int level = DIM_WHOLE * peak - (DIM_WHOLE - DIM_LEVEL) * difference;
+					unsigned short pixel = (unsigned short)DSurface::Build_Hicolor_Pixel(
+						rgb.Get_Red() * level / (DIM_WHOLE * peak),
+						rgb.Get_Green() * level / (DIM_WHOLE * peak),
+						rgb.Get_Blue() * level / (DIM_WHOLE * peak));
+
+					// A pixel that would dim onto the transparent color would
+					// become a hole, so it keeps its color.
+					if (pixel != TRANSPARENT_PIXEL) {
+						dest_row[x] = pixel;
+					}
+				}
+			}
+		}
+	}
+
+	face->Unlock();
+	other->Unlock();
+
+	return(peak > 0);
 }

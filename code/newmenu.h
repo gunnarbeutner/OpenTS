@@ -75,4 +75,7 @@ class NewMenuClass
 NewMenuClass * Get_New_Menu(void);
 void Draw_Menu_Background(void);
 
+// The enumerator's name for a menu item identifier, or null for one it does not name.
+char const * New_Menu_Item_Name(int id);
+
 extern DynamicVectorClass<int> NewMenuOptions;

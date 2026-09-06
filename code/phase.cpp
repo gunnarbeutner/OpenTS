@@ -12,6 +12,9 @@
 #include <string>
 #include <vector>
 
+#if defined(__EMSCRIPTEN__)
+#include <emscripten/emscripten.h>
+#endif
 
 
 namespace {
@@ -119,6 +122,14 @@ unsigned int Phase_Serial(void)
 
 void Phase_Event(char const * name, char const * detail)
 {
+#if defined(__EMSCRIPTEN__)
+	EM_ASM({
+		if (typeof window !== "undefined" && typeof window.OpenTS_Event === "function") {
+			window.OpenTS_Event(UTF8ToString($0), UTF8ToString($1));
+		}
+	}, name, detail != nullptr ? detail : "");
+#else
 	(void)name;
 	(void)detail;
+#endif
 }

@@ -74,6 +74,9 @@
 #include "stats.h"
 #include "xstraw.h"
 
+#if defined(__EMSCRIPTEN__)
+#include <emscripten/emscripten.h>
+#endif
 
 #include <algorithm>
 #include <ctime> // for station ID computation
@@ -988,10 +991,28 @@ int SessionClass::Color_Index_To_Scheme(int id)
  * HISTORY:                                                                *
  *   12/07/1995 BRR : Created.                                             *
  *=========================================================================*/
+#if defined(__EMSCRIPTEN__)
+// The inputs the Win32 identity hashes are constants on this target, so two
+// tabs would share one identity and drop each other's lobby announcements.
+EM_JS(unsigned int, Browser_Unique_ID, (void), {
+	try {
+		var words = new Uint32Array(1);
+		crypto.getRandomValues(words);
+		return words[0];
+	} catch (error) {
+		// crypto is withheld outside a secure context, which plain http to
+		// anything but localhost is.
+		return (Math.random() * 4294967296) >>> 0;
+	}
+});
+#endif
 
 
 unsigned int SessionClass::Compute_Unique_ID(void)
 {
+#if defined(__EMSCRIPTEN__)
+	return(Browser_Unique_ID());
+#else
 //	time_t tm;
 	unsigned int id;
 //	struct diskfree_t dtable;
@@ -1022,6 +1043,7 @@ unsigned int SessionClass::Compute_Unique_ID(void)
 	}
 
 	return(id);
+#endif
 }	// end of Compute_Unique_ID
 
 

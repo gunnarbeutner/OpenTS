@@ -299,6 +299,12 @@ static void Write_Text_Locked(char const * text, size_t length)
 {
 	DWORD actual;
 
+#if defined(__EMSCRIPTEN__)
+	// A browser build is diagnosed from its console; no readable log file,
+	// debugger, or Windows console exists here.
+	fwrite(text, 1, length, stderr);
+	return;
+#endif
 
 	if (DebugFile != INVALID_HANDLE_VALUE) {
 

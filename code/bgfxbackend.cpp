@@ -12,8 +12,12 @@
 
 #include "bgfxbackend.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten/console.h>
+#else
 #include "except.h"
 #include "win.h"
+#endif
 
 #include <bx/allocator.h>
 #include <bgfx/bgfx.h>
@@ -95,13 +99,22 @@ struct BackendVertex
 
 static void Report_Fatal(char const * text)
 {
+#ifdef __EMSCRIPTEN__
+	emscripten_console_error(text);
+	abort();
+#else
 	Fatal("%s", text);
+#endif
 }
 
 
 static void Report_Trace(char const * text)
 {
+#ifdef __EMSCRIPTEN__
+	emscripten_console_log(text);
+#else
 	OutputDebugString(text);
+#endif
 }
 
 
@@ -327,7 +340,9 @@ bool Backend_Init(NativeWindow const & window, int drawablewidth, int drawablehe
 	//
 	// bgfx is built without a render thread for Emscripten, and renderFrame
 	// asserts there.
+#if !defined(__EMSCRIPTEN__)
 	bgfx::renderFrame();
+#endif
 
 	_DrawableWidth = drawablewidth;
 	_DrawableHeight = drawableheight;

@@ -1161,7 +1161,8 @@ restart:
 			}
 
 			if ((selection == SEL_NONE) && !Debug_ForceScenario) {
-				// Brackets the menu alone, not the intro or the screens it leads to.
+				// The browser page offers its native build only while this is set, so it
+				// brackets the menu alone and not the intro or the screens it leads to.
 				Main_Menu_Is_Up = true;
 
 				if (Get_New_Menu()->MixFile) {

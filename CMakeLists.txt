@@ -100,8 +100,15 @@ if(EMSCRIPTEN OR OPENTS_MACOS)
     add_compile_definitions(OPENTS_WIN32_SUBSTITUTE)
 endif()
 
+# The page host in code/browser.cpp answers code/browser.h under Emscripten, which puts
+# the executable back into the default build.
+if(EMSCRIPTEN)
+    set(OPENTS_HOST page)
+endif()
+
 add_subdirectory(thirdparty)
 add_subdirectory(code)
+add_subdirectory(wasm)
 
 enable_testing()
 

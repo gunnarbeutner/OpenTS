@@ -1,0 +1,4 @@
+# There is nothing here to index. The site is one page that downloads a game and runs it,
+# and everything beside it is the archives and films that page reads.
+User-agent: *
+Disallow: /
