@@ -115,6 +115,14 @@ class LoadOptionsClass
 		void Clear_List (void);                                     // clears the list & game # array
 		void Fill_List (HWND window);                               // fills the list & game # array
 
+#if defined(__EMSCRIPTEN__)
+		// The browser build adds two controls to the load and save dialogs, for handing a
+		// save to the page as a download and for taking one back. Members because refilling
+		// the list after an import reaches Fill_List.
+		static void Add_Transfer_Buttons(HWND dialog, int list_id);
+		static bool Transfer_Command(HWND dialog, int id, int list_id);
+		static void Update_Transfer_Buttons(HWND dialog, int list_id);
+#endif
 		int Num_From_Ext (char *fname);                             // translates filename to file #
 		static int __cdecl Compare(const void *p1, const void *p2); // for qsort()
 

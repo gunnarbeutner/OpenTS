@@ -163,6 +163,264 @@ bool LoadOptionsClass::Delete(void)
 }
 
 
+#if defined(__EMSCRIPTEN__)
+
+#include <emscripten/emscripten.h>
+
+#include "dbgprint.h"
+#include "gamedirs.h"
+#include "rawfile.h"
+
+#include <cstdlib>
+#include <cstdio>
+#include <string>
+
+// The two controls the browser build adds to the load and save dialogs. High ids, so they
+// cannot collide with anything the dialog templates already name.
+enum {
+	IDC_MISSION_TRANSFER_EXPORT = 0x4F01,
+	IDC_MISSION_TRANSFER_IMPORT = 0x4F02
+};
+
+
+// Hands a save to the browser as a download. The bytes are read here rather than passed
+// through the heap: /save is an ordinary directory to the runtime's filesystem, and the
+// page can read it directly.
+EM_JS(void, Save_Transfer_Export, (char const * name, void const * data, int size), {
+	try {
+		var leaf = UTF8ToString(name);
+		var bytes = HEAPU8.slice(data, data + size);
+		var url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+		var link = document.createElement('a');
+
+		link.href = url;
+		link.download = leaf;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+	} catch (error) {
+		err('OpenTS: save export failed: ' + (error && (error.message || error.name) || error));
+	}
+});
+
+
+// Asks for a file and holds it until the engine takes it. Suspends while the picker is up,
+// which is why the click has to reach here with the browser still willing to open one; the
+// engine drains a click within the frame it arrived in, so the gesture is still live.
+//
+// A save is a compound file, and the first eight bytes say so. Anything else is refused
+// here rather than left for the engine to fail on later.
+//
+// Nothing is written from the page: where a save belongs is the engine's business, and it
+// resolves that through the same file layer it saves with.
+EM_ASYNC_JS(int, Save_Transfer_Pick, (void), {
+	var CFB = [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
+
+	try {
+		globalThis.__opentsIncoming = null;
+
+		var input = document.createElement('input');
+		input.type = 'file';
+		input.accept = '.SAV,.sav';
+		input.style.position = 'fixed';
+		input.style.left = '-1000px';
+		document.body.appendChild(input);
+
+		var chosen = await new Promise(function (resolve) {
+			input.addEventListener('change', function () { resolve(input.files[0] || null); });
+			input.addEventListener('cancel', function () { resolve(null); });
+			input.click();
+		});
+
+		document.body.removeChild(input);
+		if (!chosen) return 0;
+
+		var bytes = new Uint8Array(await chosen.arrayBuffer());
+
+		if (bytes.length < 8) return -1;
+
+		for (var index = 0; index < CFB.length; index++) {
+			if (bytes[index] !== CFB[index]) return -1;
+		}
+
+		globalThis.__opentsIncoming = bytes;
+		return bytes.length;
+	} catch (error) {
+		err('OpenTS: save import failed: ' + (error && (error.message || error.name) || error));
+		return -1;
+	}
+});
+
+
+EM_JS(void, Save_Transfer_Take, (void * buffer), {
+	var bytes = globalThis.__opentsIncoming;
+
+	if (bytes) HEAPU8.set(bytes, buffer);
+	globalThis.__opentsIncoming = null;
+});
+
+
+// Adds the two controls to a dialog that is already up, so neither the dialog templates nor
+// the Win32 build learn about a browser's downloads.
+void LoadOptionsClass::Add_Transfer_Buttons(HWND dialog, int list_id)
+{
+	// Placed from the dialog's own accept button rather than from its client rect: the
+	// owner draw system rescales a dialog and its controls for the current resolution
+	// before a dialog procedure sees WM_INITDIALOG, so a rectangle worked out here would
+	// be in the wrong units. Following a control that has already been placed cannot be.
+	HWND const accept = GetDlgItem(dialog, 1);
+
+	if (accept == NULL) return;
+
+	RECT box;
+
+	if (!GetWindowRect(accept, &box)) {
+		return;
+	}
+
+	POINT corner;
+	corner.x = box.left;
+	corner.y = box.top;
+	ScreenToClient(dialog, &corner);
+
+	int const height = box.bottom - box.top;
+	int const width = box.right - box.left;
+	int const gap = width / 8;
+
+	// To the left of the accept button, in the strip its own row already occupies.
+	int const second = corner.x - width - gap;
+	int const first = second - width - gap;
+
+	HWND const out = CreateWindowExA(0, "BUTTON", "Export", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
+		first, corner.y, width, height, dialog, (HMENU)IDC_MISSION_TRANSFER_EXPORT,
+		ProgramInstance, NULL);
+	HWND const in = CreateWindowExA(0, "BUTTON", "Import", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW,
+		second, corner.y, width, height, dialog, (HMENU)IDC_MISSION_TRANSFER_IMPORT,
+		ProgramInstance, NULL);
+
+	// BS_OWNERDRAW rather than BS_PUSHBUTTON: the owner draw system gives a button a
+	// painter only for a group box, an owner drawn button or an auto checkbox, and a plain
+	// push button is hooked to nothing at all and never appears.
+	//
+	// Subclass_Dialog has already been and gone by the time a dialog procedure is told the
+	// dialog is starting, so these two are hooked one at a time or they are never painted.
+
+	OwnerDraw::Adopt_Control(out);
+	OwnerDraw::Adopt_Control(in);
+
+	Update_Transfer_Buttons(dialog, list_id);
+}
+
+
+// There is nothing to export until a save is picked, and the empty slot the save dialog
+// offers is a row without a file behind it.
+void LoadOptionsClass::Update_Transfer_Buttons(HWND dialog, int list_id)
+{
+	HWND const out = GetDlgItem(dialog, IDC_MISSION_TRANSFER_EXPORT);
+
+	if (out == NULL) return;
+
+	HWND const list = GetDlgItem(dialog, list_id);
+	int const row = (list != NULL) ? ListBox_GetCurSel(list) : -1;
+	FileEntryClass const * const entry = (row >= 0)
+		? (FileEntryClass const *)ListBox_GetItemData(list, row) : NULL;
+
+	EnableWindow(out, bool(entry != NULL && entry->Valid && entry->Filename[0] != '\0'));
+}
+
+
+/// <summary>
+/// Acts on one of the two controls above, and says whether it was one of them.
+/// </summary>
+bool LoadOptionsClass::Transfer_Command(HWND dialog, int id, int list_id)
+{
+	if (id == list_id) {
+		Update_Transfer_Buttons(dialog, list_id);
+		return(false);
+	}
+
+	if (id != IDC_MISSION_TRANSFER_EXPORT && id != IDC_MISSION_TRANSFER_IMPORT) {
+		return(false);
+	}
+
+	HWND const list = GetDlgItem(dialog, list_id);
+	LoadOptionsClass * const options = (LoadOptionsClass *)GetWindowLongPtr(dialog, DWLP_USER);
+
+	if (id == IDC_MISSION_TRANSFER_EXPORT) {
+		int const row = ListBox_GetCurSel(list);
+		FileEntryClass const * entry = (row >= 0)
+			? (FileEntryClass const *)ListBox_GetItemData(list, row) : NULL;
+
+		if (entry != NULL && entry->Filename[0] != '\0') {
+
+			// Read through the engine's own file layer rather than by naming a path for
+			// the page to open: saves sit in a folder of their own beneath the persistent
+			// directory, and win32compat resolves that, and its casing, already.
+			// The name is held in a local: RawFileClass's constructor keeps the pointer it
+			// is given rather than copying it, so a temporary string would leave it
+			// dangling and every open would fail on a path that reads correctly.
+			std::string const path = Saved_Game_Name(entry->Filename);
+			RawFileClass file(path.c_str());
+
+			if (file.Is_Available()) {
+				int const size = file.Size();
+				void * const bytes = (size > 0) ? std::malloc((std::size_t)size) : NULL;
+
+				if (bytes != NULL && file.Open(BufferIOFileClass::READ)) {
+					int const got = file.Read(bytes, size);
+					file.Close();
+
+					if (got > 0) Save_Transfer_Export(entry->Filename, bytes, got);
+				}
+
+				std::free(bytes);
+			}
+		}
+
+		return(true);
+	}
+
+	int const size = Save_Transfer_Pick();
+
+	if (size <= 0) return(true);
+
+	void * const bytes = std::malloc((std::size_t)size);
+
+	if (bytes == NULL) return(true);
+
+	Save_Transfer_Take(bytes);
+
+	bool written = false;
+
+	// Named the way the engine names a save of its own, so the dialog lists what arrives
+	// and an import never lands on a name already in use.
+	if (options != NULL) {
+		char leaf[256];
+		options->Pick_Filename(leaf);
+
+		std::string const path = Saved_Game_Name(leaf);
+		RawFileClass file(path.c_str());
+
+		if (file.Open(BufferIOFileClass::WRITE)) {
+			written = (file.Write(bytes, size) == size);
+			file.Close();
+		}
+	}
+
+	std::free(bytes);
+
+	if (written && options != NULL && list != NULL) {
+		options->Fill_List(list);
+		EnableWindow(GetDlgItem(dialog, 1), bool(ListBox_GetCount(list) > 0));
+		Update_Transfer_Buttons(dialog, list_id);
+		InvalidateRect(list, NULL, TRUE);
+	}
+
+	return(true);
+}
+
+#endif	// __EMSCRIPTEN__
 
 
 /// <summary>
@@ -282,9 +540,20 @@ LRESULT CALLBACK LoadOptionsClass::Load_Dialog_Proc(HWND window, UINT message, W
 				return(On_WM_MOVING(window, wparam, lparam));
 
 			case WM_COMMAND:
+#if defined(__EMSCRIPTEN__)
+				if (LoadOptionsClass::Transfer_Command(window, LOWORD(wparam),
+						IDC_MISSION_LOAD_LIST)) {
+					break;
+				}
+#endif
 				Load_Dialog_On_WM_COMMAND(window, LOWORD(wparam), lparam, HIWORD(wparam));
 				break;
 
+#if defined(__EMSCRIPTEN__)
+			case WM_INITDIALOG:
+				LoadOptionsClass::Add_Transfer_Buttons(window, IDC_MISSION_LOAD_LIST);
+				break;
+#endif
 
 			case OD_SUBCLASSED:
 				SendDlgItemMessage(window, IDC_MISSION_LOAD_LIST, OD_ADDCOLUMN, 0xF9, 2);
@@ -316,11 +585,20 @@ LRESULT CALLBACK LoadOptionsClass::Save_Dialog_Proc(HWND window, UINT message, W
 				return(On_WM_MOVING(window, wparam, lparam));
 
 			case WM_COMMAND:
+#if defined(__EMSCRIPTEN__)
+				if (LoadOptionsClass::Transfer_Command(window, LOWORD(wparam),
+						IDC_MISSION_SAVE_LIST)) {
+					break;
+				}
+#endif
 				Save_Dialog_On_WM_COMMAND(window, LOWORD(wparam), lparam, HIWORD(wparam));
 				break;
 
 			case WM_INITDIALOG:
 				SendMessage(GetDlgItem(window, IDC_MISSION_SAVE_DESC), EM_SETLIMITTEXT, 79, 0);
+#if defined(__EMSCRIPTEN__)
+				LoadOptionsClass::Add_Transfer_Buttons(window, IDC_MISSION_SAVE_LIST);
+#endif
 				break;
 
 			case OD_SUBCLASSED:
@@ -436,6 +714,9 @@ bool LoadOptionsClass::Dialog(void)
 		if (list != 0) {
 			Fill_List(list);
 			EnableWindow(GetDlgItem(dialog, 1), bool(ListBox_GetCount(list) > 0));
+#if defined(__EMSCRIPTEN__)
+			Update_Transfer_Buttons(dialog, (int)GetWindowLong(list, GWL_ID));
+#endif
 		}
 
 		OwnerDraw::Display_Dialog(dialog);
@@ -798,7 +1079,13 @@ void LoadOptionsClass::Fill_List(HWND window)
 /// <returns>bool; Is the load dialog worth opening?</returns>
 bool LoadOptionsClass::Offer_Load(void)
 {
+#if defined(__EMSCRIPTEN__)
+	// The dialog is the only way a save reaches the browser's storage, so it has to open
+	// before there is anything in it. Its own load button stays disabled until then.
+	return(true);
+#else
 	return(Files_Present());
+#endif
 }
 
 
