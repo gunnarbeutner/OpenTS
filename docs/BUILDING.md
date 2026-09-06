@@ -186,8 +186,9 @@ link. On a POSIX target the library also carries `code/blocksource.cpp`, which
 the file layer reads a mounted image's archives through.
 
 A POSIX target links the executable only when a host answers
-`code/hostwindow.h` and names itself by setting `OPENTS_HOST`. This tree has no
-such host, so on macOS the executable is left out of the default build, and the
+`code/hostwindow.h` and names itself by setting `OPENTS_HOST`. On macOS that is
+the SDL host in [the section below](#macos-in-progress-and-unsupported); a POSIX
+target without one leaves the executable out of the default build, and the
 platform library and the harnesses still build:
 
 ```bash
@@ -221,6 +222,39 @@ layout's names elsewhere.
 `save` drives the file a saved game is kept in. It builds `code/savefile.cpp`
 with the engine's LZO codec on every target, so the same writer and reader are
 checked everywhere; [the format](SAVE-FORMAT.md) lists what it covers.
+
+## macOS, in progress and unsupported
+
+> [!WARNING]
+> The native macOS build is an experiment on the `macos-port` branch. Nothing
+> in this section is a support claim; Visual Studio 2022 Win32 remains the
+> supported target.
+
+Under Apple clang the engine compiles as an LP64 POSIX target, as
+[the section above](#other-toolchains) describes. `code/sdlhost.cpp` is the
+host: an SDL2 window answers `code/hostwindow.h`, its pump turns SDL events into
+the calls `code/gamewindow.cpp` and the keyboard take, `code/ui/uisdl.cpp` gives
+the UI shell first refusal on each of them, and the renderer presents into the
+window through Metal. `CMakeLists.txt` names the host by setting `OPENTS_HOST`,
+which puts the executable back into the default build. SDL2 comes from Homebrew.
+
+```bash
+brew install sdl2
+cmake -S . -B build-macos -G Ninja -DCMAKE_BUILD_TYPE=Debug
+ninja -C build-macos
+ctest --test-dir build-macos
+```
+
+The build leaves `bin/GameD` beside the copied `ui` directory; the game data is
+not staged for it, so a run needs a working directory holding the mix files the
+Win32 build expects.
+
+What has been run, on macOS 26.5 with Apple clang 21 on arm64: `OpenTS` builds
+and links, all fifteen portable harnesses pass, and `bin/GameD` started outside
+a data directory opens the window, brings up the Metal renderer, and stops at
+the missing bootstrap mix files. That is a runtime observation, not a test
+result, and no part of the game has been played through this host since it was
+written against `code/hostwindow.h`.
 
 ## Build identity
 
