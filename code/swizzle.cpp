@@ -51,10 +51,52 @@ static char const * Base_Name(char const * path)
 /// The request and pointer tables are given generous room up front, since a save game
 /// hands the swizzler thousands of pointers in a single pass.
 /// </summary>
-SwizzleManagerClass::SwizzleManagerClass(void)
+SwizzleManagerClass::SwizzleManagerClass(void) :
+	NextID(1)
 {
 	RequestTable.reserve(1000);
 	PointerTable.reserve(1000);
+}
+
+
+/// <summary>
+/// Starts a fresh numbering of saved identities.
+/// An identity only has to be unique within one saved game, so the save code calls this
+/// before it writes the first record; a numbering that carries across saves would only
+/// grow.
+/// </summary>
+void SwizzleManagerClass::Begin_Save(void)
+{
+	IDTable.clear();
+	NextID = 1;
+}
+
+
+/// <summary>
+/// Returns the identity a pointer is saved under.
+/// A null pointer is saved as zero. Where a pointer is four bytes it is its own identity,
+/// as the inherited save games have it; where it is wider, identities are numbered in the
+/// order the save first meets each pointer.
+/// </summary>
+/// <param name="pointer">The pointer being written, which may be NULL.</param>
+/// <returns>Returns with the identity to write in the pointer's place.</returns>
+SwizzleIDType SwizzleManagerClass::ID_Of(void const * pointer)
+{
+	if (pointer == NULL) {
+		return(0);
+	}
+
+	if constexpr (sizeof(void *) == sizeof(SwizzleIDType)) {
+		return((SwizzleIDType)(uintptr_t)pointer);
+	} else {
+		auto found = IDTable.find(pointer);
+		if (found != IDTable.end()) {
+			return(found->second);
+		}
+		SwizzleIDType id = NextID++;
+		IDTable.emplace(pointer, id);
+		return(id);
+	}
 }
 
 
@@ -65,17 +107,18 @@ SwizzleManagerClass::SwizzleManagerClass(void)
 /// is cleared until the tables are resolved and the real address is known.
 /// </summary>
 /// <param name="pointer">Pointer to the pointer that needs resolving.</param>
+/// <param name="id">The swizzle ID read from the save in the pointer's place.</param>
 /// <param name="ownertype">The type of the record being read, for the failure report.</param>
 /// <param name="ownerid">The swizzle ID of the record being read.</param>
 /// <param name="slottype">The type the pointer slot names.</param>
-void SwizzleManagerClass::Swizzle(void ** pointer, char const * ownertype, uintptr_t ownerid, char const * slottype, char const * file, unsigned int line)
+void SwizzleManagerClass::Swizzle(void ** pointer, SwizzleIDType id, char const * ownertype, SwizzleIDType ownerid, char const * slottype, char const * file, unsigned int line)
 {
 	if (pointer == NULL) {
 		return;
 	}
 
-	uintptr_t id = (uintptr_t)(*pointer);
 	if (id == 0) {
+		*pointer = NULL;
 		return;
 	}
 
@@ -93,7 +136,7 @@ void SwizzleManagerClass::Swizzle(void ** pointer, char const * ownertype, uintp
 /// </summary>
 /// <param name="id">The swizzle ID the object was saved under.</param>
 /// <param name="pointer">The address the object now resides at.</param>
-void SwizzleManagerClass::Here_I_Am(uintptr_t id, void * pointer)
+void SwizzleManagerClass::Here_I_Am(SwizzleIDType id, void * pointer)
 {
 	PointerTable.emplace_back(id, pointer);
 }
@@ -126,7 +169,7 @@ void SwizzleManagerClass::Resolve(void)
 	 */
 	for (unsigned int index = 1; index < PointerTable.size(); index++) {
 		if (PointerTable[index].ID == PointerTable[index - 1].ID) {
-			DebugString("SWIZZLE: ID %08IX was announced twice, at %p and at %p.\n",
+			DebugString("SWIZZLE: ID %08X was announced twice, at %p and at %p.\n",
 				PointerTable[index].ID, PointerTable[index - 1].Pointer, PointerTable[index].Pointer);
 		}
 	}
@@ -137,14 +180,14 @@ void SwizzleManagerClass::Resolve(void)
 	for (SwizzleRequestClass const & request : RequestTable) {
 
 		auto entry = std::lower_bound(PointerTable.begin(), PointerTable.end(), request.ID,
-			[](SwizzlePointerClass const & left, uintptr_t id) { return(left.ID < id); });
+			[](SwizzlePointerClass const & left, SwizzleIDType id) { return(left.ID < id); });
 
 		if (entry != PointerTable.end() && entry->ID == request.ID) {
-			*(uintptr_t *)request.Pointer = (uintptr_t)entry->Pointer;
+			*(void **)request.Pointer = entry->Pointer;
 			continue;
 		}
 
-		DebugString("SWIZZLE: Nothing announced ID %08IX, wanted by a %s slot in %s record %08IX, serialized at %s(%u).\n",
+		DebugString("SWIZZLE: Nothing announced ID %08X, wanted by a %s slot in %s record %08X, serialized at %s(%u).\n",
 			request.ID,
 			request.SlotType != NULL ? request.SlotType : "<unknown>",
 			request.OwnerType != NULL ? request.OwnerType : "<unknown>",
@@ -161,7 +204,7 @@ void SwizzleManagerClass::Resolve(void)
 	if (orphans > 0) {
 		char txt[512];
 		sprintf(txt, "Save game load failed!  %d pointer(s) could not be remapped.\n\n"
-			"The first names ID %08IX, wanted by a %s slot in %s record %08IX,\n"
+			"The first names ID %08X, wanted by a %s slot in %s record %08X,\n"
 			"serialized at %s(%u).\n\n"
 			"The game will now exit.",
 			orphans,

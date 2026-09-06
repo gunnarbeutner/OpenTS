@@ -526,7 +526,7 @@ BOOL CALLBACK Resize_Dialog_Proc(HWND window, UINT message, WPARAM wParam, LPARA
 /// <param name="template_id">The resource identifier of the dialog template to
 /// measure.</param>
 /// <param name="pt">Receives the width and height of the dialog's client area.</param>
-BOOL Get_Dialog_Resolution(unsigned short template_id, BOOL (__stdcall *dialog_proc)(HWND, UINT, WPARAM, LPARAM), int, POINT &pt)
+BOOL Get_Dialog_Resolution(unsigned short template_id, DLGPROC dialog_proc, int, POINT &pt)
 {
 	HWND window;
 	tagRECT rcl;

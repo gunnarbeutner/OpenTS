@@ -78,6 +78,31 @@ PKStraw::PKStraw(CryptControl control, RandomStraw & rnd) :
 }
 
 
+/// <summary>
+/// Takes the straw out of its chain while every member is still alive, and hands whoever
+/// was reading from it the source it read from. Left to the Blowfish member's own
+/// destructor, the source would be handed back to this straw half way through its
+/// destruction.
+/// </summary>
+PKStraw::~PKStraw(void)
+{
+	Straw * source = BF.ChainTo;
+	Straw * consumer = ChainFrom;
+
+	if (source != NULL) {
+		source->ChainFrom = NULL;
+	}
+	BF.ChainTo = NULL;
+	BF.ChainFrom = NULL;
+	ChainTo = NULL;
+	ChainFrom = NULL;
+
+	if (consumer != NULL) {
+		consumer->Get_From(source);
+	}
+}
+
+
 /***********************************************************************************************
  * PKStraw::Get_From -- Chains one straw to another.                                           *
  *                                                                                             *

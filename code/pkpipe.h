@@ -53,6 +53,7 @@ class PKPipe : public Pipe
 		};
 
 		PKPipe(CryptControl control, RandomStraw & rnd);
+		virtual ~PKPipe(void);
 
 		virtual void Put_To(Pipe * pipe) override;
 		virtual void Put_To(Pipe & pipe) {Put_To(&pipe);}

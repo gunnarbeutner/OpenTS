@@ -71,6 +71,29 @@ PKPipe::PKPipe(CryptControl control, RandomStraw & rnd) :
 }
 
 
+/// <summary>
+/// Takes the pipe out of its chain while every member is still alive, and hands whoever
+/// was writing to it the destination it wrote to; see PKStraw's destructor.
+/// </summary>
+PKPipe::~PKPipe(void)
+{
+	Pipe * destination = BF.ChainTo;
+	Pipe * producer = ChainFrom;
+
+	if (destination != NULL) {
+		destination->ChainFrom = NULL;
+	}
+	BF.ChainTo = NULL;
+	BF.ChainFrom = NULL;
+	ChainTo = NULL;
+	ChainFrom = NULL;
+
+	if (producer != NULL) {
+		producer->Put_To(destination);
+	}
+}
+
+
 /***********************************************************************************************
  * PKPipe::Put_To -- Chains one pipe to another.                                               *
  *                                                                                             *

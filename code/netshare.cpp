@@ -405,7 +405,7 @@ int ODMessageBox(const char * text, int type, bool (*callback)(void), bool large
 /// whichever of the buttons the player pressed.
 /// </summary>
 /// <returns>Returns with TRUE if the message was dealt with here, FALSE otherwise.</returns>
-int CALLBACK ODMessageBox_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
+INT_PTR CALLBACK ODMessageBox_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
 	switch (message) {
 		case WM_DRAWITEM:

@@ -41,9 +41,9 @@
  * type - Form type (IE: "ILBM")
  */
 typedef struct _FormHeader {
-	long id;
-	long size;
-	long type;
+	int id;
+	int size;
+	int type;
 } FormHeader;
 
 /* Context - Structure associated with chunks.

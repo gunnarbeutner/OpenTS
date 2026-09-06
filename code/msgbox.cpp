@@ -41,7 +41,7 @@
 #include "ownrdraw.h"
 #include "winfix.h"
 
-BOOL CALLBACK Message_Box_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
+INT_PTR CALLBACK Message_Box_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 void Message_Box_On_WM_COMMAND(HWND window, int id, int control, int notify_code);
 
 int _default_response = 0;
@@ -85,7 +85,7 @@ int WWMessageBox::_Process(const char * msg, int defresponse, const char * b1txt
 	HWND dialog = OwnerDraw::Begin_Dialog(IDD_MSGBOX_3, Message_Box_Proc);
 
 	if (dialog != NULL) {
-		SetWindowLong(dialog, DWL_USER, (LONG)&retval);
+		SetWindowLongPtr(dialog, DWLP_USER, (LONG_PTR)&retval);
 
 		if (msg != NULL && msg[0] != '\0') {
 			SetDlgItemText(dialog, IDC_MSGBOX_TEXT, msg);
@@ -153,7 +153,7 @@ int WWMessageBox::_Process(const char * msg, int defresponse, const char * b1txt
 /// with.
 /// </summary>
 /// <returns>BOOL; Was the message handled here?</returns>
-BOOL CALLBACK Message_Box_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
+INT_PTR CALLBACK Message_Box_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
 	BOOL rc = OwnerDraw::Default_Dialog_Proc(window, message, wparam, lparam);
 
@@ -188,7 +188,7 @@ BOOL CALLBACK Message_Box_Proc(HWND window, UINT message, WPARAM wparam, LPARAM 
 /// <param name="id">The identifier of the control that sent the notification.</param>
 void Message_Box_On_WM_COMMAND(HWND window, int id, int control, int notify_code)
 {
-	int *retval = (int*)GetWindowLong(window, DWL_USER);
+	int *retval = (int*)GetWindowLongPtr(window, DWLP_USER);
 	switch (id) {
 
 		case IDOK:

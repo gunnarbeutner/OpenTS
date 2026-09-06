@@ -12,19 +12,24 @@
 #include "win.h"
 
 #include <stdint.h>
+#include <unordered_map>
 #include <vector>
+
+
+// The four bytes a saved game holds where a pointer stood, on every host.
+typedef uint32_t SwizzleIDType;
 
 class SwizzlePointerClass
 {
 	public:
-		SwizzlePointerClass(uintptr_t id = 0, void * pointer = NULL) : ID(id), Pointer(pointer) {}
+		SwizzlePointerClass(SwizzleIDType id = 0, void * pointer = NULL) : ID(id), Pointer(pointer) {}
 
 	public:
 		/*
-		 * This is the swizzle ID the object announced itself under -- the address it
-		 * occupied when the game was saved.
+		 * This is the swizzle ID the object announced itself under -- the identity it
+		 * was saved as.
 		 */
-		uintptr_t ID;
+		SwizzleIDType ID;
 
 		/*
 		 * This is where the object was loaded to.
@@ -36,7 +41,7 @@ class SwizzlePointerClass
 class SwizzleRequestClass
 {
 	public:
-		SwizzleRequestClass(uintptr_t id = 0, void * pointer = NULL, char const * ownertype = NULL, uintptr_t ownerid = 0, char const * slottype = NULL, char const * file = NULL, unsigned int line = 0) :
+		SwizzleRequestClass(SwizzleIDType id = 0, void * pointer = NULL, char const * ownertype = NULL, SwizzleIDType ownerid = 0, char const * slottype = NULL, char const * file = NULL, unsigned int line = 0) :
 			ID(id), Pointer(pointer), OwnerType(ownertype), OwnerID(ownerid), SlotType(slottype), File(file), Line(line) {}
 
 	public:
@@ -44,7 +49,7 @@ class SwizzleRequestClass
 		 * This is the swizzle ID this request asks after, and the pointer that needs
 		 * filling in once the object that ID names has announced where it landed.
 		 */
-		uintptr_t ID;
+		SwizzleIDType ID;
 		void * Pointer;
 
 		/*
@@ -55,7 +60,7 @@ class SwizzleRequestClass
 		 * carrying them costs nothing.
 		 */
 		char const * OwnerType;
-		uintptr_t OwnerID;
+		SwizzleIDType OwnerID;
 		char const * SlotType;
 		char const * File;
 		unsigned int Line;
@@ -67,8 +72,11 @@ class SwizzleManagerClass
 	public:
 		SwizzleManagerClass(void);
 
-		void Swizzle(void ** pointer, char const * ownertype = NULL, uintptr_t ownerid = 0, char const * slottype = NULL, char const * file = NULL, unsigned int line = 0);
-		void Here_I_Am(uintptr_t id, void * pointer);
+		void Begin_Save(void);
+		SwizzleIDType ID_Of(void const * pointer);
+
+		void Swizzle(void ** pointer, SwizzleIDType id, char const * ownertype = NULL, SwizzleIDType ownerid = 0, char const * slottype = NULL, char const * file = NULL, unsigned int line = 0);
+		void Here_I_Am(SwizzleIDType id, void * pointer);
 
 		void Resolve(void);
 		void Discard(void);
@@ -87,6 +95,13 @@ class SwizzleManagerClass
 
 	private:
 		/*
+		 * The identity each pointer has been saved under, where a pointer is too wide to
+		 * be its own identity. On a host with four-byte pointers the table stays empty.
+		 */
+		std::unordered_map<void const *, SwizzleIDType> IDTable;
+		SwizzleIDType NextID;
+
+		/*
 		 * These are the pointers read back from the save file that still hold a swizzle ID
 		 * instead of a real address. They stay in the order the file presented them, so a
 		 * report of unanswered requests follows the shape of the save game.
@@ -104,7 +119,7 @@ class SwizzleManagerClass
 extern SwizzleManagerClass Swizzler;
 
 template<class T>
-inline void Swizzle_Here_I_Am(uintptr_t id, T * ptr)
+inline void Swizzle_Here_I_Am(SwizzleIDType id, T * ptr)
 {
 	Swizzler.Here_I_Am(id, (void *)ptr);
 }
