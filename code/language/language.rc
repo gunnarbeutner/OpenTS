@@ -2564,6 +2564,8 @@ BEGIN
     TXT_LOADING_SAVED_GAME  "Loading the saved game..."
     TXT_CHAT_HINT           "Type here to chat..."
     TXT_DIFFICULTY_LEVEL    "Difficulty: %s"
+    TXT_ADD_TO_TEAM         "Add To Team %2d"
+    TXT_ADD_TO_TEAM_DESC    "Adds the selected units to team %d and selects the whole team."
 END
 
 #endif    // English (U.S.) resources

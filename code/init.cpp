@@ -3461,6 +3461,43 @@ class AddTeamCommandClass : public CommandClass
 };
 
 
+class AddToTeamCommandClass : public CommandClass
+{
+	public:
+		AddToTeamCommandClass(int team) : Team(team) {}
+
+		virtual char const * Get_Unique_Name(void) const {
+			sprintf(_cmd_buffer, "TeamAddTo_%d", Team);
+			return(_cmd_buffer);
+		}
+		virtual char const * Get_Display_Name(void) const {
+			sprintf(_cmd_buffer, Fetch_String(TXT_ADD_TO_TEAM), Team);
+			return(_cmd_buffer);
+		}
+		virtual char const * Get_Category(void) const {
+			return(Fetch_String((TXT_TEAM)));
+		}
+		virtual char const * Get_Description(void) const {
+			sprintf(_cmd_buffer, Fetch_String(TXT_ADD_TO_TEAM_DESC), Team);
+			return(_cmd_buffer);
+		}
+
+		virtual void Execute(void) const {
+			Map.Power_Mode_Control(0);
+			Map.Waypoint_Mode_Control(0);
+			Map.Repair_Mode_Control(0);
+			Map.Sell_Mode_Control(0);
+
+			// The team joins the selection first, or the assignment would drop its existing members.
+			Select_Team_Members(Team);
+			Assign_Selection_To_Team(Team);
+		}
+
+	private:
+		int Team;
+};
+
+
 class CenterTeamCommandClass : public CommandClass
 {
 	public:
@@ -5754,6 +5791,17 @@ static void Init_Commands(void)
 	AllCommands.Add(new AddTeamCommandClass(8));
 	AllCommands.Add(new AddTeamCommandClass(9));
 	AllCommands.Add(new AddTeamCommandClass(10));
+
+	AllCommands.Add(new AddToTeamCommandClass(1));
+	AllCommands.Add(new AddToTeamCommandClass(2));
+	AllCommands.Add(new AddToTeamCommandClass(3));
+	AllCommands.Add(new AddToTeamCommandClass(4));
+	AllCommands.Add(new AddToTeamCommandClass(5));
+	AllCommands.Add(new AddToTeamCommandClass(6));
+	AllCommands.Add(new AddToTeamCommandClass(7));
+	AllCommands.Add(new AddToTeamCommandClass(8));
+	AllCommands.Add(new AddToTeamCommandClass(9));
+	AllCommands.Add(new AddToTeamCommandClass(10));
 
 	AllCommands.Add(new CenterTeamCommandClass(1));
 	AllCommands.Add(new CenterTeamCommandClass(2));

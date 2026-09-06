@@ -873,6 +873,8 @@
 #define TXT_LOADING_SAVED_GAME          1115
 #define TXT_CHAT_HINT                   1116
 #define TXT_DIFFICULTY_LEVEL            1117
+#define TXT_ADD_TO_TEAM                 1118
+#define TXT_ADD_TO_TEAM_DESC            1119
 #define IDC_LADDER_TYPE                 1043
 #define IDC_LADDER_LOCATION             1044
 #define IDC_FINDGAME_LOCATION           1046
