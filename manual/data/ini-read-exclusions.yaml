@@ -131,8 +131,8 @@ site_exclusions:
     classification: excluded
     reason: This lookup reads an internal rules-choice dialog label rather than an engine setting.
 
-  - path: code/gamedirs.cpp
-    function: Init_Search_Folders
+  - path: code/deploymentconfig.cpp
+    function: DeploymentConfigClass::Read_INI
     keys: [SearchPaths]
     classification: excluded
     reason: The folder list belongs to the deployment file that describes where a distribution keeps its own files, and is documented as part of that format rather than as game data.

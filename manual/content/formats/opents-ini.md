@@ -4,6 +4,7 @@ title: OPENTS.INI
 summary: Names the folders a deployment keeps its game files sorted into.
 kind: file
 source_files:
+  - code/deploymentconfig.cpp
   - code/gamedirs.cpp
 filenames:
   - OPENTS.INI
