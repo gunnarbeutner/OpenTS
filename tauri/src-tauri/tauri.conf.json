@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "OpenTS",
+  "version": "0.2.0",
+  "identifier": "org.opents.shell",
+  "build": {
+    "frontendDist": "web",
+    "beforeDevCommand": "node scripts/copy-web.mjs",
+    "beforeBuildCommand": "node scripts/copy-web.mjs"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: data: https: http:; connect-src 'self' ipc: http://ipc.localhost https: http:; worker-src 'self' blob:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "publisher": "play-ts.net (unofficial distribution)",
+    "copyright": "OpenTS is developed at opents.net. This is an unofficial third-party distribution via play-ts.net, not affiliated with the OpenTS project.",
+    "shortDescription": "Unofficial third-party distribution of OpenTS (opents.net).",
+    "longDescription": "OpenTS is a free, open-source reconstruction of Command & Conquer: Tiberian Sun developed by the OpenTS project at opents.net. This installer is an unofficial third-party distribution provided through play-ts.net and is not produced, endorsed by, or affiliated with the OpenTS project or opents.net.",
+    "license": "GPL-3.0-or-later",
+    "licenseFile": "installer/DISTRIBUTION-NOTICE.rtf",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

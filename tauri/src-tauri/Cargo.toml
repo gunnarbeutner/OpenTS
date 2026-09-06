@@ -1,0 +1,30 @@
+[package]
+name = "opents"
+version = "0.2.0"
+description = "OpenTS"
+edition = "2021"
+rust-version = "1.77"
+
+# The library target carries the app so a mobile entry point can call the same `run`.
+[lib]
+name = "opents_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+base64 = "0.22"
+ed25519-dalek = "2"
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "native-tls"] }
+
+# The installer is downloaded once, so trade build time for a smaller binary.
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
