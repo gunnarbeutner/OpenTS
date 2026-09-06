@@ -60,6 +60,9 @@
 */
 #include "visualc.h"
 
+// The MSVC C runtime spellings the tree is written against; inert under MSVC.
+#include "win32compat/crtcompat.h"
+
 
 #ifndef	NULL
 	#define	NULL		0
