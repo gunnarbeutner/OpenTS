@@ -213,6 +213,36 @@ None of them reads game data.
 with the engine's LZO codec on every target, so the same writer and reader are
 checked everywhere; [the format](SAVE-FORMAT.md) lists what it covers.
 
+## macOS, in progress and unsupported
+
+> [!WARNING]
+> The native macOS build is an experiment on the `macos-port` branch. Nothing
+> in this section is a support claim; Visual Studio 2022 Win32 remains the
+> supported target.
+
+Under Apple clang the engine compiles against the Win32 substitute as an LP64
+host, as [the section above](#other-toolchains-and-the-win32-substitute)
+describes. `code/sdlhost.cpp` is the host: an SDL2 window answers the calls
+declared in `code/browser.h`, and the renderer presents into it through Metal.
+`CMakeLists.txt` names the host by setting `OPENTS_HOST`, which puts the
+executable back into the default build. SDL2 comes from Homebrew.
+
+```bash
+brew install sdl2
+cmake -S . -B build-macos -G Ninja -DCMAKE_BUILD_TYPE=Debug
+ninja -C build-macos
+ctest --test-dir build-macos
+cd Run && ./GameD
+```
+
+The game data is staged in `Run` as the Win32 build expects it, and the
+post-build step copies the executable there. What has been run, on macOS 26
+with Apple clang 21 on arm64: the thirteen portable harnesses pass, and the engine
+starts, reaches the main menu, and plays missions. That is a runtime
+observation, not a test result. The host draws the game's cursor, asks message
+box questions through SDL, draws the tactical caption, delivers the mouse wheel,
+and ends the run through the window's close message.
+
 ## Build identity
 
 The top-level `CMakeLists.txt` declares the project version in
