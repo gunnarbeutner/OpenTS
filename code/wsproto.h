@@ -64,12 +64,6 @@
 #define PLANET_WESTWOOD_HANDLE_MAX 20	// Max length of a WChat handle
 
 /*
-**	Define events for Winsock callbacks
-*/
-#define WM_UDPASYNCEVENT		(WM_USER + 116)	// UDP socket Async event
-
-
-/*
 **	Enum to identify the protocols supported by the Winsock interface.
 */
 enum ProtocolEnum {
@@ -113,8 +107,14 @@ class WinsockInterfaceClass {
 		virtual void Discard_In_Buffers (void);
 		virtual void Discard_Out_Buffers (void);
 
+		// Only a listening transport moves packets in Service. The socket is
+		// made non-blocking, so a poll never waits on it.
 		virtual bool Start_Listening (void);
 		virtual void Stop_Listening (void);
+
+		// Takes every datagram the socket holds into the in buffers and sends
+		// what the out buffers hold. Call wherever the manager is serviced.
+		virtual void Service (void);
 
 		virtual void Clear_Socket_Error(SOCKET socket);
 
@@ -127,17 +127,9 @@ class WinsockInterfaceClass {
 			return(PROTOCOL_NONE);
 		};
 
-		virtual int Protocol_Event_Message (void) {
-			return(0);
-		};
-
 		virtual bool Open_Socket ( SOCKET ) {
 			return(false);
 		};
-
-		virtual int Message_Handler(HWND, UINT, UINT, LONG) {
-			return(1);
-		}
 
 		virtual bool Get_Host_Name(char *name, int len);
 
@@ -189,6 +181,12 @@ class WinsockInterfaceClass {
 		unsigned int Calculate_Packet_CRC(void const *buffer, int buffer_len) const;
 		void Record_Packet_Drop(PacketDropReasonType reason);
 
+		// Receive_Pending takes every datagram the socket holds into the in
+		// buffers. Send_Pending sends the out buffers until they are empty or
+		// the socket will take no more. A protocol supplies both.
+		virtual void Receive_Pending(void) {}
+		virtual void Send_Pending(void) {}
+
 		/*
 		**	Array of buffers to temporarily store incoming and outgoing packets.
 		*/
@@ -223,10 +221,8 @@ class WinsockInterfaceClass {
 		*/
 		SOCKET				Socket;
 
-		/*
-		**	Async object required for callbacks to our message handler.
-		*/
-		HANDLE				ASync;
+		// Whether Service may poll the socket.
+		bool				Listening;
 
 		/*
 		**	Temporary receive buffer to use when querying Winsock for incoming packets.

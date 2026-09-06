@@ -996,6 +996,8 @@ int IPXManagerClass::Service(void)
 
 	if ( PacketTransport ) {
 
+		PacketTransport->Service();
+
 		do {
 			temp_receive_buffer_len = sizeof (temp_receive_buffer);
 			temp_address_len = sizeof (temp_address);
