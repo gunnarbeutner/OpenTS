@@ -56,6 +56,13 @@ foreach(f ${OPENTS_RAW})
         set(EXCLUDED TRUE)
     endif()
 
+    # The POSIX file layer reads mounted images through the block source, so on those
+    # targets it goes into the platform library; its headers stay beside the engine's
+    # because cdfile.h includes them on every toolchain.
+    if(OPENTS_POSIX AND f MATCHES "/blocksource\\.cpp$")
+        set(EXCLUDED TRUE)
+    endif()
+
     if(NOT EXCLUDED)
         list(APPEND OPENTS_SRC "${f}")
     endif()
@@ -228,6 +235,9 @@ add_dependencies(OpenTS OpenTSBuildStamp)
 # own options.
 file(GLOB OPENTS_PLATFORM_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/platform/*.cpp")
 add_library(OpenTSPlatform STATIC ${OPENTS_PLATFORM_SOURCES})
+if(OPENTS_POSIX)
+    target_sources(OpenTSPlatform PRIVATE blocksource.cpp)
+endif()
 target_compile_features(OpenTSPlatform PUBLIC cxx_std_20)
 target_include_directories(OpenTSPlatform PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_compile_options(OpenTSPlatform PRIVATE ${OPENTS_COMPILE_OPTIONS})

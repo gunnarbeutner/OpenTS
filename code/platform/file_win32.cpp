@@ -15,6 +15,7 @@
 #if defined(_WIN32)
 
 #include "platform/file.h"
+#include "platform/filehint.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -252,6 +253,12 @@ bool PlatformFileClass::Set_Modified_Time(FileTimeType time)
 }
 
 
+bool PlatformFileClass::Hint(BlockHintType, std::uint32_t, std::uint32_t)
+{
+	return(false);
+}
+
+
 bool Platform_File_Info(char const * path, PlatformFileInfoType & info)
 {
 	WIN32_FILE_ATTRIBUTE_DATA data;
@@ -336,6 +343,24 @@ std::vector<PlatformFileInfoType> Platform_Find_Files(char const * pattern)
 std::string Platform_Host_Path(char const * path)
 {
 	return((path != nullptr) ? std::string(path) : std::string());
+}
+
+
+bool Platform_Hint_File(char const *, BlockHintType, std::uint32_t, std::uint32_t)
+{
+	return(false);
+}
+
+
+bool Platform_Prefetch_File(char const *, std::uint32_t, std::uint32_t)
+{
+	return(false);
+}
+
+
+std::uint64_t Platform_Stored_Bytes(char const *)
+{
+	return(0);
 }
 
 
