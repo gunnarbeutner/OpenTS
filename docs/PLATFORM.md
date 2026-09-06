@@ -14,7 +14,7 @@ C++ standard library.
 | Interface | Covers | Windows | Other targets |
 | --- | --- | --- | --- |
 | `code/platform/` | Files, directory searches, file times, free space, waits, the process (its path, the single-instance lock, the timer resolution), the debug log's console and debugger output, and the machine registry | `*_win32.cpp` | `*_posix.cpp` |
-| `code/hostwindow.h` | The game window, the pointer and cursor, key state, message boxes and display modes | `code/hostwindow_win32.cpp` | None in this tree |
+| `code/hostwindow.h` | The game window, the pointer and cursor, key state, message boxes and display modes | `code/hostwindow_win32.cpp` | `code/sdlhost.cpp`, on macOS |
 | `code/crtcompat.h`, `code/crtcompat.cpp` | The MSVC runtime spellings the tree is written against | Inert under MSVC | Defined here |
 
 Each implementation file guards itself on the platform it serves and compiles
@@ -122,9 +122,10 @@ opening and closing it (`Host_Create_Window` makes `Has_Main_Window` in
 pointer's position, visibility, confinement and capture, the cursor image, the
 modifier and key state and the character a key types, a message box, and the
 display modes. `code/hostwindow_win32.cpp` answers it on Windows and holds the
-window procedure. No other implementation is in this tree, so a POSIX target
-leaves this header's functions for a host to supply, and until one does the
-executable is not built there ([Building OpenTS](BUILDING.md#other-toolchains)).
+window procedure. `code/sdlhost.cpp` answers it on macOS with an SDL window. A
+POSIX target with no host leaves this header's functions unanswered, and until
+one supplies them the executable is not built there
+([Building OpenTS](BUILDING.md#other-toolchains)).
 
 A host feeds input into shared code. Keys go to
 `Keyboard->Post_Key_Event`. Mouse buttons go to `Game_Window_Mouse_Button` in
@@ -133,8 +134,10 @@ in the keyboard buffer; the same file takes double clicks, wheel notches, lost
 capture, focus loss and return (`Focus_Loss`, `Focus_Restore`) and the window's
 creation and destruction. The Windows window procedure translates its messages
 into these calls, and the keyboard has no window-message handler of its own.
-Tooltips time themselves from the message pump rather than from a window
-timer.
+The SDL host makes the same calls from `Host_Pump_Events`, which
+`Windows_Message_Handler` runs wherever the engine waits, so an event is
+delivered in engine context rather than from a callback. Tooltips time
+themselves from the message pump rather than from a window timer.
 
 `code/keyname.cpp` spells a hotkey for the keyboard screen. Windows names each
 key with `GetKeyNameText` from the player's layout; elsewhere the names come
@@ -180,7 +183,8 @@ for the whole crash reporter. `_WIN32` is the compiler's own marker for a
 Windows target; `WIN32` and `_WINDOWS` are defined by the build only for a
 Windows build. `code/ui/uiwin32.cpp`, the shell's window-message hook, is the
 one Windows file that is not guarded: `code/CMakeLists.txt` leaves it out of a
-POSIX build.
+POSIX build. Its SDL counterpart, `code/ui/uisdl.cpp`, is left out the same way
+wherever the SDL host is not built.
 
 Engine code outside those files reaches portable interfaces instead of the
 Windows API:
