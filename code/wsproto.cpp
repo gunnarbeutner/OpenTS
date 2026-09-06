@@ -38,8 +38,9 @@
  * WIC::~WinsockInterfaceClass -- destructor for the WinsockInterfaceClass                     *
  * WIC::Close -- Releases any currently in use Winsock resources.                              *
  * WIC::Close_Socket -- Close the communication socket if its open                             *
- * WIC::Start_Listening -- Enable callbacks for read/write events on our socket                *
- * WIC::Stop_Listening -- Disable the winsock event callback                                   *
+ * WIC::Start_Listening -- Let Service poll the socket                                         *
+ * WIC::Stop_Listening -- Stop Service polling the socket                                      *
+ * WIC::Service -- Move pending packets between the socket and the holding buffers             *
  * WIC::Discard_In_Buffers -- Discard any packets in our incoming packet holding buffers       *
  * WIC::Discard_In_Buffers -- Discard any packets in our outgoing packet holding buffers       *
  * WIC::Init -- Initialised Winsock and this class for use.                                    *
@@ -54,10 +55,8 @@
 
 #include "wsproto.h"
 
-#include "_keyboar.h"
 #include "dbgprint.h"
 #include "globals.h"
-#include "keyboard.h"
 #include "netadmit.h"
 #include "vector.h"
 
@@ -98,11 +97,10 @@ char const * Packet_Drop_Name(WinsockInterfaceClass::PacketDropReasonType reason
  *    3/20/96 2:51PM ST : Created                                                              *
  *=============================================================================================*/
 WinsockInterfaceClass::WinsockInterfaceClass(void) :
-ASync(INVALID_HANDLE_VALUE),
-Socket(INVALID_SOCKET)
+Socket(INVALID_SOCKET),
+Listening(false)
 {
 	WinsockInitialised = false;
-	ASync = INVALID_HANDLE_VALUE;
 	Socket = INVALID_SOCKET;
 
 	for (int i = 0; i < WS_MAX_STATIC_BUFFERS; i++) {
@@ -166,9 +164,6 @@ void WinsockInterfaceClass::Close(void)
 	*/
 	if (!WinsockInitialised) return;
 
-	/*
-	**	Cancel any outstaning asyncronous events
-	*/
 	Stop_Listening();
 
 	/*
@@ -224,16 +219,13 @@ void WinsockInterfaceClass::Close_Socket (void)
  *=============================================================================================*/
 bool WinsockInterfaceClass::Start_Listening (void)
 {
-	/*
-	**	Enable asynchronous events on the socket
-	*/
-	if ( WSAAsyncSelect ( Socket, MainWindow, Protocol_Event_Message(), FD_READ | FD_WRITE) == SOCKET_ERROR ){
-		DebugString ( "Async select failed.\n" );
+	unsigned long nonblocking = 1;
+	if ( ioctlsocket ( Socket, FIONBIO, &nonblocking ) == SOCKET_ERROR ) {
+		DebugString ( "Failed to make the socket non-blocking - error code %d.\n", LAST_ERROR );
 		assert (false);
-		WSACancelAsyncRequest(ASync);
-		ASync = INVALID_HANDLE_VALUE;
 		return(false);
 	}
+	Listening = true;
 	return(true);
 }
 
@@ -254,10 +246,20 @@ bool WinsockInterfaceClass::Start_Listening (void)
  *=============================================================================================*/
 void WinsockInterfaceClass::Stop_Listening (void)
 {
-	if ( ASync != INVALID_HANDLE_VALUE ) {
-		WSACancelAsyncRequest ( ASync );
-		ASync = INVALID_HANDLE_VALUE;
-	}
+	Listening = false;
+}
+
+
+/// <summary>
+/// Moves pending packets between the socket and the holding buffers, so
+/// that Read finds what has arrived and what WriteTo queued has gone out.
+/// </summary>
+void WinsockInterfaceClass::Service(void)
+{
+	if (!Listening) return;
+
+	Receive_Pending();
+	Send_Pending();
 }
 
 
@@ -363,10 +365,9 @@ bool WinsockInterfaceClass::Init(void)
 	WSADATA *winsock_info = (WSADATA*) (&buffer[0]);
 
 	/*
-	**	Initialise socket and event handle to null
+	**	Initialise socket to null
 	*/
 	Socket =INVALID_SOCKET;
-	ASync = INVALID_HANDLE_VALUE;
 	Discard_In_Buffers();
 	Discard_Out_Buffers();
 
@@ -593,11 +594,6 @@ void *WinsockInterfaceClass::Get_New_In_Buffer(void)
 int WinsockInterfaceClass::Read(void *buffer, int &buffer_len, void *address, int &address_len)
 {
 	/*
-	**	Call the message loop in case there are any outstanding winsock READ messages.
-	*/
-	Keyboard->Check();
-
-	/*
 	**	If there are no available packets then return 0
 	*/
 	if ( InBuffers.Count() == 0 ) return(0);
@@ -710,15 +706,7 @@ void WinsockInterfaceClass::WriteTo(void *buffer, int buffer_len, void *address,
 	*/
 	OutBuffers.Add ( packet );
 
-	/*
-	**	Send a message to ourselves so that we can initiate a write if Winsock is idle.
-	*/
-	SendMessage ( MainWindow, Protocol_Event_Message(), 0, (LONG)FD_WRITE );
-
-	/*
-	**	Make sure the message loop gets called.
-	*/
-	Keyboard->Check();
+	Send_Pending();
 }
 
 
@@ -770,15 +758,7 @@ void WinsockInterfaceClass::Broadcast (void *buffer, int buffer_len)
 	*/
 	OutBuffers.Add ( packet );
 
-	/*
-	**	Send a message to ourselves so that we can initiate a write if Winsock is idle.
-	*/
-	SendMessage ( MainWindow, Protocol_Event_Message(), 0, (LONG)FD_WRITE );
-
-	/*
-	**	Make sure the message loop gets called.
-	*/
-	Keyboard->Check();
+	Send_Pending();
 }
 
 
