@@ -7723,7 +7723,8 @@ void MapGeneratorClass::Create_Tiberium(void)
 	if (SeedData.NumPlayers > 0) {
 		do {
 			int d = (int)((*mean_distances - min_mean_distance) * _distance_scale) + 500;
-			Create_Tiberium_Patch(Scen->Get_Waypoint_Cell((WAYPOINT)tib_index), d, ++tib_index, use_blue_tiberium, use_blue_tiberium, 0);
+			Create_Tiberium_Patch(Scen->Get_Waypoint_Cell((WAYPOINT)tib_index), d, tib_index + 1, use_blue_tiberium, use_blue_tiberium, 0);
+			tib_index++;
 			mean_distances++;
 		} while (tib_index < SeedData.NumPlayers);
 		mean_distances = mean_distances_start;
