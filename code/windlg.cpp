@@ -100,7 +100,7 @@ HWND WS_Create_Dialog(HINSTANCE instance, int id, HWND parent, DLGPROC proc, BOO
 	g_Dialogs[g_DialogCount].handle = 0;
 	g_Dialogs[g_DialogCount].id = 0;
 
-	LPCDLGTEMPLATE templ = (LPCDLGTEMPLATE)Fetch_Resource((LPCSTR)id, (LPCSTR)RT_DIALOG);
+	LPCDLGTEMPLATE templ = (LPCDLGTEMPLATE)Fetch_Resource(MAKEINTRESOURCE(id), (LPCSTR)RT_DIALOG);
 
 	if (templ == NULL) {
 		return(NULL);
@@ -397,7 +397,7 @@ BOOL CALLBACK Save_Control_Value_Enum_Proc(HWND window, LPARAM lParam)
 		}
 
 		unsigned char *buf = new unsigned char[size];
-		SendMessage(window, WM_GETTEXT, size, (LONG)buf);
+		SendMessage(window, WM_GETTEXT, size, (LPARAM)buf);
 		buf[size - 1] = '\0';
 		WS_Save_Control_Value(id, buf, size);
 		return(TRUE);
@@ -510,7 +510,7 @@ void WS_Clear_Saved_Values(void)
 /// measured and is destroyed again immediately, so every message is left to the default
 /// handling.
 /// </summary>
-BOOL CALLBACK Resize_Dialog_Proc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK Resize_Dialog_Proc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	// nothing
 	return(FALSE);
@@ -531,7 +531,7 @@ BOOL Get_Dialog_Resolution(unsigned short template_id, DLGPROC dialog_proc, int,
 	HWND window;
 	tagRECT rcl;
 
-	window = CreateDialogParam(ProgramInstance, (LPCSTR)template_id, 0, dialog_proc, 0);
+	window = CreateDialogParam(ProgramInstance, MAKEINTRESOURCE(template_id), 0, dialog_proc, 0);
 	GetClientRect(window, &rcl);
 	DestroyWindow(window);
 	pt.x = rcl.right;
@@ -582,7 +582,7 @@ BOOL CALLBACK Resize_Dialog(HWND window, LPARAM lParam)
 	}
 
 	if (lParam) {
-		HWND win = (HWND)GetWindowLong(window, GWL_HWNDPARENT);
+		HWND win = (HWND)GetWindowLongPtr(window, GWLP_HWNDPARENT);
 		GetWindowRect(win, &wrcl);
 		rcl.left -= wrcl.left;
 		rcl.right -= wrcl.left;

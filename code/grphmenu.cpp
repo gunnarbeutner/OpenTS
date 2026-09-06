@@ -20,6 +20,7 @@
 #include "keyboard.h"
 #include "msanim.h"
 #include "ownrdraw.h"
+#include "phase.h"
 #include "theme.h"
 
 GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name);
@@ -162,6 +163,8 @@ void GraphicMenu::Set_Item_Enabled(int id, bool enabled)
 /// <returns>Returns with the identifier of the menu item the player chose.</returns>
 int GraphicMenu::Presentation(void)
 {
+	PhaseScope phase("menu");
+
 	Theme.Play_Song(Theme.From_Name(ThemeName.Peek()));
 
 	OwnerDraw::Capture_Mouse();

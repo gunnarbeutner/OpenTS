@@ -9,7 +9,12 @@
 
 #include "always.h"
 
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+#include "win32user.h"
+#endif
+
 #include "ownrdraw.h"
+#include "phase.h"
 
 #include "_keyboar.h"
 #include "_mixfile.h"
@@ -47,8 +52,11 @@
 #include "windlg.h"
 
 #include <commctrl.h>
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+#include "win32gdi.h"
+#endif
 #include <ctime>
-#include <sys\timeb.h>
+#include <sys/timeb.h>
 #include <utility>
 
 
@@ -145,6 +153,29 @@ static unsigned char OD_Glyph(char32_t code)
 }
 
 
+// A page has no GDI, so win32gdi.cpp supplies a context that draws through the
+// engine's own fonts.
+static HDC OD_Surface_DC(Surface & surface)
+{
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	return(Win32_GDI_Surface_DC(surface));
+#else
+	return(((DSurface &)surface).GetDC());
+#endif
+}
+
+
+static void OD_Release_Surface_DC(Surface & surface, HDC hdc)
+{
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	(void)surface;
+	DeleteDC(hdc);
+#else
+	((DSurface &)surface).ReleaseDC(hdc);
+#endif
+}
+
+
 ///////////////////////////////////
 
 /// <summary>
@@ -179,7 +210,7 @@ unsigned int Hash_HWND(HWND &key)
 /// <returns>Returns with the hash value formed from the window and the message.</returns>
 unsigned int Hash_CtrlMsg(CtrlMsgData &key)
 {
-	return((unsigned int)((int)key.message * (int)key.window));
+	return((unsigned int)((int)key.message * (int)(intptr_t)key.window));
 }
 
 
@@ -332,10 +363,8 @@ static LRESULT CALLBACK ComboDropWinCtrlProc_Internal(HWND hWnd, UINT Msg, WPARA
 	WinData * data = NULL;
 	WinData * master_data = NULL;
 
+	// The window is not in ODWinData until CreateWindowEx returns.
 	ODWinData.getPointer(hWnd, &data);
-	if (data == NULL) {
-		DebugString("ComboBox dropdown windata = NULL\n");
-	}
 
 	if (OwnerComboHandle) {
 		ODWinData.getPointer(OwnerComboHandle, &master_data);
@@ -771,6 +800,12 @@ static LRESULT CALLBACK ComboDropWinCtrlProc_Internal(HWND hWnd, UINT Msg, WPARA
 /// never flickers through its stock Windows appearance on the way.
 /// </summary>
 /// <param name="lparam">Caller supplied value to store with each control for its own use.</param>
+void OwnerDraw::Adopt_Control(HWND control)
+{
+	if (control != NULL) InitializeCtrl(control, 0);
+}
+
+
 bool OwnerDraw::Subclass_Dialog(HWND window, LPARAM lparam)
 {
 	OwnerDraw::Register_Control_Classes();
@@ -886,7 +921,7 @@ BOOL CALLBACK InitializeCtrl(HWND window, LPARAM lparam)
 		customProc = DefaultCtrlProc;
 	}
 
-	WNDPROC originalProc = (WNDPROC)SetWindowLong(window, GWL_WNDPROC, (LONG)CtrlProc);
+	WNDPROC originalProc = (WNDPROC)SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)CtrlProc);
 
 	if (!CustomWndProcs.contains(window)) {
 		CustomWndProcs.add(window, customProc);
@@ -1106,6 +1141,19 @@ bool OwnerDraw::End_Tooltip(void)
 /// message was swallowed here.</returns>
 static LRESULT CALLBACK CtrlProc_Internal(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 
+// Nested paint depth; the area to put on screen is complete only when the
+// outermost paint unwinds.
+static int num_rect_updates;
+
+
+/// <summary>
+/// Is a paint part way through drawing into the game's drawing surfaces?
+/// </summary>
+bool OwnerDraw::Is_Painting(void)
+{
+	return(num_rect_updates > 0);
+}
+
 
 /// <summary>
 /// Hands a control its messages, in frame coordinates, and puts what it paints on screen.
@@ -1133,7 +1181,6 @@ static LRESULT CALLBACK CtrlProc_Internal(HWND window, UINT message, WPARAM wpar
 {
 	static POINT min_update_rect = {0xFFFFFF, 0xFFFFFF};
 	static POINT max_update_rect;
-	static int num_rect_updates;
 
 	/*
 	 * Tracks whether the game window had focus on the previous call so the
@@ -1628,7 +1675,7 @@ static LRESULT CALLBACK CtrlProc_Internal(HWND window, UINT message, WPARAM wpar
 			 */
 			owner = window;
 			while (owner != NULL) {
-				if (GetWindowLong(owner, DWL_DLGPROC) != 0) {
+				if (GetWindowLongPtr(owner, DWLP_DLGPROC) != 0) {
 					break;
 				}
 				owner = GetParent(owner);
@@ -1718,7 +1765,7 @@ static LRESULT CALLBACK CtrlProc_Internal(HWND window, UINT message, WPARAM wpar
 					if (sibling == NULL) {
 						break;
 					}
-					if (GetWindowLong(sibling, DWL_DLGPROC)) {
+					if (GetWindowLongPtr(sibling, DWLP_DLGPROC)) {
 						Rect sibling_rect;
 						Get_Display_Rect(sibling, (LPRECT)&sibling_rect);
 						RECT intersect;
@@ -1740,7 +1787,7 @@ cleanup:
 	ctrlmessages.remove(key);
 
 	if (is_paint) {
-		if (GetWindowLong(window, DWL_DLGPROC)) {
+		if (GetWindowLongPtr(window, DWLP_DLGPROC)) {
 			if (num_rect_updates > 1) {
 				data->animState = 2;
 			}
@@ -1760,7 +1807,7 @@ cleanup:
 				screen_rect.Width = max_update_rect.x - min_update_rect.x;
 				screen_rect.Height = max_update_rect.y - min_update_rect.y;
 
-				if (GetWindowLong(window, DWL_DLGPROC) && data->animState == 1) {
+				if (GetWindowLongPtr(window, DWLP_DLGPROC) && data->animState == 1) {
 
 					/*
 					 * Animated dialog reveal -- the screen wipes open from the
@@ -2680,10 +2727,59 @@ LRESULT CALLBACK EditBoxCtrlProc(HWND window, UINT message, WPARAM wparam, LPARA
 					sel >>= 16;
 				}
 
+				// The control lays out in a different font, so the caret is
+				// measured against the text drawn here.
 				int charidx = LOWORD(sel);
-				if (charidx < (int)strlen(_buffer)) {
-					SendMessage(window, EM_POSFROMCHAR, charidx, 0);
+				if (charidx > (int)strlen(_buffer)) {
+					charidx = (int)strlen(_buffer);
 				}
+
+				char measured[512];
+				strncpy(measured, _buffer, sizeof(measured) - 1);
+				measured[sizeof(measured) - 1] = '\0';
+				if (charidx < (int)sizeof(measured)) {
+					measured[charidx] = '\0';
+				}
+
+				SIZE measured_size = {0, 0};
+				HDC measure_dc = GetDC(window);
+				if (ODFontPtr != NULL) {
+					SelectObject(measure_dc, ODFontPtr);
+				}
+				GetTextExtentPoint32(measure_dc, measured, strlen(measured), &measured_size);
+				ReleaseDC(window, measure_dc);
+
+				SetCaretPos(display_rect.left + measured_size.cx, display_rect.top);
+
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+				// The caret substitute has no surface of its own, so the bar is
+				// drawn here and the blink arrives as a repaint.
+				RECT caret;
+				if (Win32_Caret_Visible(window, &caret)) {
+					Rect bar;
+					bar.X = caret.left;
+					bar.Y = display_rect.top + 1;
+					bar.Width = caret.right - caret.left;
+					bar.Height = (display_rect.bottom - display_rect.top) - 2;
+
+					if (bar.Width > 0 && bar.Height > 0) {
+						// A fill on a locked surface does nothing.
+						DSurface * destination = (DSurface *)AlternateSurface;
+						int locks = 0;
+						while (destination->Is_Locked()) {
+							locks++;
+							destination->Unlock();
+						}
+
+						destination->Fill_Rect(bar, ODColorToHiColor(ODColorText));
+
+						while (locks) {
+							destination->Lock();
+							locks--;
+						}
+					}
+				}
+#endif
 
 				ValidateRect(window, NULL);
 			}
@@ -3344,7 +3440,7 @@ LRESULT CALLBACK ListBoxCtrlProc(HWND window, UINT message, WPARAM wparam, LPARA
 		}
 		needs_scrollbar = (count * item_height > client_rect.bottom - client_rect.top);
 		max_position = count - (client_rect.bottom - client_rect.top) / item_height;
-		if ((unsigned int)data->attachedWindow > 1) {
+		if ((uintptr_t)data->attachedWindow > 1) {
 			SCROLLINFO info;
 			info.fMask = SIF_RANGE | SIF_POS;
 			info.nMin = 0;
@@ -3536,7 +3632,7 @@ LRESULT CALLBACK ListBoxCtrlProc(HWND window, UINT message, WPARAM wparam, LPARA
 		}
 
 		case WM_SIZE: {
-			if ((int)data->attachedWindow > 1) {
+			if ((intptr_t)data->attachedWindow > 1) {
 				RECT parent_display;
 				Get_Display_Rect(GetParent(window), &parent_display);
 				Rect win_display;
@@ -4034,7 +4130,7 @@ LRESULT CALLBACK ListBoxCtrlProc(HWND window, UINT message, WPARAM wparam, LPARA
 	if (needs_scrollbar == 1) {
 		if (data->attachedWindow == NULL) {
 			data->attachedWindow = (HWND)1;
-			GetWindowLong(window, GWL_WNDPROC);
+			GetWindowLongPtr(window, GWLP_WNDPROC);
 			parent = GetParent(window);
 			RECT parent_display;
 			Get_Display_Rect(parent, &parent_display);
@@ -4952,7 +5048,7 @@ LRESULT CALLBACK GroupBoxCtrlProc(HWND window, UINT message, WPARAM wparam, LPAR
 				AlternateSurface->Unlock();
 			}
 
-			HDC hdc = ((DSurface *)AlternateSurface)->GetDC();
+			HDC hdc = OD_Surface_DC(*AlternateSurface);
 			SelectObject(hdc, ODFontPtr);
 			SetTextColor(hdc, ODColorText);
 			SetBkMode(hdc, TRANSPARENT);
@@ -4969,7 +5065,7 @@ LRESULT CALLBACK GroupBoxCtrlProc(HWND window, UINT message, WPARAM wparam, LPAR
 			int y = rect.top + text_size.cy / 2;
 			TextOut(hdc, rect.left + 10, rect.top, text, strlen(text));
 
-			((DSurface *)AlternateSurface)->ReleaseDC(hdc);
+			OD_Release_Surface_DC(*AlternateSurface, hdc);
 
 			while (locks > 0) {
 				((DSurface *)AlternateSurface)->Lock();
@@ -5699,7 +5795,7 @@ int ODDrawTextBG(Surface & surface, LPCSTR string, LPRECT rect, HGDIOBJ font, CO
 		surface.Unlock();
 	}
 
-	HDC hdc = ((DSurface &)surface).GetDC();
+	HDC hdc = OD_Surface_DC(surface);
 
 	SelectObject(hdc, font);
 	SetTextColor(hdc, color);
@@ -5709,7 +5805,7 @@ int ODDrawTextBG(Surface & surface, LPCSTR string, LPRECT rect, HGDIOBJ font, CO
 	GetTextExtentPoint32(hdc, string, strlen(string), &char_size);
 	DrawText(hdc, string, strlen(string), rect, format);
 
-	((DSurface &)surface).ReleaseDC(hdc);
+	OD_Release_Surface_DC(surface, hdc);
 
 	while (locks > 0) {
 		((DSurface &)surface).Lock();
@@ -6139,7 +6235,7 @@ bool ODGetFontMetrics(char const * font_name, FontMetrics * metrics)
 /// <summary>
 /// Draws a line of text onto a surface.
 /// This routine borrows a device context from the surface, unlocking it as often as it
-/// must beforehand, and lets Windows put the text out aligned within the rectangle given.
+/// must beforehand, and puts the text out aligned within the rectangle given.
 /// Nothing is drawn while the game does not hold the focus.
 /// </summary>
 /// <param name="len">The number of characters of the text to draw.</param>
@@ -6165,7 +6261,7 @@ int OD_Draw_Text(COLORREF color, HFONT font, Rect const & rect, const char * tex
 
 	SIZE text_size;
 
-	HDC hDC = destsurf->GetDC();
+	HDC hDC = OD_Surface_DC(*destsurf);
 	if (hDC) {
 
 		if (font) {
@@ -6197,7 +6293,7 @@ int OD_Draw_Text(COLORREF color, HFONT font, Rect const & rect, const char * tex
 		}
 
 		TextOut(hDC, x_offset, y_offset, text, len);
-		destsurf->ReleaseDC(hDC);
+		OD_Release_Surface_DC(*destsurf, hDC);
 	} else {
 		text_size.cx = 0;
 	}
@@ -6739,7 +6835,7 @@ int OwnerDraw::Release_Mouse(void)
 /// <remarks>Every dialog begun with this routine must be finished with End_Dialog.</remarks>
 HWND OwnerDraw::Begin_Dialog(int id, DLGPROC proc)
 {
-	LPCDLGTEMPLATE templ = (LPCDLGTEMPLATE)Fetch_Resource((LPCSTR)(int)MAKEINTRESOURCE(id), (LPCSTR)RT_DIALOG);
+	LPCDLGTEMPLATE templ = (LPCDLGTEMPLATE)Fetch_Resource(MAKEINTRESOURCE(id), (LPCSTR)RT_DIALOG);
 	if (templ == NULL) {
 		return(NULL);
 	}
@@ -6756,14 +6852,17 @@ HWND OwnerDraw::Begin_Dialog(int id, DLGPROC proc)
 	}
 
 	g_Dialogs[idx].handle = handle;
-	g_Dialogs[idx].id = (int)MAKEINTRESOURCE(id);
+	g_Dialogs[idx].id = (int)(uintptr_t)MAKEINTRESOURCE(id);
 
 	Capture_Mouse();
 
 	Add_Modeless_Dialog(handle);
 
 	g_TopWindow = handle;
-	g_TopWindowID = (int)MAKEINTRESOURCE(id);
+	g_TopWindowID = (int)(uintptr_t)MAKEINTRESOURCE(id);
+
+	Phase_Register_Layers("dialog", [](void) { return(g_DialogCount); });
+	Phase_Changed();
 
 	return(handle);
 }
@@ -6805,6 +6904,8 @@ void OwnerDraw::End_Dialog(HWND window)
 			break;
 		}
 	}
+
+	Phase_Changed();
 
 	UpdateWindow(MainWindow);
 	Release_Mouse();
@@ -6867,7 +6968,7 @@ int OwnerDraw::Default_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPA
 		case WM_CTLCOLORDLG:
 		case WM_CTLCOLORSCROLLBAR:
 		case WM_CTLCOLORSTATIC:
-			return((int)GetStockObject(BLACK_BRUSH));
+			return((INT_PTR)GetStockObject(BLACK_BRUSH));
 
 		case OD_SUBCLASSED:
 			SendMessage(window, OD_SETTOP, (WPARAM)window, 1);
@@ -6956,6 +7057,51 @@ int OwnerDraw::Move_Dialog(HWND window, int x, int y)
 
 
 /// <summary>
+/// Moves the open dialogs to the frame's new size, keeping each one's offset
+/// from the middle. Nothing is repainted; the caller repaints the frame.
+/// </summary>
+/// <param name="oldwidth">The frame width before the resize.</param>
+/// <param name="oldheight">The frame height before the resize.</param>
+void OwnerDraw::Relayout_Dialogs(int oldwidth, int oldheight)
+{
+	// A tooltip's saved backdrop came from the old surfaces.
+	End_Tooltip();
+
+	for (int index = 0; index < g_DialogCount; index++) {
+		HWND window = g_Dialogs[index].handle;
+
+		if (window == NULL) {
+			continue;
+		}
+
+		RECT rect;
+		if (!Get_Display_Rect(window, &rect)) {
+			continue;
+		}
+
+		int width = rect.right - rect.left;
+		int height = rect.bottom - rect.top;
+
+		int x = rect.left - (oldwidth - width) / 2 + (VideoModeWidth - width) / 2;
+		int y = rect.top - (oldheight - height) / 2 + (VideoModeHeight - height) / 2;
+
+		if (x < 0) x = 0;
+		if (y < 0) y = 0;
+
+		// The cached backdrop is the wallpaper under the old position.
+		WinData * data = NULL;
+		if (ODWinData.getPointer(window, &data) && data != NULL && data->cachedSurface != NULL) {
+			delete data->cachedSurface;
+			data->cachedSurface = NULL;
+			_surface_count--;
+		}
+
+		MoveWindow(window, x, y, width, height, FALSE);
+	}
+}
+
+
+/// <summary>
 /// Creates the custom message box dialog.
 /// This routine brings the modeless message box up, captures the mouse and makes the box
 /// the top window. The second button stays hidden unless a caption is supplied for it.
@@ -6969,7 +7115,7 @@ HWND OwnerDraw::Custom_Message_Box(const char *btn1txt, const char *btn2txt, boo
 {
 	HWND dlg = OwnerDraw::Begin_Dialog(IDD_MSGBOX_1, (DLGPROC)Custom_Message_Box_Proc);
 
-	SetWindowLong(dlg, 8, (LONG)cancelled);
+	SetWindowLongPtr(dlg, DWLP_USER, (LONG_PTR)cancelled);
 	SetDlgItemText(dlg, IDC_MSGBOX_TEXT, btn1txt);
 
 	if (btn2txt) {
@@ -6996,7 +7142,7 @@ LRESULT CALLBACK Custom_Message_Box_Proc(HWND window, UINT message, WPARAM wpara
 
 	if (res == 0) {
 		if (message == WM_COMMAND && wparam == IDCANCEL) {
-			bool * cancelled = (bool *)GetWindowLong(window, DWL_USER);
+			bool * cancelled = (bool *)GetWindowLongPtr(window, DWLP_USER);
 			if (cancelled) {
 				Keyboard->Put(KN_ESC);
 				*cancelled = true;

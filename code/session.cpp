@@ -62,6 +62,7 @@
 #include "language/language.h"
 #include "msgloop.h"
 #include "netglobal.h"
+#include "phase.h"
 #include "progress.h"
 #include "queue.h"
 #include "rules.h"
@@ -72,6 +73,7 @@
 #include "special.h"
 #include "stats.h"
 #include "xstraw.h"
+
 
 #include <algorithm>
 #include <ctime> // for station ID computation
@@ -986,6 +988,8 @@ int SessionClass::Color_Index_To_Scheme(int id)
  * HISTORY:                                                                *
  *   12/07/1995 BRR : Created.                                             *
  *=========================================================================*/
+
+
 unsigned int SessionClass::Compute_Unique_ID(void)
 {
 //	time_t tm;
@@ -1195,6 +1199,10 @@ void SessionClass::Update_Progress(int percent)
 
 	if (Progress.Get_Current_Progress(0) * 100.0 < new_percent) {
 		Progress.Set_Progress_Percent(0, new_percent);
+
+		char text[16];
+		snprintf(text, sizeof(text), "%d", new_percent);
+		Phase_Event("progress", text);
 	}
 
 	if ( Players.Count() == 1 ) return;

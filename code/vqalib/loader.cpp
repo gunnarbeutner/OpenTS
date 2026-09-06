@@ -302,9 +302,9 @@ long VQA_LoadFrame(VQAHandleP *vqap, long flags)
 #pragma pack(push,1)
 struct VQASN2J {
 	short index;
-	long  predicted;
+	int   predicted;
 	short index2;
-	long  predicted2;
+	int   predicted2;
 };
 static_assert(sizeof(VQASN2J) == 12, "the SN2J chunk is 12 bytes on disk");
 #pragma pack(pop)
@@ -1084,7 +1084,7 @@ long VQA_SeekLoop(VQAHandleP *vqap, long framenum, long flags)
 	}
 
 	if (rc == VQAERR_NONE) {
-		if (needs_seek && vqap->Config.StreamHandler((VQAHandle *)vqap, VQACMD_SEEKPEEK, 0, long((int)cache->Buffer + cache->Bytes)) != 0) {
+		if (needs_seek && vqap->Config.StreamHandler((VQAHandle *)vqap, VQACMD_SEEKPEEK, 0, (long)((intptr_t)cache->Buffer + cache->Bytes)) != 0) {
 			return(VQAERR_SEEK);
 		}
 	}

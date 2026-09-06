@@ -108,7 +108,7 @@ static HWND Child_From_Logical_Point(HWND parent, POINT parent_point, POINT scre
 /// </summary>
 /// <param name="logical_point">The position, in the frame.</param>
 /// <returns>The window that owns it, or the main window when no control does.</returns>
-static HWND Window_From_Logical_Point(POINT logical_point)
+HWND Window_From_Logical_Point(POINT logical_point)
 {
 	HWND capture = GetCapture();
 	if (capture != NULL && (capture == MainWindow || IsChild(MainWindow, capture))) {

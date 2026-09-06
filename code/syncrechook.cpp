@@ -70,6 +70,17 @@ namespace {
 /// randomization makes the normal case, so the answer only survives in the file itself.
 /// </summary>
 /// <returns>The preferred base, or zero when the header could not be read.</returns>
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+
+// The preferred base is a field of a PE image header, and there is no PE image here. Callers
+// already treat zero as "the header could not be read".
+static uint32_t Sync_Preferred_Image_Base(void)
+{
+	return(0);
+}
+
+#else
+
 static uint32_t Sync_Preferred_Image_Base(void)
 {
 	char path[MAX_PATH];
@@ -104,6 +115,8 @@ static uint32_t Sync_Preferred_Image_Base(void)
 
 	return(base);
 }
+
+#endif
 
 
 static char const * Sync_Describe_Caller(uint32_t rva)
@@ -246,9 +259,15 @@ void Sync_Recorder_Arm(void)
 	bool const network = (Session.Type == GAME_IPX || Session.Type == GAME_INTERNET);
 	SyncRecorder.Set_Recording(network || Session.Record || Session.Play);
 
-	ModuleBase = (uintptr_t)GetModuleHandle(nullptr);
+	ModuleBase = 0;
 	ModuleSize = 0;
 	MapImageBase = 0;
+
+#if !defined(OPENTS_WIN32_SUBSTITUTE)
+	// The loaded image's own headers give its extent, which turns a return address into an
+	// offset a map file can be read against. A module with no PE headers reports none, and a
+	// zero base makes every caller record as an address outside the image.
+	ModuleBase = (uintptr_t)GetModuleHandle(nullptr);
 	if (ModuleBase != 0) {
 		IMAGE_DOS_HEADER const * dos = (IMAGE_DOS_HEADER const *)ModuleBase;
 		if (dos->e_magic == IMAGE_DOS_SIGNATURE) {
@@ -258,6 +277,7 @@ void Sync_Recorder_Arm(void)
 			}
 		}
 	}
+#endif
 
 	MapImageBase = Sync_Preferred_Image_Base();
 

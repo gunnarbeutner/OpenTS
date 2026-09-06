@@ -11,6 +11,12 @@
 
 #include "syncrec.h"
 
+#if !defined(_MSC_VER)
+// The callers pass MSVC's _ReturnAddress; every other compiler here spells the same thing
+// __builtin_return_address.
+#define _ReturnAddress() __builtin_return_address(0)
+#endif
+
 class Random2Class;
 class AbstractClass;
 class ObjectClass;

@@ -78,7 +78,7 @@ void SHAEngine::Process_Partial(void const * & data, int & length)
 	**	Attach as many bytes as possible from the source data into
 	**	the staging buffer.
 	*/
-	int add_count = std::min((int)length, SRC_BLOCK_SIZE - PartialCount);
+	int add_count = std::min<int>((int)length, SRC_BLOCK_SIZE - PartialCount);
 	memcpy(&Partial[PartialCount], data, add_count);
 	data = ((char const *&)data) + add_count;
 	PartialCount += add_count;
@@ -240,9 +240,9 @@ T _rotl(T X, int n)
 {
 	return(T)( ( X << n ) | ( (unsigned)X >> ((sizeof(T)*8) - n) ) );
 }
-//unsigned long _RTLENTRY _rotl(unsigned long X, int n)
+//unsigned int _RTLENTRY _rotl(unsigned int X, int n)
 //{
-//	return(unsigned long)( (unsigned long)( (unsigned long)( (unsigned long)X ) << (int)n ) | (unsigned long)( ((unsigned long) X ) >> ( (int)((int)(sizeof(long)*(long)8) - (long)n) ) ) );
+//	return(unsigned int)( (unsigned int)( (unsigned int)( (unsigned int)X ) << (int)n ) | (unsigned int)( ((unsigned int) X ) >> ( (int)((int)(sizeof(long)*(long)8) - (long)n) ) ) );
 //}
 void memrev(char * buffer, size_t length);
 

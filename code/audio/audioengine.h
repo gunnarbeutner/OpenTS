@@ -86,6 +86,14 @@ class AudioEngineClass
 		AudioSampleCacheClass & Samples(void) { return(Cache); }
 		AudioMixerClass & Mixer_Ref(void) { return(Mixer); }
 		AudioFeederClass & Feeder_Ref(void) { return(Feeder); }
+
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+		// A page runs the feeder's passes on the game thread, from whatever loop the
+		// engine is waiting in, because it has no thread to run them on. The message
+		// loops reach this thousands of times a second, so a pass too soon after the
+		// last one is skipped.
+		void Service(void);
+#endif
 		unsigned Now_Ms(void) const;
 
 		// A stream slot for a producer the caller drives itself, such as the
@@ -126,6 +134,9 @@ class AudioEngineClass
 		float GroupGains[AUDIO_GROUP_COUNT];
 		float MasterGain = 1.0f;
 		std::chrono::steady_clock::time_point Epoch;
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+		double LastServicePass = 0.0;
+#endif
 		unsigned LastDropped = 0;
 		unsigned LastDropReport = 0;
 		bool Available = false;

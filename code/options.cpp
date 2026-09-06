@@ -408,7 +408,13 @@ void OptionsClass::Load_Settings(void)
 	ScreenHeight = ConfigINI.Get_Int("Video", "ScreenHeight", ScreenHeight);
 	DebugString("Resolution = %d X %d\n", ScreenWidth, ScreenHeight);
 
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	// The frame is the page's canvas, so an unstretched movie would be a small
+	// picture in the middle of the window. The display options hide this.
+	StretchMovies = true;
+#else
 	StretchMovies = ConfigINI.Get_Bool("Video", "StretchMovies", StretchMovies);
+#endif
 	DebugString("StretchMovies is %s\n", StretchMovies == true ? "ON" : "OFF");
 
 	IntegerScaling = ConfigINI.Get_Bool("Video", "IntegerScaling", IntegerScaling);
@@ -605,7 +611,7 @@ int OptionsClass::Normalize_Volume(int volume) const
 /// KEYBOARD.INI; canceling puts the previous assignments back.
 /// </summary>
 /// <returns>Returns with TRUE if the message was consumed by this dialog.</returns>
-BOOL CALLBACK Hotkey_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
+INT_PTR CALLBACK Hotkey_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
 	char buffer[64];
 	int * retval;
@@ -616,7 +622,7 @@ BOOL CALLBACK Hotkey_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARA
 		return(result);
 	}
 
-	retval = (int *)GetWindowLong(window, DWL_USER);
+	retval = (int *)GetWindowLongPtr(window, DWLP_USER);
 
 	switch (message) {
 		case WM_COMMAND:
@@ -822,7 +828,7 @@ bool OptionsClass::Hotkey_Dialog(void)
 	handle = OwnerDraw::Begin_Dialog(IDD_OPT_KEYBOARD, Hotkey_Dialog_Proc);
 
 	if (handle != NULL) {
-		SetWindowLong(handle, DWL_USER, (LONG)&res);
+		SetWindowLongPtr(handle, DWLP_USER, (LONG_PTR)&res);
 		OwnerDraw::Display_Dialog(handle);
 
 		while (res < 0) {

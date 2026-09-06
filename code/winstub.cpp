@@ -48,6 +48,7 @@
 #include "_map.h"
 #include "_rect.h"
 #include "_tooltip.h"
+#include "browser.h"
 #include "ccfile.h"
 #include "cctooltip.h"
 #include "convert.h"
@@ -172,7 +173,7 @@ extern bool InMovie;
 /// locking and shutdown -- and passes everything else back to Windows.
 /// </summary>
 /// <returns>Returns with the result Windows expects for the message handled.</returns>
-LRESULT CALLBACK /*_export*/ Windows_Procedure(HWND hwnd, UINT message, UINT wParam, LONG lParam)
+LRESULT CALLBACK /*_export*/ Windows_Procedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 
 	/*
@@ -184,7 +185,7 @@ LRESULT CALLBACK /*_export*/ Windows_Procedure(HWND hwnd, UINT message, UINT wPa
 		if (Route_Mouse_Message(hwnd, message, wParam, lParam, &translated_lparam)) {
 			return(0);
 		}
-		lParam = (LONG)translated_lparam;
+		lParam = translated_lparam;
 	}
 
 	int	low_param = LOWORD(wParam);
@@ -357,7 +358,17 @@ LRESULT CALLBACK /*_export*/ Windows_Procedure(HWND hwnd, UINT message, UINT wPa
 
 NativeWindow Win_Native_Window(HWND window)
 {
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+
+	// The substitute window is not what the renderer draws into; the host says what is.
+	(void)window;
+	return(Browser_Native_Window());
+
+#else
+
 	return(NativeWindow{ NATIVE_WINDOW_DEFAULT, nullptr, window });
+
+#endif
 }
 
 

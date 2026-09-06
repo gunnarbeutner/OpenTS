@@ -26,6 +26,7 @@
 #include "_timer.h"
 #include "_xmouse.h"
 #include "bench.h"
+#include "browser.h"
 #include "chat.h"
 #include "command.h"
 #include "conquer.h"
@@ -151,24 +152,27 @@ void Motion_Capture(void)
 
 
 /// <summary>
-/// Handles the game losing the input focus.
-/// This routine parks the main loop while another application holds the focus, pumping
-/// the Windows message queue so that the game can be restored. A network game cannot
-/// afford to stall, so it pumps the queue once and lets play carry on regardless.
+/// Is the game parked and forbidden to play a frame? A game with peers never
+/// parks, because they play on regardless.
 /// </summary>
-static void Check_For_Focus_Loss(void)
+bool Is_Suspended(void)
 {
-	while (!GameInFocus) {
-		if (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) {
-			Sleep(500);
-			Windows_Message_Handler();
-		} else {
-			Sleep(10);
-			Windows_Message_Handler();
-			break;
-		}
+	if (GameInFocus) {
+		return false;
 	}
-	return;
+
+	return Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH;
+}
+
+
+/// <summary>
+/// Services one pass of a parked game; the message pump is what brings the game
+/// back, so a parked pass still runs it.
+/// </summary>
+void Service_Suspension(void)
+{
+	Sleep(500);
+	Windows_Message_Handler();
 }
 
 bool InMainLoop = false;
@@ -200,23 +204,12 @@ bool Main_Loop(void)
 
 	InMainLoop = true;
 
-	/*
-	**	Call the focus loss handler
-	*/
-	#if 0
-	Check_For_Focus_Loss();
-	#else
-	while (!GameInFocus) {
-		if (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) {
-			Sleep(500);
-			Windows_Message_Handler();
-		} else {
-			Sleep(10);
-			Windows_Message_Handler();
-			break;
-		}
+	// A game with peers cannot park, so it pumps the queue once and plays on.
+	// Game_Frame parks every other session type before it reaches here.
+	if (!GameInFocus && Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
+		Sleep(10);
+		Windows_Message_Handler();
 	}
-	#endif
 
 	/*
 	**	Sync-bug trapping code
@@ -562,6 +555,65 @@ void Keyboard_Process(KeyNumType & input)
 }
 
 
+/// <summary>
+/// Has the frame that was just played run out its pacing timer?
+/// </summary>
+bool Frame_Is_Due(void)
+{
+	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
+		return NetFrameTimer() == 0;
+	}
+
+	return FrameTimer() == 0;
+}
+
+
+/// <summary>
+/// Services one pass of the wait for the next frame and returns; the wait
+/// itself belongs to the caller.
+/// </summary>
+void Service_Frame(void)
+{
+	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
+		Call_Back();
+		if (SpecialDialog == SDLG_NONE && GameInFocus == true) {
+			KeyNumType input = KN_NONE;
+			int x, y;
+			if (NetFrameTimer > 10) {
+				Map.Input(input, x, y);
+				Keyboard_Process(input);
+				TacticalMap->AI();
+				Map.Render();
+			} else {
+				Sleep(0);
+			}
+			if (!NetFrameTimer()) {
+				return;
+			}
+		}
+		Sleep(0);
+	} else {
+		Call_Back();
+		if (SpecialDialog == SDLG_NONE && GameInFocus == true) {
+			KeyNumType input = KN_NONE;
+			int x, y;
+			Map.Input(input, x, y);
+			Keyboard_Process(input);
+			TacticalMap->AI();
+			Map.Render();
+			if (!FrameTimer) {
+				return;
+			}
+		}
+		if (GameInFocus || (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH)) {
+			Sleep(0);
+		} else {
+			Sleep(16 * FrameTimer);
+		}
+	}
+}
+
+
 /***********************************************************************************************
  * Sync_Delay -- Forces the game into a 15 FPS rate.                                           *
  *                                                                                             *
@@ -586,46 +638,8 @@ void Sync_Delay(void)
 	*/
 	SpareTicks += FrameTimer;
 
-	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
-		while (NetFrameTimer) {
-			Call_Back();
-			if (SpecialDialog == SDLG_NONE && GameInFocus == true) {
-				KeyNumType input = KN_NONE;
-				int x, y;
-				if (NetFrameTimer > 10) {
-					Map.Input(input, x, y);
-					Keyboard_Process(input);
-					TacticalMap->AI();
-					Map.Render();
-				} else {
-					Sleep(0);
-				}
-				if (!NetFrameTimer()) {
-					break;
-				}
-			}
-			Sleep(0);
-		}
-	} else {
-		while (FrameTimer) {
-			Call_Back();
-			if (SpecialDialog == SDLG_NONE && GameInFocus == true) {
-				KeyNumType input = KN_NONE;
-				int x, y;
-				Map.Input(input, x, y);
-				Keyboard_Process(input);
-				TacticalMap->AI();
-				Map.Render();
-				if (!FrameTimer) {
-					break;
-				}
-			}
-			if (GameInFocus || (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH)) {
-				Sleep(0);
-			} else {
-				Sleep(16 * FrameTimer);
-			}
-		}
+	while (!Frame_Is_Due()) {
+		Service_Frame();
 	}
 
 	static CDTimerClass<SystemTimerClass> fps_timer;

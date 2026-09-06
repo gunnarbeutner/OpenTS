@@ -82,6 +82,7 @@ UDPInterfaceClass::UDPInterfaceClass (void) :
 	DestinationPortSet(false),
 	UseBroadcast(false),
 	TunnelID(0),
+	TunnelBroadcast(0),
 	TunnelIP(0),
 	TunnelPort(0)
 {}
@@ -135,7 +136,41 @@ void UDPInterfaceClass::Configure_Tunnel(unsigned short local_id, unsigned long 
 
 
 /// <summary>
-/// Hands a datagram to Winsock, routing it through the tunnel server when one is in use.
+/// Names the recipient id that stands for every player at once, or zero
+/// where the carrier has no such thing.
+/// </summary>
+void UDPInterfaceClass::Set_Tunnel_Broadcast(unsigned short id)
+{
+	TunnelBroadcast = id;
+}
+
+
+/// <summary>
+/// Moves a datagram with the socket this interface opened.
+/// </summary>
+/// <returns>Whatever sendto returned.</returns>
+int UDPInterfaceClass::Carrier_Send(const char *buffer, int buffer_len, const sockaddr_in *destination)
+{
+	return(sendto(Socket, buffer, buffer_len, 0,
+		reinterpret_cast<const sockaddr *>(destination), sizeof(*destination)));
+}
+
+
+/// <summary>
+/// Takes a datagram from the socket this interface opened.
+/// </summary>
+/// <returns>Whatever recvfrom returned.</returns>
+int UDPInterfaceClass::Carrier_Receive(char *buffer, int buffer_len, sockaddr_in *source)
+{
+	int address_len = sizeof(*source);
+
+	return(recvfrom(Socket, buffer, buffer_len, 0,
+		reinterpret_cast<sockaddr *>(source), &address_len));
+}
+
+
+/// <summary>
+/// Hands a datagram to the carrier, via the tunnel server when one is in use.
 /// </summary>
 /// <param name="destination">Where the packet is bound. In tunnel mode the port carries
 /// the recipient's tunnel ID rather than a real port.</param>
@@ -143,7 +178,7 @@ void UDPInterfaceClass::Configure_Tunnel(unsigned short local_id, unsigned long 
 int UDPInterfaceClass::Send_To(const char *buffer, int buffer_len, sockaddr_in *destination)
 {
 	if (TunnelPort == 0) {
-		return(sendto(Socket, buffer, buffer_len, 0, reinterpret_cast<const sockaddr *>(destination), sizeof(*destination)));
+		return(Carrier_Send(buffer, buffer_len, destination));
 	}
 
 	// The tunnel server routes on the header alone, so it has to lead the datagram,
@@ -162,29 +197,27 @@ int UDPInterfaceClass::Send_To(const char *buffer, int buffer_len, sockaddr_in *
 	server.sin_addr.s_addr = TunnelIP;
 	server.sin_port = TunnelPort;
 
-	int rc = sendto(Socket, tunnelled, buffer_len + TUNNEL_HEADER_SIZE, 0, reinterpret_cast<const sockaddr *>(&server), sizeof(server));
+	int rc = Carrier_Send(tunnelled, buffer_len + TUNNEL_HEADER_SIZE, &server);
 
 	return(rc > 0 ? rc - TUNNEL_HEADER_SIZE : rc);
 }
 
 
 /// <summary>
-/// Takes a datagram from Winsock, unwrapping it when a tunnel is in use. A tunnelled
-/// packet reports its sender by tunnel ID, since the server is the only endpoint the
-/// socket ever sees.
+/// Takes a datagram from the carrier, unwrapping it when a tunnel is in use.
+/// A tunnelled packet reports its sender by tunnel ID, since the server is
+/// the only endpoint the socket ever sees.
 /// </summary>
 /// <returns>The number of payload bytes received, RECEIVE_IGNORED for a datagram that
-/// was not for this client, or SOCKET_ERROR when the socket delivered nothing.</returns>
+/// was not for this client, or SOCKET_ERROR when the carrier delivered nothing.</returns>
 int UDPInterfaceClass::Receive_From(char *buffer, int buffer_len, sockaddr_in *source)
 {
-	int address_len = sizeof(*source);
-
 	if (TunnelPort == 0) {
-		return(recvfrom(Socket, buffer, buffer_len, 0, reinterpret_cast<sockaddr *>(source), &address_len));
+		return(Carrier_Receive(buffer, buffer_len, source));
 	}
 
 	char tunnelled[TUNNEL_HEADER_SIZE + WS_RECEIVE_BUFFER_LEN];
-	int rc = recvfrom(Socket, tunnelled, sizeof(tunnelled), 0, reinterpret_cast<sockaddr *>(source), &address_len);
+	int rc = Carrier_Receive(tunnelled, sizeof(tunnelled), source);
 
 	if (rc == SOCKET_ERROR) return(SOCKET_ERROR);
 
@@ -193,7 +226,10 @@ int UDPInterfaceClass::Receive_From(char *buffer, int buffer_len, sockaddr_in *s
 	std::memcpy(header, tunnelled, sizeof(header));
 
 	// Anything too short to carry a header, or addressed to somebody else, is not ours.
-	if (rc <= TUNNEL_HEADER_SIZE || header[1] != TunnelID) {
+	bool const mine = (header[1] == TunnelID)
+		|| (TunnelBroadcast != 0 && header[1] == TunnelBroadcast);
+
+	if (rc <= TUNNEL_HEADER_SIZE || !mine) {
 		return(RECEIVE_IGNORED);
 	}
 
@@ -370,7 +406,7 @@ bool UDPInterfaceClass::Open_Socket ( SOCKET )
 /// </remarks>
 void UDPInterfaceClass::Register_Local_Addresses()
 {
-	unsigned long size = 0;
+	ULONG size = 0;
 
 	if (GetAdaptersInfo(nullptr, &size) == ERROR_BUFFER_OVERFLOW) {
 
@@ -507,7 +543,7 @@ void UDPInterfaceClass::Broadcast (void *buffer, int buffer_len)
 
 
 /// <summary>
-/// Takes every datagram the socket holds into the in buffers. A pass is
+/// Takes every datagram the carrier holds into the in buffers. A pass is
 /// bounded so that a flood cannot hold the frame; what is left waits for the
 /// next one.
 /// </summary>
@@ -520,7 +556,7 @@ void UDPInterfaceClass::Receive_Pending(void)
 		if (rc == RECEIVE_IGNORED) continue;
 
 		if (rc == SOCKET_ERROR) {
-			// The socket is empty, or it failed and the failure is cleared
+			// The carrier is empty, or it failed and the failure is cleared
 			// before the next datagram is tried.
 			if (LAST_ERROR == WSAEWOULDBLOCK) return;
 			Clear_Socket_Error (Socket);
@@ -583,8 +619,8 @@ void UDPInterfaceClass::Receive_Pending(void)
 
 
 /// <summary>
-/// Sends the out buffers in order until they are empty or the socket will
-/// take no more. A packet the socket has no room for is given up, since the
+/// Sends the out buffers in order until they are empty or the carrier will
+/// take no more. A packet the carrier has no room for is given up, since the
 /// connection above resends what goes unacknowledged; any other failure is
 /// cleared and leaves the packet at the head for the next pass.
 /// </summary>

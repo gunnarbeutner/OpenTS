@@ -9,6 +9,8 @@
 
 #include "autosave.h"
 
+#include "win32compat/crtcompat.h"
+
 #include <cctype>
 #include <cstdio>
 #include <cstring>

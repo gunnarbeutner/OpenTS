@@ -40,7 +40,7 @@ static char const DebugTruncationNotice[] = "\n*** Log size limit reached. Nothi
 
 static constexpr size_t DEBUG_MESSAGE_MAX = 4096;
 static constexpr unsigned DEBUG_LOG_MAX_AGE_DAYS = 14;
-static constexpr unsigned __int64 DEBUG_LOG_MAX_BYTES = 64ui64 * 1024ui64 * 1024ui64;
+static constexpr unsigned __int64 DEBUG_LOG_MAX_BYTES = 64ULL * 1024ULL * 1024ULL;
 static constexpr unsigned __int64 DEBUG_LOG_NOTICE_RESERVE = sizeof(DebugTruncationNotice) - 1;
 static constexpr unsigned __int64 DEBUG_LOG_BUDGET = DEBUG_LOG_MAX_BYTES - DEBUG_LOG_NOTICE_RESERVE;
 
@@ -117,7 +117,7 @@ bool Delete_Files_Older_Than(char const * directory, char const * pattern, unsig
 	cutoff.LowPart = now_stamp.dwLowDateTime;
 	cutoff.HighPart = now_stamp.dwHighDateTime;
 
-	unsigned __int64 const age = (unsigned __int64)days * 24ui64 * 60ui64 * 60ui64 * 10000000ui64;
+	unsigned __int64 const age = (unsigned __int64)days * 24ULL * 60ULL * 60ULL * 10000000ULL;
 	if (cutoff.QuadPart < age) {
 		return(false);
 	}
@@ -299,6 +299,7 @@ static void Write_Text_Locked(char const * text, size_t length)
 {
 	DWORD actual;
 
+
 	if (DebugFile != INVALID_HANDLE_VALUE) {
 
 		// The notice is paid for out of the reserve, so the file never passes its limit.
@@ -435,8 +436,26 @@ R"ART(
 	if (argv != NULL) {
 		size_t used = 0;
 		for (int index = 1; index < argc; index++) {
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+			// The engine builds with a 16-bit wchar_t against a library
+			// expecting 32, so %ls cannot render these; the arguments are ASCII
+			// in practice.
+			char narrow[64];
+			size_t length = 0;
+
+			while (length < sizeof(narrow) - 1 && argv[index][length] != 0) {
+				wchar_t const wide = argv[index][length];
+				narrow[length] = (wide > 0 && wide < 0x80) ? (char)wide : '?';
+				length++;
+			}
+			narrow[length] = '\0';
+
+			int const written = snprintf(options + used, sizeof(options) - used, "%s%s",
+													used == 0 ? "" : " ", narrow);
+#else
 			int const written = snprintf(options + used, sizeof(options) - used, "%s%ls",
 													used == 0 ? "" : " ", argv[index]);
+#endif
 			if (written <= 0 || size_t(written) >= sizeof(options) - used) {
 				break;
 			}

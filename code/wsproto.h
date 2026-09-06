@@ -112,7 +112,7 @@ class WinsockInterfaceClass {
 		virtual bool Start_Listening (void);
 		virtual void Stop_Listening (void);
 
-		// Takes every datagram the socket holds into the in buffers and sends
+		// Takes every datagram the carrier holds into the in buffers and sends
 		// what the out buffers hold. Call wherever the manager is serviced.
 		virtual void Service (void);
 
@@ -181,9 +181,9 @@ class WinsockInterfaceClass {
 		unsigned int Calculate_Packet_CRC(void const *buffer, int buffer_len) const;
 		void Record_Packet_Drop(PacketDropReasonType reason);
 
-		// Receive_Pending takes every datagram the socket holds into the in
+		// Receive_Pending takes every datagram the carrier holds into the in
 		// buffers. Send_Pending sends the out buffers until they are empty or
-		// the socket will take no more. A protocol supplies both.
+		// the carrier will take no more. A protocol supplies both.
 		virtual void Receive_Pending(void) {}
 		virtual void Send_Pending(void) {}
 
@@ -221,7 +221,7 @@ class WinsockInterfaceClass {
 		*/
 		SOCKET				Socket;
 
-		// Whether Service may poll the socket.
+		// Whether Service may poll the carrier.
 		bool				Listening;
 
 		/*

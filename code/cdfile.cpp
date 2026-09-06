@@ -114,6 +114,14 @@ int CDFileClass::Open(int rights)
 }
 
 
+int CDFileClass::Create(void)
+{
+	Point_At_Own_Copy();
+
+	return(BASECLASS::Create());
+}
+
+
 /***********************************************************************************************
  * CDFC::Add_Search_Drive -- Add a new path to the search path list                            *
  *                                                                                             *
@@ -130,6 +138,8 @@ int CDFileClass::Open(int rights)
  *=============================================================================================*/
 void CDFileClass::Add_Search_Drive(char const * path)
 {
+	if (path == NULL) return;
+
 	SearchDriveType *srch;					// Working pointer to path object.
 	/*
 	**	Allocate a record structure.
@@ -321,6 +331,8 @@ void CDFileClass::Clear_Search_Drives(void)
 /// <summary>
 /// Searches the current directory and configured local data paths for a file.
 /// The first match becomes this object's filename; if none is found, the raw filename is kept.
+/// A match inside a mounted image keeps the plain filename, since there is no
+/// local path that would reach it, and the object reads from the image instead.
 /// </summary>
 /// <param name="filename">The file name to search for.</param>
 /// <returns>The selected file name, including a configured path when one supplies the match.</returns>
@@ -364,10 +376,6 @@ char const * CDFileClass::Set_Name(char const *filename)
 		// A directory and a name that will not make one pathname between them are passed
 		// over rather than truncated into a different name.
 		if (strlen(srch->Path) + strlen(filename) < sizeof(path)) {
-
-			/*
-			**	Build a pathname to search for.
-			*/
 			strcpy(path, srch->Path);
 			strcat(path, filename);
 
@@ -433,9 +441,8 @@ int CDFileClass::Open(char const *filename, int rights)
 	**	If writing is requested, then multiple drive searching is not performed.
 	*/
 	if (IsDisabled || (rights & WRITE) != 0) {
-
-		BASECLASS::Set_Name( Capture_Name(filename) );
-		return( CDFileClass::Open( rights ) );
+		BASECLASS::Set_Name(Capture_Name(filename));
+		return(CDFileClass::Open(rights));
 	}
 
 	/*
@@ -443,7 +450,7 @@ int CDFileClass::Open(char const *filename, int rights)
 	**	using the normal procedure.
 	*/
 	Set_Name(filename);
-	return(BASECLASS::Open(rights));
+	return(CDFileClass::Open(rights));
 }
 
 
@@ -496,28 +503,19 @@ bool CDFileClass::Find_First_File(char *fname)
 
 		entry = First;
 
-		if (entry != NULL) {
+		while (entry != NULL) {
 
-			while (true) {
+			strcpy(scan_path, entry->Path);
+			strcat(scan_path, fname);
 
-				strcpy(scan_path, entry->Path);
-				strcat(scan_path, fname);
-
-				file_handle = ::FindFirstFile(scan_path, &fb);
-				if (file_handle != INVALID_HANDLE_VALUE && !(fb.dwFileAttributes & (FILE_ATTRIBUTE_TEMPORARY|FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_SYSTEM|FILE_ATTRIBUTE_HIDDEN))) {
-					break;
-				}
-
-				entry = (SearchDriveType *)entry->Next;
-				if (entry == NULL) {
-					return(false);
-				}
+			file_handle = ::FindFirstFile(scan_path, &fb);
+			if (file_handle != INVALID_HANDLE_VALUE && !(fb.dwFileAttributes & (FILE_ATTRIBUTE_TEMPORARY|FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_SYSTEM|FILE_ATTRIBUTE_HIDDEN))) {
+				strcpy(fname, fb.cFileName);
+				FindFileHandle = file_handle;
+				return(true);
 			}
 
-			strcpy(fname, fb.cFileName);
-			FindFileHandle = file_handle;
-
-			return(true);
+			entry = (SearchDriveType *)entry->Next;
 		}
 	}
 	return(false);

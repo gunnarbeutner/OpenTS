@@ -28,6 +28,7 @@
 #include "alphashp.h"
 #include "anim.h"
 #include "animtype.h"
+#include "browser.h"
 #include "building.h"
 #include "builtype.h"
 #include "cell.h"
@@ -117,6 +118,9 @@ Tactical::Tactical(void) :
 	VisibleCellRect(RECT_NONE),
 	RubberBandStart(0,0),
 	RubberBandEnd(0,0),
+	SelectCoord(COORD_NONE),
+	SelectReach(-1),
+	SelectArmed(false),
 	WaypointAnimCounter(0),
 	WaypointAnimTimer()
 {
@@ -1305,6 +1309,7 @@ void Tactical::Render(Surface & surface, bool fullredraw, int drawpass)
 		}
 
 		Draw_Rubber_Band();
+		Draw_Select_Radius();
 		Draw_Waypoints(true);
 		Draw_Rally_Points(true);
 		Draw_Placement(true);
@@ -1356,10 +1361,8 @@ void Tactical::Clear_Caption_Text(void)
 
 
 /// <summary>
-/// Draws a line of text across the middle of the tactical view.
-/// This routine paints straight onto the composite surface with GDI, so it does nothing
-/// unless that surface can hand out a device context. It also stays quiet while the map
-/// editor is running.
+/// Draws a line of text across the middle of the tactical view, and nothing
+/// while the map editor is running.
 /// </summary>
 /// <param name="text">The text to display. A NULL or empty string draws nothing.</param>
 void Tactical::Draw_Screen_Text(char const * text)
@@ -1387,6 +1390,11 @@ void Tactical::Draw_Screen_Text(char const * text)
 			surface->ReleaseDC(hdc);
 		}
 	}
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	else {
+		Browser_Draw_Caption(*CompositeSurface, TacticalRect, text);
+	}
+#endif
 }
 
 
@@ -3064,6 +3072,170 @@ void Tactical::End_Rubber_Band(void)
 /// This routine is called during the render pass while the player is dragging out a
 /// multi-select box. Nothing is drawn if no band is being dragged.
 /// </summary>
+// What a region selection takes: the player's own, selectable, and not a building unless it
+// is one that undeploys. Shared so a radius and a bounding box cannot drift apart.
+static bool Region_Selectable(ObjectClass * obj)
+{
+	bool force = false;
+
+	if (obj->RTTI == RTTI_BUILDING) {
+		BuildingTypeClass * type = ((BuildingClass *)obj)->Class;
+		if (type->UndeploysInto && !type->IsConstructionYard) {
+			force = true;
+		}
+	}
+
+	HouseClass * hptr = obj->Owner_HouseClass();
+
+	return(hptr != NULL && hptr->Is_Player_Control() &&
+		obj->Class_Of()->IsSelectable &&
+		(obj->RTTI != RTTI_BUILDING || force));
+}
+
+
+// How much ground the rest takes the moment it commits: enough to see that it has, and to
+// take whatever was pressed on.
+static int const ARM_REACH = CELL_LEPTON_W;
+
+void Tactical::Begin_Select_Radius(Coord const & center)
+{
+	SelectCoord = center;
+	SelectReach = ARM_REACH;
+	SelectArmed = true;
+	IsToRedraw = true;
+}
+
+
+void Tactical::Set_Select_Reach(int reach)
+{
+	if (SelectReach < 0) return;
+
+	SelectReach = (reach < ARM_REACH) ? ARM_REACH : reach;
+	IsToRedraw = true;
+}
+
+
+void Tactical::End_Select_Radius(void)
+{
+	SelectReach = -1;
+	IsToRedraw = true;
+}
+
+
+/// <summary>
+/// Whether anything the player could select stands within a reach of a coordinate.
+/// </summary>
+/// <returns>true when a radius grown from there would take at least one object.</returns>
+bool Tactical::Any_Selectable_Near(Coord const & center, int reach)
+{
+	for (int index = 0; index < (int)SelectableObjects.size(); index++) {
+		ObjectClass * obj = SelectableObjects[index].Object;
+
+		if (obj == NULL || !obj->IsActive) continue;
+		if (!Region_Selectable(obj)) continue;
+		if (Distance(center, Coord(Cell(obj->Center_Coord()))) > reach) continue;
+
+		return(true);
+	}
+
+	return(false);
+}
+
+
+/// <summary>
+/// Selects every object within the radius grown from the press.
+/// </summary>
+void Tactical::Select_Radius(void (*select_callback)(ObjectClass * object))
+{
+	if (SelectReach < 0 || !SelectArmed) {
+		End_Select_Radius();
+		return;
+	}
+
+	AllowVoice = true;
+
+	int const reach = SelectReach;
+
+	for (int index = 0; index < (int)SelectableObjects.size(); index++) {
+		Selectable & sel = SelectableObjects[index];
+		ObjectClass * obj = sel.Object;
+
+		if (obj == NULL || !obj->IsActive) {
+			continue;
+		}
+
+		// The same question the tint asks, so what is taken is what was shown: a unit is in
+		// when the cell it stands on is one of the tinted ones. Measuring to the object
+		// instead answers differently over raised ground, where a sprite is drawn well
+		// north of the tile it occupies.
+		Coord const standing = Coord(Cell(obj->Center_Coord()));
+
+		if (Distance(SelectCoord, standing) > reach) {
+			continue;
+		}
+
+		if (select_callback != NULL) {
+			select_callback(obj);
+			continue;
+		}
+
+		if (Region_Selectable(obj) && obj->Select()) {
+			AllowVoice = false;
+		}
+	}
+
+	End_Select_Radius();
+}
+
+
+/// <summary>
+/// Draws the circle a radius selection is being grown to.
+/// </summary>
+// A circle drawn on the ground rather than on the glass. The map is isometric at two to
+// one, so a ring that is round in screen pixels covers an oval of ground; this is the other
+// way about, and it is the ground that the selection is measured over.
+void Tactical::Draw_Select_Radius(void)
+{
+	if (SelectReach < 0) return;
+
+	/*
+	 * The ground itself is tinted rather than a shape drawn over it, using the same overlay
+	 * a building placement lays on the cells it would occupy: that is the game's own way of
+	 * saying "these tiles", and it follows the terrain's height where an outline would not.
+	 */
+	Cell const middle = Cell(SelectCoord);
+	int const span = (SelectReach / CELL_LEPTON_W) + 1;
+
+	ShapeFlags_Type const flags = ShapeFlags_Type(SHAPE_NONZERO_ALPHA|SHAPE_WIN_REL|
+		SHAPE_CENTER|SHAPE_TRANSLUCENT50);
+
+	for (int cy = middle.Y - span; cy <= middle.Y + span; cy++) {
+		for (int cx = middle.X - span; cx <= middle.X + span; cx++) {
+			Cell const cell(cx, cy);
+
+			if (!Map.In_Radar(cell)) continue;
+
+			if (Distance(SelectCoord, Coord(cell)) > SelectReach) continue;
+
+			Coord const coord = Coord_Whole(Coord(cell));
+
+			Point2D pixel;
+			if (!Coord_To_Pixel(coord, pixel)) continue;
+
+			CellClass const & here = Map[cell];
+			int const lift = LEVEL_PIXEL_H_1 * here.Height;
+			int height_offset = -2 - lift;
+
+			if (here.Ramp) height_offset -= 10;
+
+			Draw_Shape(*LogicalSurface, *NormalDrawer,
+				(ShapeSet *)DisplayClass::PlacementShapes, 0,
+				Point2D(pixel.X, pixel.Y - 1 - lift), TacticalRect, flags, 0, height_offset);
+		}
+	}
+}
+
+
 void Tactical::Draw_Rubber_Band(void)
 {
 	if (RubberBandStart != Point2D(0, 0)) {
@@ -3289,23 +3461,8 @@ void Tactical::Select_These(Rect const & rect, void (*select_callback)(ObjectCla
 			}
 
 			if (select_callback == NULL) {
-
-				bool force = false;
-
-				if (obj->RTTI == RTTI_BUILDING) {
-					BuildingTypeClass * type = ((BuildingClass *)obj)->Class;
-					if (type->UndeploysInto && !type->IsConstructionYard) {
-						force = true;
-					}
-				}
-
-				HouseClass * hptr = obj->Owner_HouseClass();
-				if (hptr != NULL && hptr->Is_Player_Control() &&
-					obj->Class_Of()->IsSelectable &&
-					(obj->RTTI != RTTI_BUILDING || force)) {
-					if (obj->Select()) {
-						AllowVoice = false;
-					}
+				if (Region_Selectable(obj) && obj->Select()) {
+					AllowVoice = false;
 				}
 			} else {
 				select_callback(sel.Object);

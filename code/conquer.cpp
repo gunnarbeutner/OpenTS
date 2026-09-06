@@ -104,6 +104,7 @@
 #include "netdlg2.h"
 #include "netglobal.h"
 #include "netshare.h"
+#include "phase.h"
 #include "progress.h"
 #include "queue.h"
 #include "rules.h"
@@ -319,6 +320,43 @@ void Ingame_Menu_Dialog(void)
 }
 
 
+/// <summary>
+/// Performs exactly one pass of the outer game loop and returns, so that the
+/// caller can be any loop, including one driven a frame at a time.
+/// </summary>
+/// <returns>GameFrameType; What the pass did.</returns>
+GameFrameType Game_Frame(void)
+{
+#ifdef _DEBUG
+	// The editor is never parked.
+	if (Debug_Map) {
+		return Map_Edit_Loop() ? GAME_FRAME_FINISHED : GAME_FRAME_ADVANCED;
+	}
+#endif
+
+	// A game already shut down must not wait for a focus that would only end it
+	// again.
+	if (!GameActive) {
+		return GAME_FRAME_FINISHED;
+	}
+
+	if (Is_Suspended()) {
+		Service_Suspension();
+		return GAME_FRAME_SUSPENDED;
+	}
+
+	if (Main_Loop()) {
+		return GAME_FRAME_FINISHED;
+	}
+
+	// The dialog runs outside Main_Loop because it calls Main_Loop itself to
+	// keep the game running behind it.
+	Ingame_Menu_Dialog();
+
+	return GAME_FRAME_ADVANCED;
+}
+
+
 /***********************************************************************************************
  * Main_Game -- Main game startup routine.                                                     *
  *                                                                                             *
@@ -415,50 +453,12 @@ void Main_Game(int argc, char * argv[])
 		SpecialDialog = SDLG_NONE;
 		_special_dialog_flag = true;
 
-#ifdef _DEBUG
-		/*
-		**	Scenario-editor version of main-loop processing
-		*/
-		for (;;) {
-			/*
-			**	Non-scenario-editor-mode: call the game's main loop
-			*/
-			if (!Debug_Map) {
-				if (Main_Loop()) {
-					break;
-				}
-
-				Ingame_Menu_Dialog();
-			} else {
-
-				/*
-				**	Scenario-editor-mode: call the editor's main loop
-				*/
-				if (Map_Edit_Loop()) {
-					break;
-				}
+		{
+			PhaseScope phase("game", Scen->ScenarioName);
+			while (Game_Frame() != GAME_FRAME_FINISHED) {
 			}
 		}
-#else
-		/*
-		**	Non-editor version of main-loop processing
-		*/
-		for (;;) {
-			/*
-			**	Call the game's main loop
-			*/
-			if (Main_Loop()) {
-				break;
-			}
 
-			/*
-			**	If the SpecialDialog flag is set, invoke the given special dialog.
-			**	This must be done outside the main loop, since the dialog will call
-			**	Main_Loop(), allowing the game to run in the background.
-			*/
-			Ingame_Menu_Dialog();
-		}
-#endif
 		Stop_Ingame_Movie();
 
 		if (ToolTips != NULL) {
@@ -528,6 +528,12 @@ void Main_Game(int argc, char * argv[])
  *=============================================================================================*/
 void Call_Back(void)
 {
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	// Several waits spin on this routine alone, so the thread is handed back
+	// here. The yield inside is paced, so this costs no frame per call.
+	Windows_Message_Handler();
+#endif
+
 	/*
 	**	Music and speech maintenance
 	*/

@@ -36,3 +36,13 @@
 bool Main_Loop(void);
 void Keyboard_Process(KeyNumType & input);
 void Multiplayer_Debug_Print(bool noframecheck);
+
+// A parked game plays no frame; Service_Suspension is the one pass of message
+// pumping it still owes, and the caller decides how long it stays parked.
+bool Is_Suspended(void);
+void Service_Suspension(void);
+
+// The frame pacer split into its wait and its work, so that a caller can drive
+// it one pass at a time.
+bool Frame_Is_Due(void);
+void Service_Frame(void);

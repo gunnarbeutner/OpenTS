@@ -51,6 +51,7 @@
 
 #include "rawfile.h"
 
+
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -472,6 +473,7 @@ int RawFileClass::Read(void * buffer, int size)
 			buffer = (char *)buffer + bytesread;
 			size -= bytesread;
 			total += bytesread;
+
 			Error(GetLastError(), true, Filename);
 			continue;
 		}

@@ -33,18 +33,6 @@
 #pragma once
 
 #include "bfiofile.h"
-
-/*
- * This class is derived from the BufferIOFileClass, and adds the ability to search across
- * several directories for a file. A file this player's own game wrote is found first, then
- * the current directory, then every directory in the search list in turn.
- *
- * A file opened for writing, created or deleted is not searched for at all. It resolves to
- * the player's own directory, so that what a deployment ships is read from and never written
- * over. A name that already carries a directory of its own is left exactly as it was given.
- *
- * The search order is whatever order the directories were handed to Add_Search_Drive().
- */
 class CDFileClass : public BufferIOFileClass
 {
 		typedef BufferIOFileClass BASECLASS;
@@ -59,9 +47,10 @@ class CDFileClass : public BufferIOFileClass
 		CDFileClass & operator = (CDFileClass const & file) = delete;
 
 		virtual char const * Set_Name(char const *filename) override;
+		virtual int Create(void) override;
+		virtual int Delete(void) override;
 		virtual int Open(char const *filename, int rights=READ) override;
 		virtual int Open(int rights=READ) override;
-		virtual int Delete(void) override;
 
 		void Searching(int on) {IsDisabled = !on;};
 

@@ -81,6 +81,16 @@ char VendorID[20] = "Not available";
 /// </summary>
 void __cdecl CPU_Id(void)
 {
+#if !defined(_MSC_VER)
+
+	// CPUID is an x86 instruction reached through an MSVC intrinsic, and the engine only
+	// reports what it says. Elsewhere the reported family is the baseline.
+	CPUType = 4;
+	std::strncpy(VendorID, "Not available", sizeof(VendorID) - 1);
+	VendorID[sizeof(VendorID) - 1] = '\0';
+
+#else
+
 	int regs[4];
 
 	char cputype = 4;
@@ -100,6 +110,8 @@ void __cdecl CPU_Id(void)
 	}
 
 	CPUType = cputype;
+
+#endif
 }
 
 

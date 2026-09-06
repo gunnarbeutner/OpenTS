@@ -54,6 +54,7 @@
 #include "animtype.h"
 #include "blight.h"
 #include "brain.h"
+#include "browser.h"
 #include "building.h"
 #include "builtype.h"
 #include "bullet.h"
@@ -155,10 +156,9 @@
 #include "wwmouse.h"
 #include "zbuffer.h"
 
-#include <shellapi.h>
-
 #include <conio.h>
 #include <io.h>
+#include <shellapi.h>
 #include <cfloat>
 #include <string>
 #include <vector>
@@ -373,6 +373,9 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 	// thread that crashed may be the one holding the logger's lock.
 	Exception_Register_Log_File(Debug_Log_File_Name());
 
+	// A module is the whole process, and the AutoPlay wait below never ends
+	// without a mutex, so both mutexes are skipped.
+
 	/*
 	 * Create a mutex with a unique name to TibSun in order to determine if
 	 * our app is already running.
@@ -442,6 +445,7 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 
 		DebugString ("Got AutoPlayMutex okay.\n");
 	}
+
 
 	atexit(Prog_End);
 
@@ -563,10 +567,14 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 			exit(EXIT_FAILURE);
 		}
 
+		// Waiting for focus would park startup for as long as the tab is in the
+		// background.
+#if !defined(OPENTS_WIN32_SUBSTITUTE)
 		do {
 			Windows_Message_Handler();
 		}
 		while (!GameInFocus);
+#endif
 
 		VisibleSurface->Fill(0);
 
@@ -583,7 +591,11 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 
 		AlphaBuffer = new ABuffer(Rect(TacticalRect.X, TacticalRect.Y, 480, 480 - TacticalRect.Y));
 
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+		MouseCursor = Browser_Create_Mouse(MainWindow);
+#else
 		MouseCursor = new WWMouseClass(MainWindow);
+#endif
 		MouseCursor->Capture_Mouse();
 
 		/*
@@ -591,7 +603,10 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 		**	configuration file says "no", then don't run the intro.
 		*/
 		if (!Special.IsFromInstall && !Spawner_Is_Requested()) {
-			Special.IsFromInstall = ConfigINI.Get_Bool("Intro", "PlayIntro", true);
+			// A page installs nothing, so the install sequence plays only when
+			// asked for by name.
+			bool const wanted = true;
+			Special.IsFromInstall = ConfigINI.Get_Bool("Intro", "PlayIntro", wanted);
 		}
 
 		/*
@@ -631,10 +646,13 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 		/*
 		**	Wait until the message handler has dealt with the message
 		*/
+		// Nothing on a page answers that message, so the wait would never end.
+#if !defined(OPENTS_WIN32_SUBSTITUTE)
 		do
 		{
 			Windows_Message_Handler();
 		}while (ReadyToQuit == 1);
+#endif
 
 		error_code = EXIT_SUCCESS;
 
@@ -657,6 +675,37 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 	return(error_code);
 }
 
+
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+
+/// <summary>
+/// The substitute entry point. It returns while the engine is still inside it:
+/// under the yield scaffold the return is a promise the page holds.
+/// </summary>
+int main(int argc, char ** argv)
+{
+	static char command_line[1024];
+
+	command_line[0] = '\0';
+	for (int index = 1; index < argc; index++) {
+		if (command_line[0] != '\0') {
+			strncat(command_line, " ", sizeof(command_line) - strlen(command_line) - 1);
+		}
+		strncat(command_line, argv[index], sizeof(command_line) - strlen(command_line) - 1);
+	}
+
+	// The block store may only be reached from beneath this call; httpsource.h
+	// says why.
+
+	// A host without a canvas, such as Node, still runs startup far enough to
+	// be diagnosed.
+	Browser_Init();
+
+	return(WinMain(NULL, NULL, command_line, SW_SHOWNORMAL));
+}
+
+#endif	// OPENTS_WIN32_SUBSTITUTE
+
 /***********************************************************************************************
  * Prog_End -- Cleans up library systems in prep for game exit.                                *
  *                                                                                             *
@@ -677,6 +726,7 @@ void __cdecl Prog_End(void)
 	int i;
 
 	GameActive = false;
+
 
 	Session.Free_Scenario_Descriptions();
 

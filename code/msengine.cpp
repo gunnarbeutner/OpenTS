@@ -31,6 +31,13 @@
 #include <climits>
 
 
+/*
+ * Each engine is built by the screen it drives and destroyed with it, so this
+ * counts the engine driven screens on the display.
+ */
+static int _engine_count = 0;
+
+
 /// <summary>
 /// Creates an empty animation engine.
 /// The list of pending update regions is sized here. The animations and sound effects
@@ -43,6 +50,8 @@ MSEngine::MSEngine(void)
 	Rects.Resize(20);
 	Anims.Clear();
 	Sounds.Clear();
+
+	_engine_count++;
 }
 
 
@@ -65,12 +74,27 @@ MSEngine::~MSEngine(void)
 	Anims.Clear();
 
 	Rects.Clear();
+
+	_engine_count--;
 }
 
 
 // Set when the whole display is to be rebuilt from the alternate surface on the next
 // advance, which is how the screen comes back after a dialog has covered it.
 static bool _RebuildFromAlternate = false;
+
+
+/// <summary>
+/// Is a screen driven by an animation engine on the display?
+/// </summary>
+/// <remarks>
+/// An engine draws neither its anims nor the backdrop a second time, so its
+/// surfaces cannot be replaced while one is up.
+/// </remarks>
+bool MSEngine::Is_Screen_Up(void)
+{
+	return(_engine_count > 0);
+}
 
 
 /// <summary>

@@ -400,7 +400,9 @@ void ThemeClass::Queue_Song(ThemeType theme)
 		Pending = theme;
 		DebugString("Theme::QueueSong(%d)\n", theme);
 		if (Still_Playing() == true) {
-			Current.Fade(THEME_FADE_MS);
+			{
+				Current.Fade(THEME_FADE_MS);
+			}
 		}
 	}
 }
@@ -428,13 +430,17 @@ AudioHandle ThemeClass::Play_Song(ThemeType theme)
 		Stop(false);
 		if (theme != THEME_NONE && theme != THEME_QUIET) {
 			if (theme > THEME_NONE && Volume > 0) {
-				Current = AudioEngine.Open_Stream(Theme_File_Name(theme), AUDIO_GROUP_MUSIC, 1.0f, false);
+				{
+					Current = AudioEngine.Open_Stream(Theme_File_Name(theme), AUDIO_GROUP_MUSIC, 1.0f, false);
+				}
 
 				/*
 				 * Stopping a score that never started does nothing, so recording one that
 				 * failed to start as the current score would silence the game for good.
 				 */
-				if (Current.Is_Null()) {
+				bool const started = !Current.Is_Null();
+
+				if (!started) {
 					DebugString("Theme::PlaySong(%d) - Unavailable\n", theme);
 					Score = THEME_NONE;
 					Pending = THEME_NONE;
@@ -527,7 +533,9 @@ int ThemeClass::Track_Length(ThemeType theme) const
  *=============================================================================================*/
 void ThemeClass::Stop(bool fade)
 {
-	if (ScoresPresent && AudioEngine.Is_Available() && !Debug_Quiet && !Current.Is_Null()) {
+	bool const playing = !Current.Is_Null();
+
+	if (ScoresPresent && AudioEngine.Is_Available() && !Debug_Quiet && playing) {
 
 		// A score already fading out is left to finish on its own.
 		if (fade && Still_Playing() == true) {

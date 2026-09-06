@@ -288,6 +288,11 @@ namespace OwnerDraw {
 	void Register_Control_Classes(void);
 	bool Subclass_Dialog(HWND window, LPARAM lParam);
 
+	// Adopts one control that appeared after its dialog was subclassed. Subclass_Dialog
+	// runs from WM_INITDIALOG before a dialog procedure sees the message, so a control
+	// added there is otherwise never hooked and never drawn.
+	void Adopt_Control(HWND control);
+
 	void Draw_Item(LPDRAWITEMSTRUCT drawit);
 	void Draw_Dialog_Back(HWND window);
 
@@ -301,6 +306,9 @@ namespace OwnerDraw {
 
 	int Default_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 	bool Dialog_Message_Handler(void);
+
+	bool Is_Painting(void);
+	void Relayout_Dialogs(int oldwidth, int oldheight);
 
 	bool Start_Tooltip(Rect const & rect, char const * text, HWND window);
 	bool Show_Tooltip(bool save_background);

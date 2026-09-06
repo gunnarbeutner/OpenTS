@@ -40,7 +40,7 @@
  * WIC::Close_Socket -- Close the communication socket if its open                             *
  * WIC::Start_Listening -- Let Service poll the socket                                         *
  * WIC::Stop_Listening -- Stop Service polling the socket                                      *
- * WIC::Service -- Move pending packets between the socket and the holding buffers             *
+ * WIC::Service -- Move pending packets between the carrier and the holding buffers            *
  * WIC::Discard_In_Buffers -- Discard any packets in our incoming packet holding buffers       *
  * WIC::Discard_In_Buffers -- Discard any packets in our outgoing packet holding buffers       *
  * WIC::Init -- Initialised Winsock and this class for use.                                    *
@@ -251,7 +251,7 @@ void WinsockInterfaceClass::Stop_Listening (void)
 
 
 /// <summary>
-/// Moves pending packets between the socket and the holding buffers, so
+/// Moves pending packets between the carrier and the holding buffers, so
 /// that Read finds what has arrived and what WriteTo queued has gone out.
 /// </summary>
 void WinsockInterfaceClass::Service(void)

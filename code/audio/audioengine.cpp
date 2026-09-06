@@ -16,6 +16,7 @@
 #include "dbgprint.h"
 #include "random.h"
 
+
 #include <algorithm>
 #include <cstring>
 #include <thread>
@@ -204,7 +205,9 @@ bool AudioEngineClass::Init(void)
 	Pool.Set_Random(Random_Proc, nullptr);
 
 	Feeder.Setup(&Mixer, Device.get());
+#if !defined(OPENTS_WIN32_SUBSTITUTE)
 	Feeder.Start();
+#endif
 
 	LastDropped = 0;
 	LastDropReport = 0;
@@ -219,6 +222,25 @@ bool AudioEngineClass::Init(void)
 	DebugString("Audio: %s, %u Hz, %u x %u frames\n", Device->Name(), Device->Rate(), Device->Periods(), Device->Period_Frames());
 	return(true);
 }
+
+
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+void AudioEngineClass::Service(void)
+{
+	if (!Available) {
+		return;
+	}
+
+	double const now = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - Epoch).count();
+
+	if (now - LastServicePass < (double)AUDIO_FEEDER_PERIOD_MS) {
+		return;
+	}
+
+	LastServicePass = now;
+	Feeder.Service();
+}
+#endif
 
 
 void AudioEngineClass::End(void)

@@ -10,6 +10,8 @@
 
 #include "spawnhouse.h"
 
+#include "win32compat/crtcompat.h"
+
 #include <cstring>
 
 static_assert(HOUSE_SPAWN_LAST - HOUSE_SPAWN_FIRST + 1 == SPAWN_HOUSE_COUNT, "one Spawn alias per start position");

@@ -15,6 +15,9 @@
 
 #include "vqa.h"
 
+#include "_keyboar.h"
+#include "audio/audioengine.h"
+#include "browser.h"
 #include "ccfile.h"
 #include "dbgprint.h"
 #include "globals.h"
@@ -24,8 +27,10 @@
 #include "session.h"
 #include "unvqtblc.h"
 #include "vector.h"
+#include "video.h"
 #include "vqoption.h"
 #include "win.h"
+#include "win32timer.h"
 
 #include "special.hh"
 
@@ -45,6 +50,18 @@ long __cdecl VQAMemoryHandler(VQAHandle * vqa, long action, void * buffer, long 
 
 bool VQA_Message_Handler(void)
 {
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	// The player's loop is the only thing running while a movie plays, so the
+	// page, the audio feeder and the timer are serviced here. Audio comes first
+	// because the movie takes its time from the audio clock.
+	Browser_Service();
+	AudioEngine.Service();
+	Win32_Timer_Service();
+	Video_Present_If_Dirty();
+	Browser_Yield();
+	return(true);
+#else
+
 	MSG msg;
 
 	if (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE)) {
@@ -56,6 +73,7 @@ bool VQA_Message_Handler(void)
 		}
 	}
 	return(true);
+#endif
 }
 
 
@@ -180,7 +198,15 @@ VQAClass::VQAClass(char const * filename, int flags, VQA_SURF_LOCK_CALLBACK surf
 	}
 
 	Config.AudioHandler = Stream_Audio_Handler;
+
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	// Twice the block the player was written around: a page's output needs
+	// about a tenth of a second of audio in hand, and the movie takes its clock
+	// from the play cursor.
+	Config.HMIBufSize = 16384;
+#else
 	Config.HMIBufSize = 8192;
+#endif
 
 	//-------------------------------------------------------------------------
 	// Initialize private class variables.
@@ -299,7 +325,7 @@ long VQAClass::CacheHandler(long action, void * buffer, long nbytes)
 			break;
 
 		case VQACMD_SEEK:
-			switch ((int)buffer) {
+			switch ((int)(intptr_t)buffer) {
 				case 1:
 					Cache.file_buffer_pos += nbytes;
 					rc = 0;
@@ -565,6 +591,10 @@ int VQAClass::Play_VQA(int last_frame_to_play, bool nobreakout)
 				IsPaused = true;
 				DebugString("Movie is sleeping\n");
 			}
+		}
+
+		if (!nobreakout && Keyboard->Check() && Keyboard->Get() == (KN_ESC|WWKEY_RLS_BIT)) {
+			brokeout = true;
 		}
 	}
 
@@ -855,17 +885,17 @@ long VQAClass::CCFileHandler(long action, void * buffer, long nbytes)
 		**	VQAERR_SEEK.
 		*/
 		case VQACMD_SEEK:
-			error = (FileHandle.Seek(nbytes, (int)buffer) == 0);
+			error = (FileHandle.Seek(nbytes, (int)(intptr_t)buffer) == 0);
 			break;
 
 		case VQACMD_SEEKPEEK:
 			if (nbytes > 0) {
-				error = FileHandle.Seek(nbytes - sizeof(tmp), (int)buffer) == 0;
+				error = FileHandle.Seek(nbytes - sizeof(tmp), (int)(intptr_t)buffer) == 0;
 				if (error == 0) {
 					error = FileHandle.Read(&tmp, sizeof(tmp)) != sizeof(tmp);
 				}
 			} else {
-				error = FileHandle.Seek(nbytes, (int)buffer) == 0;
+				error = FileHandle.Seek(nbytes, (int)(intptr_t)buffer) == 0;
 				if (error == 0) {
 					error = FileHandle.Read(&tmp, sizeof(tmp)) != sizeof(tmp);
 					if (error == 0) {
@@ -982,17 +1012,17 @@ long VQAClass::MixFileHandler(long action, void * buffer, long nbytes)
 		**	VQAERR_SEEK.
 		*/
 		case VQACMD_SEEK:
-			error = (FileHandle.Seek(nbytes, (int)buffer) == 0);
+			error = (FileHandle.Seek(nbytes, (int)(intptr_t)buffer) == 0);
 			break;
 
 		case VQACMD_SEEKPEEK:
 			if (nbytes > 0) {
-				error = FileHandle.Seek(nbytes - sizeof(tmp), (int)buffer) == 0;
+				error = FileHandle.Seek(nbytes - sizeof(tmp), (int)(intptr_t)buffer) == 0;
 				if (error == 0) {
 					error = FileHandle.Read(&tmp, sizeof(tmp)) != sizeof(tmp);
 				}
 			} else {
-				error = FileHandle.Seek(nbytes, (int)buffer) == 0;
+				error = FileHandle.Seek(nbytes, (int)(intptr_t)buffer) == 0;
 				if (error == 0) {
 					error = FileHandle.Read(&tmp, sizeof(tmp)) != sizeof(tmp);
 					if (error == 0) {
@@ -1066,7 +1096,7 @@ long __cdecl VQAMemoryHandler(VQAHandle * vqa, long action, void * buffer, long 
 	switch (action) {
 
 		case VQAMEM_ALLOC:
-			error = (int)malloc(nbytes);
+			error = (long)(intptr_t)malloc(nbytes);
 			break;
 
 		case VQAMEM_FREE:
@@ -1076,7 +1106,7 @@ long __cdecl VQAMemoryHandler(VQAHandle * vqa, long action, void * buffer, long 
 
 		case VQAMEM_LOCK:
 		case VQAMEM_UNLOCK:
-			error = (int)buffer;
+			error = (long)(intptr_t)buffer;
 			break;
 
 		default:
@@ -1126,7 +1156,7 @@ long __cdecl VQAEventHandler(VQAHandle * vqa, long action, void * buffer, long n
 			break;
 
 		case VQAEVENT_LOCK:
-			error = (int)_this->Handle_Lock_Event();
+			error = (long)(intptr_t)_this->Handle_Lock_Event();
 			break;
 
 		case VQAEVENT_UNLOCK:

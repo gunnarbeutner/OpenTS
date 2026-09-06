@@ -101,6 +101,7 @@ class LoadOptionsClass
 
 		void Pick_Filename(char * file_name);
 		bool Files_Present(void);
+		bool Offer_Load(void);
 
 		virtual bool Load_File(const char * file_name);
 		virtual bool Save_File(const char * file_name, const char * descr);
@@ -113,6 +114,7 @@ class LoadOptionsClass
 		*/
 		void Clear_List (void);                                     // clears the list & game # array
 		void Fill_List (HWND window);                               // fills the list & game # array
+
 		int Num_From_Ext (char *fname);                             // translates filename to file #
 		static int __cdecl Compare(const void *p1, const void *p2); // for qsort()
 

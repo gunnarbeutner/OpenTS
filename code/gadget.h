@@ -150,6 +150,14 @@ class GadgetClass : public LinkClass
 
 		void Set_Flags(unsigned flags) { Flags = flags; }
 
+		// The text a gadget shows, for a description of the screen; null for
+		// a gadget that carries none.
+		virtual char const * Get_Caption(void) const { return(nullptr); }
+		bool Is_Disabled(void) const { return(IsDisabled); }
+
+		// The list most recently handed to Input, or null.
+		static GadgetClass * Get_Last_List(void) { return(LastList); }
+
 		/*
 		**	General render function.
 		*/

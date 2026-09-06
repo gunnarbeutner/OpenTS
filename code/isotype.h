@@ -121,11 +121,15 @@ class IsoTileSet
 
 		IsoTileRecord const * Fetch_Record_Pointer(int index) const
 		{
-			return(Tiles[index % Tile_Count()]);
+			return(Fetch_Record_Pointer_Unsafe(index % Tile_Count()));
 		}
 		IsoTileRecord const * Fetch_Record_Pointer_Unsafe(int index) const
 		{
-			return(Tiles[index]);
+			return(TileOffsets[index] != 0 ? (IsoTileRecord const *)((unsigned char const *)this + TileOffsets[index]) : NULL);
+		}
+		IsoTileRecord * Fetch_Record_Pointer_Unsafe(int index)
+		{
+			return(TileOffsets[index] != 0 ? (IsoTileRecord *)((unsigned char *)this + TileOffsets[index]) : NULL);
 		}
 
 		/*
@@ -166,11 +170,11 @@ class IsoTileSet
 		int Height;
 
 		/*
-		 * This is the first of the tile set's image record pointers, one per sub-tile, held in
-		 * the file as offsets from the start of the set and converted in place by the loader.
+		 * This is the first of the tile set's image record offsets, one per sub-tile, each
+		 * counted from the start of the set as the file holds it; zero means no record.
 		 * Reach a record through Fetch_Record_Pointer rather than through the array.
 		 */
-		IsoTileRecord *Tiles[1];
+		int TileOffsets[1];
 
 
 	/*
@@ -181,7 +185,7 @@ class IsoTileSet
 		IsoTileSet(IsoTileSet const & rvalue);
 		IsoTileSet const & operator = (IsoTileSet const & rvalue);
 };
-static_assert(sizeof(IsoTileSet) == 16 + sizeof(void *), "the TMP header is 16 bytes on disk, followed by the tile offsets");
+static_assert(sizeof(IsoTileSet) == 20, "the TMP header is 16 bytes on disk, followed by the four-byte tile offsets");
 #pragma pack()
 
 

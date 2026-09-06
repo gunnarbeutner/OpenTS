@@ -85,6 +85,10 @@
 
 #include "always.h"
 
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+#include "browser.h"
+#endif
+
 #include "display.h"
 
 #include "_alpha.h"
@@ -883,6 +887,18 @@ void DisplayClass::Cursor_Mark(Cell const &pos, bool on)
  *   12/31/1994 JLB : Takes mouse coordinates as parameters.                                   *
  *   06/27/1995 JLB : Breaks out of rubber band mode if mouse leaves map.                      *
  *=============================================================================================*/
+// A finger wanders further than a mouse on what was meant as a tap, so the four pixels a
+// mouse needs would turn every tap into a band.
+static int Band_Select_Slop(void)
+{
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	if (!Browser_Mouse_Is_Hovering()) return(24);
+#endif
+
+	return(4);
+}
+
+
 void DisplayClass::AI(KeyNumType & input, Point2D const & xy)
 {
 	BASECLASS::AI(input, xy);
@@ -2587,7 +2603,7 @@ void DisplayClass::Mouse_Left_Held(Point2D const & point)
 			**	The mouse must have moved a minimum distance before rubber band mode can be
 			**	initiated.
 			*/
-			if ((point - (Point2D &)BandX).Length() > 4) {
+			if ((point - (Point2D &)BandX).Length() > Band_Select_Slop()) {
 				IsRubberBand = true;
 				IsTentative = false;
 				if (!IsWaypointMode) {
@@ -3482,7 +3498,7 @@ int DisplayClass::Stash_Map_State(void * stash, int)
 		unsigned int tag = 0;
 		if (cptr->Tag != NULL) {
 			if (cptr->Tag->Class != NULL) {
-				tag = (unsigned int)cptr->Tag->Class;
+				tag = (unsigned int)TagTypes.ID(cptr->Tag->Class);
 			}
 		}
 

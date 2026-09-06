@@ -55,6 +55,7 @@
 #include "keyboard.h"
 
 #include "_xmouse.h"
+#include "browser.h"
 #include "msgloop.h"
 #include "vidscale.h"
 
@@ -227,6 +228,10 @@ bool WWKeyboardClass::Put_Key_Message(unsigned short vk_key, bool release)
 	**	would be incompatible with the dos version.
 	*/
 	if (!Is_Mouse_Key(vk_key)) {
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+		// The page reports modifiers per event; the platform layer keeps them.
+		vk_key |= Browser_Key_Modifiers();
+#else
 		if (((GetKeyState(VK_SHIFT) & 0x8000) != 0) /*||
 			((GetKeyState(VK_CAPITAL) & 0x0008) != 0) ||
 			((GetKeyState(VK_NUMLOCK) & 0x0008) != 0)*/) {
@@ -239,6 +244,7 @@ bool WWKeyboardClass::Put_Key_Message(unsigned short vk_key, bool release)
 		if ((GetKeyState(VK_MENU) & 0x8000) != 0) {
 			vk_key |= WWKEY_ALT_BIT;
 		}
+#endif
 	}
 
 	if (release) {
@@ -310,6 +316,12 @@ int WWKeyboardClass::To_ASCII(unsigned short key)
 		return(0);
 	}
 
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	// Only the browser knows the layout, so this reads back the character it
+	// reported as the key went down.
+	return(Browser_Key_To_ASCII(key));
+#else
+
 	/*
 	**	Set the KeyState buffer to reflect the shift bits stored in the key value.
 	*/
@@ -361,6 +373,7 @@ int WWKeyboardClass::To_ASCII(unsigned short key)
 	}
 
 	return(buffer[0]);
+#endif
 }
 
 
@@ -382,11 +395,18 @@ bool WWKeyboardClass::Down(unsigned short key)
 {
 	key &= 0xFF;
 
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	// Buttons are never swapped here: the browser applies the desktop's setting
+	// before the event names a button.
+	return(Browser_Key_Is_Down(key));
+#else
+
 	if ((key == VK_LBUTTON || key == VK_RBUTTON) && GetSystemMetrics(SM_SWAPBUTTON) == TRUE) {
 		key = (key != VK_LBUTTON) ? VK_LBUTTON : VK_RBUTTON;
 	}
 
 	return(GetAsyncKeyState(key) != 0);
+#endif
 }
 
 
@@ -801,3 +821,28 @@ int WWKeyboardClass::Noop(void) const
 {
 	return(0);
 }
+
+
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+
+/// <summary>
+/// Records a key the page reported.
+/// </summary>
+/// <returns>bool; Was there room in the keyboard buffer for it?</returns>
+bool WWKeyboardClass::Post_Key_Event(unsigned short vk_key, bool release)
+{
+	return(Put_Key_Message(vk_key, release));
+}
+
+
+/// <summary>
+/// Records a mouse button the page reported, at a position in the frame rather
+/// than in the page.
+/// </summary>
+/// <returns>bool; Was there room in the keyboard buffer for it?</returns>
+bool WWKeyboardClass::Post_Mouse_Event(unsigned short vk_key, int x, int y, bool release)
+{
+	return(Put_Mouse_Message(vk_key, x, y, release));
+}
+
+#endif	// OPENTS_WIN32_SUBSTITUTE

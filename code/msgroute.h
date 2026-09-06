@@ -21,3 +21,7 @@
 
 
 bool Route_Mouse_Message(HWND window, UINT message, WPARAM wparam, LPARAM lparam, LPARAM * translated_lparam);
+
+// The window that owns a position in the frame, or the main window when no
+// control does.
+HWND Window_From_Logical_Point(POINT logical_point);

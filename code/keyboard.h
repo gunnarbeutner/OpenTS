@@ -59,9 +59,17 @@ class WWKeyboardClass
 		void Clear(void);
 		int To_ASCII(unsigned short num);
 		bool Down(unsigned short key);
+		bool Is_Buffer_Empty(void) const;
 
 		/* Define the main hook for the message processing loop.					*/
 		int Message_Handler(HWND hwnd, UINT message, UINT wParam, LONG lParam);
+
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+		// The page posts the same virtual keys and frame positions the message
+		// handler extracts from a Windows message.
+		bool Post_Key_Event(unsigned short vk_key, bool release);
+		bool Post_Mouse_Event(unsigned short vk_key, int x, int y, bool release);
+#endif
 
 		/* Define the public access variables which are used with the			*/
 		/*   Keyboard Class.																	*/
@@ -89,7 +97,6 @@ class WWKeyboardClass
 		unsigned short Peek_Element(void) const;
 		bool Put_Element(unsigned short val);
 		bool Is_Buffer_Full(void) const;
-		bool Is_Buffer_Empty(void) const;
 		static bool Is_Mouse_Key(unsigned short key);
 		void Fill_Buffer_From_System(void);
 		bool Put_Key_Message(unsigned short vk_key, bool release = false);

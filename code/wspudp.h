@@ -70,6 +70,13 @@ class UDPInterfaceClass : public WinsockInterfaceClass {
 		 */
 		void Configure_Tunnel(unsigned short local_id, unsigned long tunnel_ip, unsigned short tunnel_port);
 
+		/*
+		 * The recipient id that means every player at once. A CnCNet tunnel
+		 * has none and leaves this at zero; a relayed broadcast arrives naming
+		 * this id rather than the receiver.
+		 */
+		void Set_Tunnel_Broadcast(unsigned short id);
+
 		virtual ProtocolEnum Get_Protocol (void) override {
 			return(PROTOCOL_UDP);
 		};
@@ -87,16 +94,24 @@ class UDPInterfaceClass : public WinsockInterfaceClass {
 		virtual void Receive_Pending(void) override;
 		virtual void Send_Pending(void) override;
 
+		/*
+		 * A carrier moves the bytes and answers as sendto and recvfrom do: the number
+		 * moved, or SOCKET_ERROR. The destination names the tunnel server when a tunnel
+		 * is in use; a carrier with one place to send may ignore it.
+		 */
+		virtual int Carrier_Send(const char *buffer, int buffer_len, const sockaddr_in *destination);
+		virtual int Carrier_Receive(char *buffer, int buffer_len, sockaddr_in *source);
+
 	private:
 
 		void Register_Local_Addresses();
 
 		/*
-		 * Wrappers around sendto/recvfrom that add and strip the tunnel routing header.
-		 * They fall through to plain Winsock when no tunnel is configured. Receive_From
-		 * answers RECEIVE_IGNORED for a datagram the socket delivered that was not for
-		 * this client, which a caller draining the socket passes over where SOCKET_ERROR
-		 * stops it.
+		 * Wrappers around the carrier that add and strip the tunnel routing
+		 * header. They pass the datagram through untouched when no tunnel is
+		 * configured. Receive_From answers RECEIVE_IGNORED for a datagram the
+		 * carrier delivered that was not for this client, which a caller
+		 * draining the carrier passes over where SOCKET_ERROR stops it.
 		 */
 		static constexpr int RECEIVE_IGNORED = -2;
 
@@ -121,6 +136,7 @@ class UDPInterfaceClass : public WinsockInterfaceClass {
 
 		// A tunnel is in use when TunnelPort is non-zero.
 		unsigned short TunnelID;
+		unsigned short TunnelBroadcast;
 		unsigned long TunnelIP;
 		unsigned short TunnelPort;
 };

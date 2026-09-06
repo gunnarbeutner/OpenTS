@@ -31,15 +31,15 @@
 
 #pragma once
 
-#if defined(_WIN32)
-
 #include "win.h"
-
-#include <sal.h>
 
 // Posted to the main window so that a requested test fault happens inside window procedure
 // dispatch, which the operating system unwinds differently from an ordinary call.
 #define WM_EXCEPTION_TEST (WM_APP + 0x54)
+
+#if defined(_WIN32)
+
+#include <sal.h>
 
 // Exception codes OpenTS raises itself. Routing an engine error through RaiseException rather
 // than reporting it in place is what gives the handler a genuine machine context to dump: a

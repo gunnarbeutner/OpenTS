@@ -163,6 +163,8 @@ bool LoadOptionsClass::Delete(void)
 }
 
 
+
+
 /// <summary>
 /// Handles a control notification from the load game dialog.
 /// This routine records how the player left the dialog, so that the processing loop
@@ -173,7 +175,7 @@ bool LoadOptionsClass::Delete(void)
 /// <param name="id">The notification code that accompanied the control.</param>
 void LoadOptionsClass::Load_Dialog_On_WM_COMMAND(HWND window, WPARAM wparam, LPARAM lparam, int id)
 {
-	LoadOptionsClass * _this = (LoadOptionsClass *)GetWindowLong(window, DWL_USER);
+	LoadOptionsClass * _this = (LoadOptionsClass *)GetWindowLongPtr(window, DWLP_USER);
 	switch ((int)wparam) {
 		case IDC_MISSION_LOAD_LIST:
 			if (id == 2 && ListBox_GetCount((HWND)lparam) > 0) {
@@ -202,7 +204,7 @@ void LoadOptionsClass::Load_Dialog_On_WM_COMMAND(HWND window, WPARAM wparam, LPA
 /// <param name="id">The notification code that accompanied the control.</param>
 void LoadOptionsClass::Save_Dialog_On_WM_COMMAND(HWND window, WPARAM wparam, LPARAM lparam, int id)
 {
-	LoadOptionsClass * _this = (LoadOptionsClass *)GetWindowLong(window, DWL_USER);
+	LoadOptionsClass * _this = (LoadOptionsClass *)GetWindowLongPtr(window, DWLP_USER);
 	switch ((int)wparam) {
 		case IDC_MISSION_SAVE_LIST:
 
@@ -250,7 +252,7 @@ void LoadOptionsClass::Save_Dialog_On_WM_COMMAND(HWND window, WPARAM wparam, LPA
 /// <param name="id">The notification code that accompanied the control.</param>
 void LoadOptionsClass::Delete_Dialog_On_WM_COMMAND(HWND window, WPARAM wparam, LPARAM lparam, int id)
 {
-	LoadOptionsClass * _this = (LoadOptionsClass *)GetWindowLong(window, DWL_USER);
+	LoadOptionsClass * _this = (LoadOptionsClass *)GetWindowLongPtr(window, DWLP_USER);
 	switch ((int)wparam) {
 		case IDOK:
 		case IDCANCEL:
@@ -282,6 +284,7 @@ LRESULT CALLBACK LoadOptionsClass::Load_Dialog_Proc(HWND window, UINT message, W
 			case WM_COMMAND:
 				Load_Dialog_On_WM_COMMAND(window, LOWORD(wparam), lparam, HIWORD(wparam));
 				break;
+
 
 			case OD_SUBCLASSED:
 				SendDlgItemMessage(window, IDC_MISSION_LOAD_LIST, OD_ADDCOLUMN, 0xF9, 2);
@@ -428,7 +431,7 @@ bool LoadOptionsClass::Dialog(void)
 		/*
 		**	Initialize.
 		*/
-		SetWindowLong(dialog, DWL_USER, (LONG)this);
+		SetWindowLongPtr(dialog, DWLP_USER, (LONG_PTR)this);
 
 		if (list != 0) {
 			Fill_List(list);
@@ -789,6 +792,16 @@ void LoadOptionsClass::Fill_List(HWND window)
 /// first save game it can actually read.
 /// </summary>
 /// <returns>bool; Was at least one loadable save game found?</returns>
+/// <summary>
+/// Should the load option be offered to the player?
+/// </summary>
+/// <returns>bool; Is the load dialog worth opening?</returns>
+bool LoadOptionsClass::Offer_Load(void)
+{
+	return(Files_Present());
+}
+
+
 bool LoadOptionsClass::Files_Present(void)
 {
 	bool files_found = false;

@@ -323,7 +323,7 @@ static int Process_Reconnect_Dialog(CDTimerClass<SystemTimerClass> *timeout_time
 	BasicTimerClass<SystemTimerClass> *timer);
 static int Handle_Timeout(ConnManClass *net, FrameSyncStruct *their);
 static void Stop_Game(bool=false);
-BOOL CALLBACK Reconnect_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
+INT_PTR CALLBACK Reconnect_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 static void Close_Reconnect_Dialog(void);
 void Kick_Player_Now(ConnManClass *net, int kickee, FrameSyncStruct * their, bool error);
 bool Cast_Kick_Vote(int kicker, int kickee);
@@ -334,9 +334,9 @@ void Multiplayer_Debug_Print(bool noframecheck);
 //...........................................................................
 static int Build_Send_Packet(void *buf, int bufsize, int frame_delay,
 	int num_cmds, int cap, int & processed);
-int Add_Uncompressed_Events(void *buf, int bufsize, int frame_delay, int size,
+static int Add_Uncompressed_Events(void *buf, int bufsize, int frame_delay, int size,
 	int cap);
-int Add_Compressed_Events(void *buf, int bufsize, int frame_delay, int size,
+static int Add_Compressed_Events(void *buf, int bufsize, int frame_delay, int size,
 	int cap,  int & processed);
 
 //...........................................................................
@@ -2322,7 +2322,7 @@ static int Process_Reconnect_Dialog(CDTimerClass<SystemTimerClass> *timeout_time
 		disconnect_dialog = WS_Create_Dialog(ProgramInstance, IDD_MPLAYER_DISCONNECT, MainWindow, Reconnect_Dialog_Proc, true);
 		Center_Window_Within_Window(disconnect_dialog);
 		if (disconnect_dialog) {
-			SetWindowLong(disconnect_dialog, DWL_USER, (LONG)&disconnect_return);
+			SetWindowLongPtr(disconnect_dialog, DWLP_USER, (LONG_PTR)&disconnect_return);
 			MouseCursor->Hide_Mouse();
 			ShowWindow(disconnect_dialog, SW_SHOWNORMAL);
 			UpdateWindow(disconnect_dialog);
@@ -2760,9 +2760,9 @@ bool Cast_Kick_Vote(int kicker, int kickee)
 /// This is the dialog that appears when the game stalls waiting on somebody. It paints the
 /// per-player sync bars and offers a kick button for each player in the game.
 /// </summary>
-BOOL CALLBACK Reconnect_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
+INT_PTR CALLBACK Reconnect_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
-	int * rc = (int *)GetWindowLong(window, DWL_USER);
+	int * rc = (int *)GetWindowLongPtr(window, DWLP_USER);
 
 	switch (message) {
 		case IDCANCEL:
@@ -2817,7 +2817,7 @@ BOOL CALLBACK Reconnect_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LP
 		case WM_CTLCOLORDLG:
 		case WM_CTLCOLORSCROLLBAR:
 		case WM_CTLCOLORSTATIC:
-			return((BOOL)GetStockObject(BLACK_BRUSH));
+			return((INT_PTR)GetStockObject(BLACK_BRUSH));
 
 		case WM_ERASEBKGND:
 			return(TRUE);

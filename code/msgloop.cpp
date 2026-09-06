@@ -39,9 +39,15 @@
 #include "msgloop.h"
 
 #include "_tooltip.h"
+#include "browser.h"
 #include "cctooltip.h"
 #include "vector.h"
 #include "video.h"
+
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+#include "audio/audioengine.h"
+#include "win32user.h"
+#endif
 
 
 /*
@@ -96,7 +102,25 @@ bool (*Message_Intercept_Handler)(MSG &msg) = NULL;
  *=============================================================================================*/
 void Windows_Message_Handler(void)
 {
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	// Every engine wait reaches here, so this takes in the page's events and
+	// hands the thread back; see docs/WASM-PORT.md section 1.
+	Browser_Service();
+	Win32_User_Service();
+
+	// A page has no multimedia timer and the waiting stretches never reach
+	// Call_Back, so the mixer's feeder runs its passes from here too.
+	AudioEngine.Service();
+
+	if (MainWindow == 0) {
+		Video_Present_If_Dirty();
+		Browser_Yield_If_Due();
+		return;
+	}
+#else
+
 	if (MainWindow == 0) return;
+#endif
 
 	MSG msg;
 
@@ -165,6 +189,14 @@ void Windows_Message_Handler(void)
 	 * reach the screen.
 	 */
 	Video_Present_If_Dirty();
+
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	// Matching the frame to the canvas replaces every drawing surface, and this
+	// is the one pump the movie player and dialog loops do not come through.
+	Video_Service_Display();
+
+	Browser_Yield_If_Due();
+#endif
 }
 
 

@@ -103,12 +103,12 @@ long __cdecl Disk_VQA_Stream_Handler(VQAHandle *vqa, long action, void *buffer, 
 
 		case VQACMD_SEEKPEEK:
 			if (nbytes > 0) {
-				error = lseek(fh, nbytes - 1, (int)buffer) == -1;
+				error = lseek(fh, nbytes - 1, (int)(intptr_t)buffer) == -1;
 				if (error == 0) {
 					error = read(fh, &temp, 1) != 1;
 				}
 			} else {
-				error = lseek(fh, nbytes, (int)buffer) == -1;
+				error = lseek(fh, nbytes, (int)(intptr_t)buffer) == -1;
 				if (error == 0) {
 					error = read(fh, &temp, 1) != 1;
 				}
@@ -155,7 +155,7 @@ long __cdecl Disk_VQA_Stream_Handler(VQAHandle *vqa, long action, void *buffer, 
 long __cdecl Memory_VQA_Stream_Handler(VQAHandle *vqa, long action, void *buffer, long nbytes)
 {
 	long error = 0;
-	int p;
+	long p;
 	int bytes;
 	VQAHandleP *vqap = (VQAHandleP *)vqa;
 	VQALoopCache *cache = &vqap->LoopCache;
@@ -204,7 +204,7 @@ long __cdecl Memory_VQA_Stream_Handler(VQAHandle *vqa, long action, void *buffer
 					break;
 
 				case 0:
-					p = (int)cache->Buffer;
+					p = (long)(intptr_t)cache->Buffer;
 					if (nbytes >= p) {
 						cache->Offset = nbytes - p;
 						break;

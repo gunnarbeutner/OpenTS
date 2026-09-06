@@ -39,6 +39,21 @@
 #include <intrin.h>
 #include <math.h>
 
+#if !defined(_MSC_VER)
+
+// RDTSC is an x86 opcode reached through an MSVC intrinsic. The performance counter answers
+// the same question elsewhere, at its own rate, which is all the callers here compare.
+static unsigned long long __rdtsc(void)
+{
+	LARGE_INTEGER now;
+
+	if (!QueryPerformanceCounter(&now)) return(0);
+
+	return((unsigned long long)now.QuadPart);
+}
+
+#endif
+
 typedef union {
 	LARGE_INTEGER LargeInt;
 	struct QuadPart {

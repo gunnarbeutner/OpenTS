@@ -15,15 +15,25 @@
 
 #include "video.h"
 
+#include "_map.h"
+#include "_rect.h"
 #include "_surface.h"
 #include "bgfxbackend.h"
+#include "browser.h"
 #include "dbgprint.h"
 #include "dsurface.h"
 #include "globals.h"
 #include "goptions.h"
+#include "gscreen.h"
+#include "init.h"
+#include "mainopt.h"
 #include "misc.h"
+#include "movies.h"
+#include "msengine.h"
+#include "ownrdraw.h"
 #include "surface.h"
 #include "wincursor.h"
+#include "windlg.h"
 
 #include <cstdlib>
 
@@ -54,6 +64,31 @@ static unsigned int _PresentInterval = 16;
 // Presents can nest, because a dialog repainting itself presents from inside the paint
 // that the engine's own present provoked.
 static bool _Presenting = false;
+
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+// The animation frame of the last present, which paces presentation in place of
+// a refresh rate.
+static unsigned int _LastPresentSerial = ~0u;
+
+// The frame size the canvas asked for, and when. A drag asks once per animation
+// frame and each mode change rebuilds every drawing surface, so the request
+// must settle first.
+static int _RequestedWidth = 0;
+static int _RequestedHeight = 0;
+static unsigned int _RequestedAt = 0;
+static bool _ChangingMode = false;
+
+// True while the frame follows the window's size rather than keeping a fixed
+// resolution the presenter scales.
+static bool _FollowWindow = false;
+
+// Milliseconds the canvas must hold still before the frame follows it.
+static const unsigned int RESIZE_SETTLE_TIME = 250;
+
+// Below this size the sidebar and the tab bar do not fit.
+static const int FRAME_MIN_WIDTH = 640;
+static const int FRAME_MIN_HEIGHT = 400;
+#endif
 
 
 /// <summary>
@@ -112,6 +147,205 @@ static void Update_Scale_Info(void)
 }
 
 
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+
+/// <summary>
+/// Clamps a frame size into the renderable bounds and to a multiple of four.
+/// </summary>
+void Video_Clamp_Frame_Size(int & width, int & height)
+{
+	if (width > VIDEO_FOLLOW_MAX_WIDTH || height > VIDEO_FOLLOW_MAX_HEIGHT) {
+		double const scalex = (double)VIDEO_FOLLOW_MAX_WIDTH / (double)width;
+		double const scaley = (double)VIDEO_FOLLOW_MAX_HEIGHT / (double)height;
+		double const scale = (scalex < scaley) ? scalex : scaley;
+
+		width = (int)((double)width * scale);
+		height = (int)((double)height * scale);
+	}
+
+	// Both minimums scale the frame together so that its shape survives and the
+	// presenter does not letterbox it.
+	if (width < FRAME_MIN_WIDTH || height < FRAME_MIN_HEIGHT) {
+		double const scalex = (double)FRAME_MIN_WIDTH / (double)width;
+		double const scaley = (double)FRAME_MIN_HEIGHT / (double)height;
+		double const scale = (scalex > scaley) ? scalex : scaley;
+
+		width = (int)((double)width * scale + 0.5);
+		height = (int)((double)height * scale + 0.5);
+	}
+
+	width &= ~3;
+	height &= ~3;
+
+	if (width < FRAME_MIN_WIDTH) width = FRAME_MIN_WIDTH;
+	if (height < FRAME_MIN_HEIGHT) height = FRAME_MIN_HEIGHT;
+}
+
+
+static bool Mode_Change_Is_Safe(void)
+{
+	if (!_Initialized || _Presenting || _ChangingMode) {
+		return(false);
+	}
+
+	if (VisibleSurface == NULL || HiddenSurface == NULL) {
+		return(false);
+	}
+
+	if (ScenarioInit != 0) {
+		return(false);
+	}
+
+	// A movie keeps the surface it was created on until it is torn down.
+	if (Movie_Holds_A_Surface()) {
+		return(false);
+	}
+
+	// A shell screen lays its artwork out against the size it came up at and
+	// never redraws it.
+	if (MSEngine::Is_Screen_Up()) {
+		return(false);
+	}
+
+	// Dialogs paint into the game's own surfaces, so a paint in progress must
+	// finish first.
+	if (OwnerDraw::Is_Painting()) {
+		return(false);
+	}
+
+	return(true);
+}
+
+
+// Repaints the frame and lays the dialogs out again from the frame size they
+// were placed against.
+static void Rebuild_Screen_Under_Dialogs(int oldwidth, int oldheight)
+{
+	OwnerDraw::Relayout_Dialogs(oldwidth, oldheight);
+
+	if (ScenarioActive) {
+		Map.Flag_To_Redraw(GS_REDRAW_ALL);
+		Map.Render();
+	} else {
+		Title_Screen_Restore(true);
+	}
+
+	Heal_Dialog_Controls();
+}
+
+
+/// <summary>
+/// Records the canvas size, in CSS pixels, as the frame size to render at.
+/// </summary>
+void Video_Request_Frame_Size(int width, int height)
+{
+	if (!_FollowWindow || width <= 0 || height <= 0) {
+		return;
+	}
+
+	Video_Clamp_Frame_Size(width, height);
+
+	if (width == VideoModeWidth && height == VideoModeHeight) {
+		_RequestedWidth = 0;
+		_RequestedHeight = 0;
+		return;
+	}
+
+	_RequestedWidth = width;
+	_RequestedHeight = height;
+
+	// Restarted on every report so that a drag is one mode change at the end.
+	_RequestedAt = timeGetTime();
+}
+
+
+/// <summary>
+/// Resizes the frame to the canvas if one has been asked for and the engine can
+/// take it.
+/// </summary>
+void Video_Service_Display(void)
+{
+	// A scenario sizes its surfaces from the options, so while the frame
+	// follows the window the options must say what it is.
+	if (_FollowWindow && VideoModeWidth > 0 && VideoModeHeight > 0) {
+		Options.ScreenWidth = VideoModeWidth;
+		Options.ScreenHeight = VideoModeHeight;
+	}
+
+	if (_RequestedWidth <= 0 || _RequestedHeight <= 0) {
+		return;
+	}
+
+	if (_RequestedWidth == VideoModeWidth && _RequestedHeight == VideoModeHeight) {
+		_RequestedWidth = 0;
+		_RequestedHeight = 0;
+		return;
+	}
+
+	if ((timeGetTime() - _RequestedAt) < RESIZE_SETTLE_TIME) {
+		return;
+	}
+
+	if (!Mode_Change_Is_Safe()) {
+		return;
+	}
+
+	int width = _RequestedWidth;
+	int height = _RequestedHeight;
+
+	_RequestedWidth = 0;
+	_RequestedHeight = 0;
+
+	int oldwidth = Options.ScreenWidth;
+	int oldheight = Options.ScreenHeight;
+
+	int framewidth = VideoModeWidth;
+	int frameheight = VideoModeHeight;
+	bool underdialog = (WS_Top_Window() != NULL);
+
+	Options.ScreenWidth = width;
+	Options.ScreenHeight = height;
+
+	_ChangingMode = true;
+	bool changed = Change_Display_Mode(width, height);
+	_ChangingMode = false;
+
+	if (!changed) {
+		Options.ScreenWidth = oldwidth;
+		Options.ScreenHeight = oldheight;
+		return;
+	}
+
+	if (underdialog) {
+		Rebuild_Screen_Under_Dialogs(framewidth, frameheight);
+	}
+}
+
+#endif	// OPENTS_WIN32_SUBSTITUTE
+
+
+/// <summary>
+/// Is a settled frame size waiting to be taken? This answers for the request
+/// alone, so a screen that itself blocks the resize still gets true.
+/// </summary>
+bool Video_Frame_Size_Is_Pending(void)
+{
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	if (_RequestedWidth <= 0 || _RequestedHeight <= 0) {
+		return(false);
+	}
+
+	if (_RequestedWidth == VideoModeWidth && _RequestedHeight == VideoModeHeight) {
+		return(false);
+	}
+
+	return((timeGetTime() - _RequestedAt) >= RESIZE_SETTLE_TIME);
+#else
+	return(false);
+#endif
+}
+
+
 /// <summary>
 /// Converts the configured filter into the one the renderer names.
 /// </summary>
@@ -150,6 +384,33 @@ bool Video_Init(NativeWindow const & window, int drawablewidth, int drawableheig
 
 	_ScaleInfo.DrawableWidth = drawablewidth;
 	_ScaleInfo.DrawableHeight = drawableheight;
+
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	// On a page the window is the one size the player chose, so it overrides the configured
+	// resolution before the first frame is sized from it.
+	{
+		int startwidth = 0;
+		int startheight = 0;
+
+		if (Browser_Display_Width() > 0 && Browser_Display_Height() > 0) {
+			startwidth = Browser_Display_Width();
+			startheight = Browser_Display_Height();
+		} else if (Browser_Display_Policy() == BROWSER_DISPLAY_NATIVE) {
+			startwidth = Browser_Canvas_CSS_Width();
+			startheight = Browser_Canvas_CSS_Height();
+			_FollowWindow = true;
+		}
+
+		if (startwidth > 0 && startheight > 0) {
+			Video_Clamp_Frame_Size(startwidth, startheight);
+			VideoModeWidth = startwidth;
+			VideoModeHeight = startheight;
+			Options.ScreenWidth = startwidth;
+			Options.ScreenHeight = startheight;
+			VisibleRect = Rect(0, 0, startwidth, startheight);
+		}
+	}
+#endif
 
 	BackendRenderer renderer = (BackendRenderer)Options.Renderer;
 	if (!Backend_Init(window, drawablewidth, drawableheight, renderer, Options.VSync)) {
@@ -205,6 +466,22 @@ bool Video_Set_Mode(int width, int height)
 	if (!Backend_Set_Frame_Size(width, height)) {
 		return(false);
 	}
+
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	// A mode set from outside the resize path decides whether the frame keeps
+	// following the window: the canvas's own size means yes, and any other size
+	// is kept.
+	if (!_ChangingMode) {
+		int canvaswidth = Browser_Canvas_CSS_Width();
+		int canvasheight = Browser_Canvas_CSS_Height();
+
+		Video_Clamp_Frame_Size(canvaswidth, canvasheight);
+		_FollowWindow = (width == canvaswidth && height == canvasheight);
+
+		_RequestedWidth = 0;
+		_RequestedHeight = 0;
+	}
+#endif
 
 	VideoModeWidth = width;
 	VideoModeHeight = height;
@@ -294,12 +571,41 @@ void Video_Present_If_Dirty(void)
 		return;
 	}
 
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	// One present per animation frame: the engine reaches here far more often
+	// than the page composites.
+	if (Browser_Frame_Serial() == _LastPresentSerial) {
+		return;
+	}
+	_LastPresentSerial = Browser_Frame_Serial();
+#else
+
 	unsigned int now = timeGetTime();
 	if ((now - _LastPresentTime) < _PresentInterval) {
 		return;
 	}
+#endif
 
 	Video_Present();
+}
+
+
+/// <summary>
+/// Queues a true color movie frame for the next present at a rect given in
+/// window pixels.
+/// </summary>
+void Video_Queue_Movie_Frame(void const * pixels, int pitch, int width, int height,
+	int dest_x, int dest_y, int dest_width, int dest_height)
+{
+	Backend_Queue_Video_Frame(pixels, pitch, width, height, dest_x, dest_y, dest_width, dest_height);
+	Video_Mark_Dirty();
+	Video_Present_If_Dirty();
+}
+
+
+void Video_Clear_Movie_Frame(void)
+{
+	Backend_Clear_Video_Frame();
 }
 
 

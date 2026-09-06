@@ -234,7 +234,13 @@ void Print_CRCs(EventClass const * events, int count, unsigned const * crc_ring,
 	}
 	fprintf(fp, "Seed: %08x\n", Seed);
 	fprintf(fp, "Session type: %d\n", Session.Type);
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+	// There is no x87 control word to report; the report keeps the line so its shape does not
+	// depend on the target.
+	fprintf(fp, "FPU control word: %x\n", 0);
+#else
 	fprintf(fp, "FPU control word: %x\n", _controlfp(0, 0));
+#endif
 
 	int cpu_type = PROC_PENTIUM_PRO;
 	char vendor[32];

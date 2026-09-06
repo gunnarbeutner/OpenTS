@@ -61,6 +61,7 @@ class ThemeClass
 		char const * Theme_File_Name(ThemeType theme);
 
 		AudioHandle Current;		// Handle to current score.
+
 		ThemeType Score;			// Score number currently being played.
 		ThemeType Pending;			// Score to play next.
 
