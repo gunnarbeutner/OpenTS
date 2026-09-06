@@ -1,0 +1,51 @@
+# Serves the browser target on http://localhost:8765.
+#
+# The engine no longer mounts a disc image at all (docs/BUILDING.md's "Not yet updated for
+# the manifest" note tracked that gap; it is closed now). Every archive and film it opens is
+# resolved through a manifest instead: point OPENTS_ASSETS at an OpenTS-Assets "build/web"
+# tree -- the output of that repository's own build.py/tsweb.py, never anything in the
+# OpenTS-Assets repository itself -- and run "docker compose up". It is mounted read only;
+# assets.json, assets/ and files/ are served unchanged at the site root, which is
+# where code/manifest.cpp looks for assets.json by default (Module.opentsManifestBase, set
+# in wasm/game.html, moves that only when a page explicitly asks for a different origin).
+#
+# The relay comes up beside the game on 8766. Nothing reaches it yet -- the browser carrier
+# that would connect to it is not written, and docs/RELAY.md says so -- but it is here so
+# that the carrier has something to be developed against without a second thing to start by
+# hand.
+#
+# OPENTS_DOWNLOADS holds the native installers the page offers, published by
+# tools/downloads/publish.py from whichever machine can build each one. It is separate from
+# the asset tree because an installer is versioned by the shell rather than by a release,
+# and a deployment with none simply offers nothing.
+#
+# The tree carries its own fetch profiles, published with it by OpenTS-Assets
+# (tools/tsprofile.py, captured through this repository's tools/harness/pgo_pipeline.py).
+# assets.json names them and they are served from assets/files/ like any other object, so
+# code/pgoprofile.cpp reaches a profile only through the release that owns it. A release
+# built without them names none, which the reader treats as "no profile": it loads
+# correctly, just more slowly.
+
+services:
+  opents:
+    build: .
+    image: opents-engine
+    ports:
+      - "${OPENTS_PORT:-8765}:80"
+    environment:
+      # Where the page is told the relay answers. The relay is a host of its own, so this
+      # names the one below rather than a path on this container.
+      - OPENTS_RELAY_URL=${OPENTS_RELAY_URL:-ws://localhost:8766}
+    volumes:
+      - ${OPENTS_ASSETS:-./assets}:/usr/share/nginx/assets:ro
+      - ${OPENTS_DOWNLOADS:-./downloads}:/usr/share/nginx/downloads:ro
+
+  relay:
+    build: ./tools/relay
+    image: opents-relay
+    # --trace logs every frame it carries, which is what shows whether two clients are
+    # reaching each other at all. OPENTS_RELAY_TRACE= turns it back off.
+    command: ["${OPENTS_RELAY_TRACE---trace}"]
+    ports:
+      - "${OPENTS_RELAY_PORT:-8766}:8766"
+    restart: unless-stopped
