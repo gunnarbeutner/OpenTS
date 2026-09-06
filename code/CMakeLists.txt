@@ -395,6 +395,14 @@ if(OPENTS_MACOS)
     )
 endif()
 
+# The native macOS build runs under an SDL window; code/sdlhost.cpp answers the host calls
+# that the page answers for the WebAssembly target.
+if(OPENTS_MACOS)
+    find_package(SDL2 CONFIG REQUIRED)
+    target_compile_definitions(OpenTS PRIVATE OPENTS_SDL_HOST)
+    target_link_libraries(OpenTS PRIVATE SDL2::SDL2)
+endif()
+
 if (WIN32)
     target_link_libraries(OpenTS PRIVATE
         comctl32

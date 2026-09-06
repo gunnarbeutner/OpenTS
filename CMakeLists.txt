@@ -100,6 +100,12 @@ if(EMSCRIPTEN OR OPENTS_MACOS)
     add_compile_definitions(OPENTS_WIN32_SUBSTITUTE)
 endif()
 
+# The SDL host in code/sdlhost.cpp answers code/browser.h on macOS, which puts the
+# executable back into the default build.
+if(OPENTS_MACOS)
+    set(OPENTS_HOST sdl)
+endif()
+
 add_subdirectory(thirdparty)
 add_subdirectory(code)
 
