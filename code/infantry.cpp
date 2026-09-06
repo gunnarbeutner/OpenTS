@@ -631,9 +631,7 @@ void InfantryClass::Draw_It(Point2D const & xpoint, Rect const & cliprect) const
 	Cell cell = Get_Target_Cell();
 
 	if (CurrentTube == -1) {
-		IPersistPtr persist = Locomotion;
-		CLSID clsid;
-		persist->GetClassID(&clsid);
+		CLSID const clsid = Locomotion_Class_ID(Locomotion);
 
 		if (HeightAGL > 0 && clsid == CLSID_BallisticLocomotion) {
 			ShapeSet const * shapefile = (ShapeSet const *)MFCD::Retrieve("POD.SHP");
@@ -1173,9 +1171,7 @@ void InfantryClass::Assign_Destination(AbstractClass * target, bool immediate)
 	}
 
 	if (target != NULL && Class->IsJumpJet && Locomotion->Is_Moving()) {
-		IPersistPtr persist(Locomotion);
-		CLSID clsid;
-		persist->GetClassID(&clsid);
+		CLSID const clsid = Locomotion_Class_ID(Locomotion);
 		if (clsid == CLSID_WalkLocomotion) {
 			NavQueue.Add_Head(target);
 			target = Get_Target_Cell_Ptr();
@@ -3976,7 +3972,7 @@ void InfantryClass::Clear_Occupy_Bit(Coord const & coord)
 /// again once that identity has arrived.
 /// </summary>
 /// <returns>Returns with S_OK if the object was read successfully.</returns>
-HRESULT STDMETHODCALLTYPE InfantryClass::Load(IStream * stream)
+HRESULT InfantryClass::Load(SaveStreamClass & stream)
 {
 	TargetTracker.Remove_Index(Fetch_ID());
 	return(BASECLASS::Load(stream));
@@ -4229,9 +4225,7 @@ bool InfantryClass::Is_JumpJet(void) const
 		return(false);
 	}
 
-	IPersistPtr persist(Locomotion);
-	CLSID clsid;
-	persist->GetClassID(&clsid);
+	CLSID const clsid = Locomotion_Class_ID(Locomotion);
 	return((clsid == CLSID_JumpjetLocomotion) ? true : false);
 }
 
