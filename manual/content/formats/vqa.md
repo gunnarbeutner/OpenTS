@@ -8,6 +8,7 @@ extensions:
 role: video
 related:
   - { type: format, id: mix }
+  - { type: format, id: mp4-video }
 source_files:
   - code/audio/audiomovie.cpp
   - code/movie.cpp

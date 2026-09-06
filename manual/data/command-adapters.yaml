@@ -272,6 +272,7 @@ fixed_controls:
     sites:
       - { file: code/movieskip.cpp, function: Idle, expression: KN_ESC }
       - { file: code/vqa.cpp, function: VQAClass::Play_VQA, expression: KN_ESC }
+      - { file: code/mp4.cpp, function: MP4Class::Play_VQA, expression: KN_ESC, guard: "defined(OPENTS_MP4_MOVIES)" }
   - id: fixed:skip-campaign-presentation
     title: Skip campaign presentation
     description: Stops the current World Domination Tour map presentation.

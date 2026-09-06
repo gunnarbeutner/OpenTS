@@ -207,6 +207,14 @@ VQHandle * Movie_Create(char const * name, Surface * surface, Rect rect1, Rect r
 		handle->InitialRect = Intersect(rect1, irect1);
 		handle->StretchRect = Intersect(rect2, irect2);
 
+#if defined(OPENTS_MP4_MOVIES)
+		// Only a fullscreen movie has nothing drawn over it, so only it gets
+		// the true color layer.
+		if (fullscreen == true) {
+			handle->VQA->Set_Fullscreen_Video();
+		}
+#endif
+
 		if (cmode == 1 || cmode == 4) {
 			handle->VQA->Set_Primary_Color_Mode(DSurface::Get_Primary_Color_Mode());
 		}
