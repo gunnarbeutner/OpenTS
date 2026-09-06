@@ -107,6 +107,7 @@ struct IsoTileRecord
 	RGBStruct LowColor;
 	RGBStruct HighColor;
 };
+static_assert(sizeof(IsoTileRecord) == 52, "a TMP tile record is 52 bytes on disk");
 #pragma pack()
 
 #pragma pack(4)
@@ -180,6 +181,7 @@ class IsoTileSet
 		IsoTileSet(IsoTileSet const & rvalue);
 		IsoTileSet const & operator = (IsoTileSet const & rvalue);
 };
+static_assert(sizeof(IsoTileSet) == 16 + sizeof(void *), "the TMP header is 16 bytes on disk, followed by the tile offsets");
 #pragma pack()
 
 
