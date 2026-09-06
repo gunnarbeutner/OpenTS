@@ -40,6 +40,10 @@
 #include "video.h"
 #include "win.h"
 
+#if defined(OPENTS_SDL_HOST)
+#include "sdlhost.h"
+#endif
+
 
 /***********************************************************************************************
  * Windows_Message_Handler -- Handles windows message.                                         *
@@ -84,6 +88,11 @@ void Windows_Message_Handler(void)
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
+#elif defined(OPENTS_SDL_HOST)
+
+	if (!Has_Main_Window()) return;
+
+	Host_Pump_Events();
 #endif
 
 	if (ToolTips != NULL) {
