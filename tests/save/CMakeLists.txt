@@ -1,12 +1,23 @@
 # The harness drives the file a saved game is kept in: savefile.cpp's writer and reader over
 # the field table, the compressed content, and every refusal the reader makes. The LZO codec
 # it compresses with is the engine's own.
-add_executable(SaveTest
+set(SAVE_TEST_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/savetest.cpp"
     "${CMAKE_SOURCE_DIR}/code/savefile.cpp"
     "${CMAKE_SOURCE_DIR}/code/lzo1x_c.cpp"
     "${CMAKE_SOURCE_DIR}/code/lzo1x_d.cpp"
 )
+
+if(EMSCRIPTEN)
+    # The substitute resolves a name the host has no file for through the manifest, so
+    # the reader it is handed comes with it.
+    list(APPEND SAVE_TEST_SOURCES
+        "${CMAKE_SOURCE_DIR}/code/httpsource.cpp"
+        "${CMAKE_SOURCE_DIR}/code/manifest.cpp"
+    )
+endif()
+
+add_executable(SaveTest ${SAVE_TEST_SOURCES})
 
 target_compile_features(SaveTest PRIVATE cxx_std_20)
 

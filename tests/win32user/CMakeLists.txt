@@ -13,6 +13,13 @@ if(OPENTS_WIN32_SUBSTITUTE)
     )
 endif()
 
+if(EMSCRIPTEN)
+    list(APPEND WIN32USER_TEST_SOURCES
+        "${CMAKE_SOURCE_DIR}/code/httpsource.cpp"
+        "${CMAKE_SOURCE_DIR}/code/manifest.cpp"
+    )
+endif()
+
 add_executable(Win32UserTest ${WIN32USER_TEST_SOURCES})
 
 target_compile_features(Win32UserTest PRIVATE cxx_std_20)

@@ -6,6 +6,13 @@ set(WIN32PROCESS_TEST_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/win32processtest.cpp"
 )
 
+if(EMSCRIPTEN)
+    list(APPEND WIN32PROCESS_TEST_SOURCES
+        "${CMAKE_SOURCE_DIR}/code/httpsource.cpp"
+        "${CMAKE_SOURCE_DIR}/code/manifest.cpp"
+    )
+endif()
+
 add_executable(Win32ProcessTest ${WIN32PROCESS_TEST_SOURCES})
 
 target_compile_features(Win32ProcessTest PRIVATE cxx_std_20)

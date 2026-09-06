@@ -7,6 +7,15 @@ set(WIN32FILE_TEST_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/win32filetest.cpp"
 )
 
+if(EMSCRIPTEN)
+    # The substitute resolves a name the host has no file for through the manifest, so
+    # the reader it is handed comes with it.
+    list(APPEND WIN32FILE_TEST_SOURCES
+        "${CMAKE_SOURCE_DIR}/code/httpsource.cpp"
+        "${CMAKE_SOURCE_DIR}/code/manifest.cpp"
+    )
+endif()
+
 add_executable(Win32FileTest ${WIN32FILE_TEST_SOURCES})
 
 target_compile_features(Win32FileTest PRIVATE cxx_std_20)

@@ -81,6 +81,7 @@
 #include "house.h"
 #include "houstype.h"
 #include "hover.h"
+#include "httpsource.h"
 #include "infantry.h"
 #include "infatype.h"
 #include "init.h"
@@ -696,6 +697,9 @@ int main(int argc, char ** argv)
 
 	// The block store may only be reached from beneath this call; httpsource.h
 	// says why.
+#if defined(__EMSCRIPTEN__)
+	Block_Store_Mark_Main();
+#endif
 
 	// A host without a canvas, such as Node, still runs startup far enough to
 	// be diagnosed.

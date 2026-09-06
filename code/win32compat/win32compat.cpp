@@ -17,15 +17,19 @@
 #include "mmsystem.h"
 #include "shellapi.h"
 
-#include "blocksource.h"
 #include "browser.h"
 #include "crtcompat.h"
+#include "httpsource.h"
+#include "manifest.h"
 #include "misc.h"
 #include "video.h"
 #include "windows.h"
 
 #if defined(OPENTS_WIN32_SUBSTITUTE)
 
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
 
 #include <dirent.h>
 #include <fcntl.h>
@@ -597,10 +601,14 @@ static std::shared_ptr<BlockFileClass> Image_Entry(char const * filename, BlockE
 		character = (char)::toupper((unsigned char)character);
 	}
 
+#if defined(__EMSCRIPTEN__)
+	return(Manifest_Find(leaf.c_str(), entry));
+#else
 	// The manifest belongs to the page; a host with a filesystem has nothing beneath it.
 	(void)leaf;
 	(void)entry;
 	return(nullptr);
+#endif
 }
 
 
@@ -1660,9 +1668,31 @@ static void Persistent_Matches(std::string const & directory, std::string const 
 // opens.
 static void Image_Matches(std::string const & directory, std::string const & leaf, std::vector<FindMatchType> & matches)
 {
+#if !defined(__EMSCRIPTEN__)
 	(void)directory;
 	(void)leaf;
 	(void)matches;
+#else
+	std::string inside;
+	if (!Image_Path(directory.c_str(), inside) || !inside.empty()) return;
+
+	for (std::string const & name : Manifest_List_Files()) {
+		if (!Match_Wildcard(leaf.c_str(), name.c_str())) continue;
+
+		bool taken = false;
+
+		for (FindMatchType const & already : matches) {
+			if (::strcasecmp(already.Name.c_str(), name.c_str()) == 0) taken = true;
+		}
+		if (taken) continue;
+
+		FindMatchType match;
+		match.Name = name;
+
+		if (!Manifest_Find(name.c_str(), match.Image)) continue;
+		matches.push_back(std::move(match));
+	}
+#endif
 }
 
 
