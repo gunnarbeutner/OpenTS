@@ -221,14 +221,14 @@ BEGIN
                     12
 END
 
-IDD_OPT_CTRL_GAME_MP DIALOG DISCARDABLE  0, 0, 292, 157
+IDD_OPT_CTRL_GAME_MP DIALOG DISCARDABLE  0, 0, 292, 175
 STYLE WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
-    CONTROL         "Options Menu",1,"Button",BS_OWNERDRAW,196,131,77,14
+    CONTROL         "Options Menu",1,"Button",BS_OWNERDRAW,196,149,77,14
     CONTROL         "Keyboard",IDC_OPT_KEYBOARD_BTN,"Button",BS_OWNERDRAW,
-                    109,131,77,14
-    CONTROL         "Sound",IDC_OPT_SOUND_BTN,"Button",BS_OWNERDRAW,22,131,
+                    109,149,77,14
+    CONTROL         "Sound",IDC_OPT_SOUND_BTN,"Button",BS_OWNERDRAW,22,149,
                     77,14
     CONTROL         "Slider1",IDC_GAME_SPEED_SLIDER,"msctls_trackbar32",
                     TBS_BOTH | TBS_NOTICKS,90,12,128,15
@@ -256,13 +256,15 @@ BEGIN
                     BS_FLAT,147,94,127,10
     CONTROL         "Scroll Coasting",IDC_SCROLL_COASTING,"Button",
                     BS_AUTOCHECKBOX | BS_FLAT,147,112,127,10
+    CONTROL         "Edge Scrolling",IDC_EDGE_SCROLL,"Button",
+                    BS_AUTOCHECKBOX | BS_FLAT,22,130,119,10
 END
 
-IDD_OPT_CTRL_GAME_SP DIALOG DISCARDABLE  0, 0, 292, 163
+IDD_OPT_CTRL_GAME_SP DIALOG DISCARDABLE  0, 0, 292, 179
 STYLE WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
-    CONTROL         "Main Menu",1,"Button",BS_OWNERDRAW,81,137,130,14
+    CONTROL         "Main Menu",1,"Button",BS_OWNERDRAW,81,153,130,14
     CONTROL         "Slider1",IDC_GAME_SPEED_SLIDER,"msctls_trackbar32",
                     TBS_BOTH | TBS_NOTICKS,80,12,148,13
     LTEXT           "Game Speed",-1,22,12,58,13,SS_CENTERIMAGE | NOT 
@@ -295,6 +297,8 @@ BEGIN
                     BS_FLAT,146,103,128,10
     CONTROL         "Scroll Coasting",IDC_SCROLL_COASTING,"Button",
                     BS_AUTOCHECKBOX | BS_FLAT,146,119,128,10
+    CONTROL         "Edge Scrolling",IDC_EDGE_SCROLL,"Button",
+                    BS_AUTOCHECKBOX | BS_FLAT,22,135,124,10
 END
 
 IDD_GAME_SETTINGS_FLAGS DIALOG DISCARDABLE  0, 0, 220, 77
@@ -1565,14 +1569,14 @@ BEGIN
                     50,14
 END
 
-IDD_OPT_CTRL_GAME_WOL DIALOG DISCARDABLE  0, 0, 294, 126
+IDD_OPT_CTRL_GAME_WOL DIALOG DISCARDABLE  0, 0, 294, 144
 STYLE WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
-    CONTROL         "Options Menu",1,"Button",BS_OWNERDRAW,196,100,77,14
+    CONTROL         "Options Menu",1,"Button",BS_OWNERDRAW,196,118,77,14
     CONTROL         "Keyboard",IDC_OPT_KEYBOARD_BTN,"Button",BS_OWNERDRAW,
-                    109,100,77,14
-    CONTROL         "Sound",IDC_OPT_SOUND_BTN,"Button",BS_OWNERDRAW,22,100,
+                    109,118,77,14
+    CONTROL         "Sound",IDC_OPT_SOUND_BTN,"Button",BS_OWNERDRAW,22,118,
                     77,14
     CONTROL         "Slider2",IDC_SCROLL_SPEED_SLIDER,"msctls_trackbar32",
                     TBS_BOTH | TBS_NOTICKS,90,12,128,15
@@ -1594,6 +1598,8 @@ BEGIN
                     BS_FLAT,147,63,129,10
     CONTROL         "Scroll Coasting",IDC_SCROLL_COASTING,"Button",
                     BS_AUTOCHECKBOX | BS_FLAT,147,81,129,10
+    CONTROL         "Edge Scrolling",IDC_EDGE_SCROLL,"Button",
+                    BS_AUTOCHECKBOX | BS_FLAT,22,99,119,10
 END
 
 
