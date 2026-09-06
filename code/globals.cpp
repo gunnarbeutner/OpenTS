@@ -398,6 +398,8 @@ int Debug_WinAfter = 0;
 bool Debug_Skip_Intro = false;
 bool Debug_Skip_Briefing = false;
 
+bool Main_Menu_Is_Up = false;
+
 
 /***************************************************************************
 **	This class manages data specific to multiplayer games.

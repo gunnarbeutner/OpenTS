@@ -31,7 +31,13 @@ class GraphicMenuItem
 
 		int Get_ID(void) const { return(ID); }
 		bool Is_Visible(void) const { return(Visible); }
+		bool Is_Enabled(void) const { return(Enabled); }
+		bool Is_Selected(void) const { return(Selected); }
 		void Set_Select_Sound(MSSfxEntry * sound) { SelectSound = sound; }
+
+		// The area the mouse picks the item in, in shell coordinates; empty for
+		// an item that cannot be pointed at.
+		virtual Rect Get_Active_Rect(void) const;
 
 	protected:
 		/*

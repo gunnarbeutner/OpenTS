@@ -1154,11 +1154,16 @@ restart:
 			}
 
 			if ((selection == SEL_NONE) && !Debug_ForceScenario) {
+				// Brackets the menu alone, not the intro or the screens it leads to.
+				Main_Menu_Is_Up = true;
+
 				if (Get_New_Menu()->MixFile) {
 					selection = New_Main_Menu();
 				} else {
 					selection = Main_Menu(ATTRACT_MODE_TIMEOUT);
 				}
+
+				Main_Menu_Is_Up = false;
 			}
 
 			if (Debug_ForceScenario) {

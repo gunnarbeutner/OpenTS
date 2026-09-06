@@ -14,6 +14,8 @@
 #include "msengine.h"
 #include "rect.h"
 
+#include <string>
+
 class GraphicMenuItem;
 class INIClass;
 class MSSfxEntry;
@@ -115,7 +117,14 @@ class GraphicMenu
 		GraphicMenuItem * Get_Item_Under_Mouse(Point2D const & mouse);
 		GraphicMenuItem * Get_Item_For_Key(KeyNumType key);
 
+		// Appends the items as a JSON array, with their active areas in frame
+		// pixels and the names the caller's table gives their identifiers.
+		void Describe(std::string & out, char const * (*name)(int)) const;
+
 	public:
+		// The INI section the menu was read from.
+		std::string Name;
+
 		/*
 		 * This is the animation engine that drives the menu. It owns the backdrop and the
 		 * items' animations, paces the display, and is handed to the chosen item so that
@@ -166,3 +175,6 @@ class GraphicMenu
 
 
 GraphicMenu * Do_Graphic_Menu(const char * ini, const char * name);
+
+// The menu whose Presentation is waiting for a choice, or null.
+GraphicMenu * Current_Graphic_Menu(void);
