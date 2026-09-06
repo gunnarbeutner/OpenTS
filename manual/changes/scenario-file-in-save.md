@@ -12,15 +12,18 @@ targets:
 - type: format
   id: spawn-ini
   effect: changed
+- type: format
+  id: opents-ini
+  effect: changed
 credit:
 - ZivDero
 ---
 
-A save now carries the scenario file it was played from, and a restart or the replay after a
-loss reads the mission from that copy rather than from disk. A mission resumed through the
-CnCNet client can be restarted again; the client replaces `spawnmap.ini` with a stub on
-resume, and the restart read the stub and crashed. A file edited on disk during a mission no
-longer changes a restart; a fresh start picks it up.
+A save carries the scenario file it was played from when the deployment's `OPENTS.INI` sets
+`CarryScenarioFile=yes`, and a restart or the replay after a loss then reads the mission
+from that copy rather than from disk. That lets a mission resumed through the CnCNet client
+be restarted: the client replaces `spawnmap.ini` with a stub on resume, and the restart read
+the stub and crashed. The key is off by default, since a large map adds half again to a save.
 
 Saves from earlier development snapshots of this cycle no longer load, because the scenario
 record grew by the file.

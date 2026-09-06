@@ -185,6 +185,32 @@ void Test_A_Read_Starts_Over(void)
 	Check(config.SearchPaths == DefaultList, "and every setting returns to its default");
 }
 
+
+void Test_Carry_Scenario_File(void)
+{
+	DeploymentConfigClass config;
+
+	Check(!config.CarryScenarioFile, "with no file a save carries no scenario file");
+
+	Write_File(Root + "\\OPENTS.INI", "[Paths]\nSearchPaths=Data\n");
+	config.Read_File("");
+	Check(!config.CarryScenarioFile, "a file that does not ask for it leaves it off");
+
+	Write_File(Root + "\\OPENTS.INI", "[Saves]\nCarryScenarioFile=yes\n");
+	config.Read_File("");
+	Check(config.CarryScenarioFile, "a file asking for it turns it on");
+
+	Write_File(Root + "\\OPENTS.INI", "[Saves]\nCarryScenarioFile=no\n");
+	config.Read_File("");
+	Check(!config.CarryScenarioFile, "a file refusing it turns it off again");
+
+	Write_File(Root + "\\OPENTS.INI", "[Saves]\nCarryScenarioFile=yes\n");
+	config.Read_File("");
+	Remove_File(Root + "\\OPENTS.INI");
+	config.Read_File("");
+	Check(!config.CarryScenarioFile, "with the file gone it is off");
+}
+
 }
 
 
@@ -204,6 +230,7 @@ int main(void)
 	Test_Where_The_File_Is_Looked_For();
 	Test_The_Directory_Named();
 	Test_A_Read_Starts_Over();
+	Test_Carry_Scenario_File();
 
 	Remove_Root();
 

@@ -26,6 +26,7 @@ static char const * const ConfigProbes[] = {"", "INI\\", "MIX\\"};
 void DeploymentConfigClass::Read_INI(INIClass const & ini)
 {
 	SearchPaths = ini.Get_String("Paths", "SearchPaths", SearchPaths.c_str());
+	CarryScenarioFile = ini.Get_Bool("Saves", "CarryScenarioFile", CarryScenarioFile);
 }
 
 

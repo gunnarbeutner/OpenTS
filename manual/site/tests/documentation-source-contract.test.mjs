@@ -618,8 +618,9 @@ test('The scenario file is kept from its first read and carried in the save', ()
 		'Scen->SourceFile.Matches(name)',
 		'Load_Held_Scenario_File(ini, name, withdigest)',
 		'CCFileClass file(name);',
+		'DeploymentConfig.CarryScenarioFile',
 		'Scen->SourceFile.Assign(name, std::move(bytes));',
-	], 'a name the scenario already holds is served from memory, and a fresh read is kept');
+	], 'a name the scenario already holds is served from memory, and a fresh read is kept where the deployment asked for it');
 
 	assertOrdered(functionBody(scenario, 'bool Read_Scenario_INI(char const * fname, bool)'), [
 		'Load_Scenario_File(ini, fname, true)',
@@ -636,5 +637,11 @@ test('The scenario file is kept from its first read and carried in the save', ()
 		functionBody(scenario, 'void ScenarioClass::Serialize(SaveStreamClass & stream)'),
 		/stream\.Serialize\(SourceFile\);/,
 		'the held file travels with the scenario record',
+	);
+
+	assert.match(
+		functionBody(source('code/deploymentconfig.cpp'), 'void DeploymentConfigClass::Read_INI(INIClass const & ini)'),
+		/CarryScenarioFile = ini\.Get_Bool\("Saves", "CarryScenarioFile", CarryScenarioFile\);/,
+		'the deployment configuration decides whether the file is carried',
 	);
 });

@@ -62,6 +62,7 @@
 #include "scenario.h"
 
 #include "_bench.h"
+#include "_deploymentconfig.h"
 #include "_keyboar.h"
 #include "_logic.h"
 #include "_map.h"
@@ -93,6 +94,7 @@
 #include "crc.h"
 #include "data.h"
 #include "dbgprint.h"
+#include "deploymentconfig.h"
 #include "egos.h"
 #include "empulse.h"
 #include "enviro.h"
@@ -1474,7 +1476,8 @@ static int Load_Held_Scenario_File(CCINIClass & ini, char const * name, bool wit
 
 /// <summary>
 /// Fills the database from the scenario file named: from the copy the scenario holds when
-/// that is the file, and otherwise from disk, which the scenario then holds in its place.
+/// that is the file, and otherwise from disk, which the scenario then holds in its place
+/// where the deployment asked for the file to travel in the save.
 /// </summary>
 /// <returns>What the INI load returned: 0 when nothing loaded.</returns>
 static int Load_Scenario_File(CCINIClass & ini, char const * name, bool withdigest)
@@ -1505,7 +1508,7 @@ static int Load_Scenario_File(CCINIClass & ini, char const * name, bool withdige
 
 	BufferStraw straw(bytes.data(), (int)bytes.size());
 	int result = ini.Load(straw, withdigest, false, file.File_Name());
-	if (result != 0) {
+	if (result != 0 && DeploymentConfig.CarryScenarioFile) {
 		Scen->SourceFile.Assign(name, std::move(bytes));
 	}
 	return(result);

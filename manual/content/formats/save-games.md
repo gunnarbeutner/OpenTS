@@ -9,6 +9,7 @@ role: persistence
 source_files:
   - code/autosave.cpp
   - code/conquer.cpp
+  - code/deploymentconfig.cpp
   - code/desyncdlg.cpp
   - code/event.cpp
   - code/goptions.cpp
@@ -75,7 +76,7 @@ The property set carries the description shown in the list, the player's name an
 
 The `CONTENTS` stream is a fixed sequence of records — the scenario, the environment, the rules, the map, the loose global values, and every list of type definitions and runtime objects — written and read back in the same order. Each list stores its own length ahead of its members, and each member writes out the members its class declares, in the order that class lists them. What a save holds is therefore a field-by-field record of each object rather than a copy of the bytes it occupied in memory. Type definitions travel with the save, so a save carries the rules types it was made with rather than looking them up again on load. Artwork does not travel with it: once a restored type's members have been read, its shape and voxel pointers are released and fetched from the archives again, so a save loaded against a changed set of files gets the current artwork. One piece does not come back. A UnitType drawn from shapes is given a [voxel turret](/formats/vxl-hva/) when the rules are read, by a routine no restore calls; the restore takes the ordinary voxel path instead, which releases that turret along with the body model it could not find. Its voxel barrel is fetched back, and the barrel is what the shape path draws.
 
-The scenario record also holds the scenario file itself, name and bytes. A [restart or replay](/systems/campaign-progression/#losing-and-restarting) after a load reads that copy, not the file on disk, which a client resuming the save may have replaced. A random map holds no file.
+The scenario record also holds the scenario file itself, name and bytes, where the deployment's [`CarryScenarioFile`](/formats/opents-ini/#what-a-save-carries) asks for it; the record is written either way, empty when nothing is carried. A [restart or replay](/systems/campaign-progression/#losing-and-restarting) after a load reads that copy, not the file on disk, which a client resuming the save may have replaced. A random map holds no file.
 
 ## What is checked
 

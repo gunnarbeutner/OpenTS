@@ -133,9 +133,9 @@ site_exclusions:
 
   - path: code/deploymentconfig.cpp
     function: DeploymentConfigClass::Read_INI
-    keys: [SearchPaths]
+    keys: [SearchPaths, CarryScenarioFile]
     classification: excluded
-    reason: The folder list belongs to the deployment file that describes where a distribution keeps its own files, and is documented as part of that format rather than as game data.
+    reason: Both are settings of the deployment's own file, documented as that format rather than as game data.
 
   - path: code/spawnerconfig.cpp
     function: SpawnerConfigClass::Read_Slots
