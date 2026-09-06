@@ -319,5 +319,7 @@ extern char Debug_PlayMovieName[32];
 // zero to play it out; -WINAFTER= sets it.
 extern int Debug_WinAfter;
 extern bool Debug_Skip_Intro;
+// -NOBRIEFING starts a mission without its movies and the mission restatement.
+extern bool Debug_Skip_Briefing;
 
 extern Buffer * UnkBuffer;

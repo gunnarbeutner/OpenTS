@@ -2351,6 +2351,18 @@ launch_options:
   _provenance:
     source: code/init.cpp
     guard: null
+- id: launch:no-briefing
+  route_id: no-briefing
+  kind: launch
+  title: Skip mission briefings
+  description: Starts every mission without its intro, briefing and action movies and without the mission
+    restatement, so a forced launch reaches the map on its own.
+  audience: developer
+  availability: *id001
+  syntax: -NOBRIEFING
+  _provenance:
+    source: code/init.cpp
+    guard: null
 - id: launch:multiplayer-debug
   route_id: multiplayer-debug
   kind: launch
