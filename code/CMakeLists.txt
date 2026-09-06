@@ -51,6 +51,11 @@ foreach(f ${OPENTS_RAW})
         set(EXCLUDED TRUE)
     endif()
 
+    # Its counterpart for the SDL host, which is built only where that host is.
+    if(NOT OPENTS_HOST STREQUAL "sdl" AND f MATCHES "/ui/uisdl\\.cpp$")
+        set(EXCLUDED TRUE)
+    endif()
+
     # The platform layer is built once, as a library the engine and the harnesses link.
     if(f MATCHES "/platform/[^/]*\\.cpp$")
         set(EXCLUDED TRUE)
@@ -369,6 +374,14 @@ if(OPENTS_MACOS)
         "-framework CoreFoundation" "-framework CoreVideo" "-framework CoreMedia"
         "-framework VideoToolbox" "-framework Foundation"
     )
+endif()
+
+# The native macOS build runs under an SDL window; code/sdlhost.cpp and code/ui/uisdl.cpp
+# answer code/hostwindow.h and feed the UI shell there.
+if(OPENTS_MACOS)
+    find_package(SDL2 CONFIG REQUIRED)
+    target_compile_definitions(OpenTS PRIVATE OPENTS_SDL_HOST)
+    target_link_libraries(OpenTS PRIVATE SDL2::SDL2)
 endif()
 
 if (WIN32)
