@@ -13,25 +13,46 @@ option(OPENTS_OFFICIAL_BUILD "Build as an official release of the declared versi
 
 option(OPENTS_EXPERIMENTAL_CLANG_CL "Build with clang-cl using the MSVC ABI" OFF)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
-   AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
-    if(NOT OPENTS_EXPERIMENTAL_CLANG_CL)
-        message(FATAL_ERROR
-            "The unsupported clang-cl experiment must be configured with "
-            "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/clang-cl-msvc.cmake.")
-    endif()
-elseif(MSVC)
-    if(MSVC_VERSION LESS 1930)
-        message(FATAL_ERROR "OpenTS requires MSVC 19.30 or newer.")
-    endif()
-else()
-    message(FATAL_ERROR
-        "OpenTS requires the Visual Studio 2022 MSVC toolchain. "
-        "For the unsupported clang-cl experiment, configure with "
-        "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/clang-cl-msvc.cmake.")
+set(OPENTS_MOVIE_FORMAT "VQA" CACHE STRING "Movie container selected by this build: VQA or MP4")
+set_property(CACHE OPENTS_MOVIE_FORMAT PROPERTY STRINGS VQA MP4)
+string(TOUPPER "${OPENTS_MOVIE_FORMAT}" OPENTS_MOVIE_FORMAT)
+
+if(NOT OPENTS_MOVIE_FORMAT MATCHES "^(VQA|MP4)$")
+    message(FATAL_ERROR "OPENTS_MOVIE_FORMAT must be VQA or MP4")
 endif()
 
-enable_language(RC)
+if(OPENTS_MOVIE_FORMAT STREQUAL "MP4" AND NOT EMSCRIPTEN)
+    message(FATAL_ERROR "OPENTS_MOVIE_FORMAT=MP4 is available only for the WebAssembly target")
+endif()
+
+# Visual Studio 2022 is the supported toolchain. Emscripten configures the WebAssembly
+# target, whose state docs/BUILDING.md records.
+if(NOT EMSCRIPTEN)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
+       AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+        if(NOT OPENTS_EXPERIMENTAL_CLANG_CL)
+            message(FATAL_ERROR
+                "The unsupported clang-cl experiment must be configured with "
+                "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/clang-cl-msvc.cmake.")
+        endif()
+    elseif(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        # The native macOS target is in progress and unsupported; docs/BUILDING.md records
+        # its state.
+        set(OPENTS_MACOS ON)
+    elseif(NOT MSVC OR MSVC_VERSION LESS 1930)
+        message(FATAL_ERROR
+            "OpenTS requires the Visual Studio 2022 MSVC toolchain, or the Emscripten "
+            "toolchain for the in-progress WebAssembly target. "
+            "For the unsupported clang-cl experiment, configure with "
+            "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/clang-cl-msvc.cmake.")
+    endif()
+endif()
+
+# Only the Windows toolchains have a resource compiler; the other targets reach the
+# language resources another way.
+if(NOT EMSCRIPTEN AND NOT OPENTS_MACOS)
+    enable_language(RC)
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -72,9 +93,23 @@ add_custom_target(OpenTSBuildStamp ALL
     VERBATIM
 )
 
+# The Win32 substitute stands in for the Windows SDK and the MSVC C runtime where they are
+# absent; every include site selects it through this definition.
+if(EMSCRIPTEN OR OPENTS_MACOS)
+    set(OPENTS_WIN32_SUBSTITUTE ON)
+    add_compile_definitions(OPENTS_WIN32_SUBSTITUTE)
+endif()
+
 add_subdirectory(thirdparty)
 add_subdirectory(code)
-add_subdirectory(code/language)
 
 enable_testing()
+
+# The localized strings ship in a Win32 resource DLL, which the WebAssembly target has no way
+# to build or load. It compiles the same resource script into the directory the executable
+# carries instead; code/CMakeLists.txt does that.
+if(NOT OPENTS_WIN32_SUBSTITUTE)
+    add_subdirectory(code/language)
+endif()
+
 add_subdirectory(tests)

@@ -34,6 +34,18 @@ if(MSVC)
     target_link_libraries(UnvqDelta PRIVATE kernel32 user32 shell32)
 endif()
 
+# The decoders carry the engine's MSVC declarations, so a substitute build needs the same
+# narrow wchar_t and MSVC keyword handling the engine is built with.
+if(OPENTS_WIN32_SUBSTITUTE)
+    target_compile_options(UnvqDelta PRIVATE
+        -fshort-wchar
+        -fno-builtin-wcslen
+        -fno-builtin-wcsnlen
+        -fexceptions
+        -fdeclspec
+    )
+endif()
+
 set_target_properties(UnvqDelta PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )

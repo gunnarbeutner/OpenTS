@@ -41,9 +41,6 @@ if(OPENTS_WIN32_SUBSTITUTE)
         -fno-builtin-wcsnlen
         -fexceptions
         -fdeclspec
-        -D__cdecl=
-        -D__stdcall=
-        -D__fastcall=
     )
 
     target_link_options(Win32ProcessTest PRIVATE -fexceptions)

@@ -57,3 +57,16 @@ manual/data/.manual-generate-*/
 
 # Agent worktrees, which are checkouts of this repository placed inside it
 /.claude/worktrees/
+
+
+# The engine-signing keys, provided per build and never committed: the private key reaches
+# the image build as a secret, and the public key is baked from .sigkey.pub.
+.sigkey*
+*.sigkey
+# Published native installers, which are build output and are never committed
+/downloads/
+
+# Signing and notarisation values for tauri/build.sh, which are per-developer secrets
+# Deployment credentials: the Cloudflare purge token deploy.py reads.
+/.env
+/tauri/.env

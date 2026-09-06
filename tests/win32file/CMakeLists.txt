@@ -39,9 +39,6 @@ if(OPENTS_WIN32_SUBSTITUTE)
         -fno-builtin-wcsnlen
         -fexceptions
         -fdeclspec
-        -D__cdecl=
-        -D__stdcall=
-        -D__fastcall=
     )
 
     # The harness creates and reads back real files, so it needs a real filesystem rather

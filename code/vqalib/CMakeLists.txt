@@ -37,6 +37,11 @@ target_compile_definitions(VQALib PRIVATE
 target_include_directories(VQALib PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(VQALib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
+# The player reads files through the MSVC runtime's <io.h>, which the substitute supplies.
+if(OPENTS_WIN32_SUBSTITUTE)
+    target_include_directories(VQALib PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../win32compat")
+endif()
+
 #
 # ---------------------------------------------------------
 # Visual Studio filters

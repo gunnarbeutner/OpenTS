@@ -14,18 +14,40 @@ target_include_directories(SaveTest PRIVATE
     "${CMAKE_SOURCE_DIR}/code"
 )
 
-target_compile_definitions(SaveTest PRIVATE WIN32 _WINDOWS _MBCS)
+if(MSVC)
+    target_compile_definitions(SaveTest PRIVATE WIN32 _WINDOWS _MBCS)
 
-target_compile_options(SaveTest PRIVATE
-    $<$<CONFIG:Debug>:/MTd /EHsc /Zc:__cplusplus>
-    $<$<CONFIG:Release>:/MT /EHsc /Zc:__cplusplus>
-)
+    target_compile_options(SaveTest PRIVATE
+        $<$<CONFIG:Debug>:/MTd /EHsc /Zc:__cplusplus>
+        $<$<CONFIG:Release>:/MT /EHsc /Zc:__cplusplus>
+    )
 
-target_link_libraries(SaveTest PRIVATE kernel32)
+    target_link_libraries(SaveTest PRIVATE kernel32)
+endif()
+
+if(OPENTS_WIN32_SUBSTITUTE)
+    target_link_libraries(SaveTest PRIVATE Win32Substitute)
+endif()
 
 set_target_properties(SaveTest PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
+
+if(OPENTS_WIN32_SUBSTITUTE)
+    # The substitute's structures are pinned to their Win32 x86 widths, so the harness needs
+    # the same narrow wchar_t and MSVC keyword handling the engine is built with.
+    target_compile_options(SaveTest PRIVATE
+        -fshort-wchar
+        -fno-builtin-wcslen
+        -fno-builtin-wcsnlen
+        -fexceptions
+        -fdeclspec
+    )
+
+    # The harness writes the files it reads back, so it needs a real filesystem rather than
+    # the in-memory one Emscripten supplies by default.
+    target_link_options(SaveTest PRIVATE -fexceptions $<$<BOOL:${EMSCRIPTEN}>:-sNODERAWFS=1;-sALLOW_MEMORY_GROWTH=1>)
+endif()
 
 # The harness writes the files it reads back, so it is given a directory of its own.
 add_test(NAME save COMMAND SaveTest "${CMAKE_CURRENT_BINARY_DIR}")
