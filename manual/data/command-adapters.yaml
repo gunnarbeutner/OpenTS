@@ -357,6 +357,33 @@ fixed_exclusions:
       - { file: code/init.cpp, function: Init_Commands, expression: KN_ESC }
     reason: Initialization removes conflicting mappings before assigning the two forced bindings.
   - sites:
+      - { file: code/sdlhost.cpp, function: Scancode_For_Virtual, expression: VK_NONE, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Note_Text, expression: VK_NONE, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Handle_Key, expression: VK_NONE, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Handle_Mouse_Button, expression: VK_NONE, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Handle_Wheel, expression: VK_NONE, guard: "defined(OPENTS_SDL_HOST)" }
+    reason: Sentinel for an SDL event that names no virtual key.
+  - sites:
+      - { file: code/sdlhost.cpp, function: Note_Character, expression: VK_RETURN, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Note_Character, expression: VK_BACK, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Note_Character, expression: VK_TAB, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Note_Character, expression: VK_ESCAPE, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Host_Key_To_Character, expression: VK_RETURN, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Host_Key_To_Character, expression: VK_BACK, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Host_Key_To_Character, expression: VK_TAB, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Host_Key_To_Character, expression: VK_ESCAPE, guard: "defined(OPENTS_SDL_HOST)" }
+    reason: Supplies the ASCII character for the named keys SDL reports without one.
+  - sites:
+      - { file: code/sdlhost.cpp, function: Host_Key_Is_Down, expression: VK_LBUTTON, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Host_Key_Is_Down, expression: VK_MBUTTON, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Host_Key_Is_Down, expression: VK_RBUTTON, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Host_Key_Is_Down, expression: VK_SHIFT, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Host_Key_Is_Down, expression: VK_CONTROL, guard: "defined(OPENTS_SDL_HOST)" }
+      - { file: code/sdlhost.cpp, function: Host_Key_Is_Down, expression: VK_MENU, guard: "defined(OPENTS_SDL_HOST)" }
+    reason: Host-window key-state query answered from SDL's button and modifier state, not separate controls.
+  - site: { file: code/sdlhost.cpp, function: Handle_Key, expression: VK_SCROLL, guard: "defined(OPENTS_SDL_HOST)" }
+    reason: Keeps Scroll Lock out of the keyboard buffer; it does not dispatch a game command.
+  - sites:
       - { file: code/keyboard.cpp, function: WWKeyboardClass::Is_Mouse_Key, expression: VK_LBUTTON }
       - { file: code/keyboard.cpp, function: WWKeyboardClass::Is_Mouse_Key, expression: VK_MBUTTON }
       - { file: code/keyboard.cpp, function: WWKeyboardClass::Is_Mouse_Key, expression: VK_RBUTTON }
