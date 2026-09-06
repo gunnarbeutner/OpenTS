@@ -34,35 +34,6 @@
 // Disable warning about exception handling not being enabled. It's used as part of STL - in a part of STL we don't use.
 #pragma warning(disable : 4530)
 
-/*
-**	Define for debug memory allocation to include __FILE__ and __LINE__ for every memory allocation.
-**	This helps find leaks.
-*/
-#ifdef _DEBUG
-#define STEVES_NEW_CATCHER
-
-#ifdef _MSC_VER
-#ifdef STEVES_NEW_CATCHER
-
-#include <crtdbg.h>
-#include <cstdlib>
-#include <malloc.h>
-
-#define   malloc(s)         _malloc_dbg(s, _NORMAL_BLOCK, __FILE__, __LINE__)
-#define   calloc(c, s)      _calloc_dbg(c, s, _NORMAL_BLOCK, __FILE__, __LINE__)
-#define   realloc(p, s)     _realloc_dbg(p, s, _NORMAL_BLOCK, __FILE__, __LINE__)
-#define   _expand(p, s)     _expand_dbg(p, s, _NORMAL_BLOCK, __FILE__, __LINE__)
-#define   free(p)           _free_dbg(p, _NORMAL_BLOCK)
-#define   _msize(p)         _msize_dbg(p, _NORMAL_BLOCK)
-
-void * __cdecl operator new(unsigned int size);
-void __cdecl operator delete(void * ptr);
-
-#endif	//STEVES_NEW_CATCHER
-#endif	//_MSC_VER
-#endif	//_DEBUG
-
-
 // Jani: Intel's C++ compiler issues too many warnings in WW libraries when using warning level 4
 #if defined (__ICL)    // Detect Intel compiler
 #pragma warning (3)

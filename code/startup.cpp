@@ -428,10 +428,6 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 	char	path_to_exe[MAX_PATH];
 	char	buffer[512];
 
-#ifdef STEVES_NEW_CATCHER
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF|_CRTDBG_LEAK_CHECK_DF);
-#endif
-
 	// First, so that everything after it is covered, including the rest of this function.
 	Install_Exception_Handler();
 
@@ -1069,10 +1065,6 @@ void __cdecl Prog_End(void)
 		CloseHandle(AppMutex);
 		AppMutex = NULL;
 	}
-
-#ifdef STEVES_NEW_CATCHER
-	_CrtDumpMemoryLeaks();
-#endif
 }
 
 /***********************************************************************************************
