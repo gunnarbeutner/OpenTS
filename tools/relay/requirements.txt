@@ -1,0 +1,9 @@
+# The relay deliberately has no third-party dependencies.
+#
+# It frames its own WebSockets over asyncio, which is a few hundred lines of the standard
+# library rather than a dependency to install, pin and keep current on whatever host ends
+# up running it. `python3 tools/relay/relay.py` works from a clean checkout, the same way
+# `python3 tools/harness/harness.py` does, and for the same reason.
+#
+# This file is the owner of that decision. Anything the relay ever needs is pinned here and
+# nowhere else; it is not the harness's requirements.txt and not the manual's.

@@ -80,6 +80,9 @@
 #include "vector.h"
 #include "wsproto.h"
 #include "wspudp.h"
+#if defined(__EMSCRIPTEN__)
+#include "wsrelay.h"
+#endif
 
 #include <algorithm>
 
@@ -212,12 +215,23 @@ void IPXManagerClass::Configure_LAN(unsigned short port)
 		port = static_cast<unsigned short>(WestwoodOnline_PortNumber);
 	}
 
+#if defined(__EMSCRIPTEN__)
+	// A page has no network to broadcast onto, so a relay is the broadcast
+	// domain and the port has no meaning.
+	(void)port;
+
+	RelayInterfaceClass *relay = new RelayInterfaceClass;
+	relay->Set_Relay(Relay_Configured_Url(), Relay_Configured_Room());
+
+	PacketTransport = relay;
+#else
 	UDPInterfaceClass *udp = new UDPInterfaceClass;
 	udp->Set_Local_Port(port);
 	udp->Set_Destination_Port(port);
 	udp->Enable_Broadcast(true);
 
 	PacketTransport = udp;
+#endif
 
 	TransportMode = TRANSPORT_LAN;
 }
