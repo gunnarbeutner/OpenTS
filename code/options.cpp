@@ -122,7 +122,7 @@ OptionsClass::OptionsClass(void) :
 	SidebarSorting(true),
 	ActionLines(true),
 	ToolTips(true),
-	TextBackgroundColor(0),
+	TextBackgroundColor(12),
 	AutoSaveInterval(10800),
 	ScreenWidth(-1),
 	ScreenHeight(-1),

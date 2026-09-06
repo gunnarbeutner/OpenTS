@@ -129,7 +129,7 @@ class OptionsClass {
 
 		/*
 		 * The palette index drawn behind each glyph of the in-game message list, or zero for
-		 * none. The CnCNet client writes 12, black, for its chat background option.
+		 * none. Twelve, black, is the value the CnCNet client's chat background option writes.
 		 */
 		int TextBackgroundColor;
 
