@@ -182,11 +182,6 @@ void SwizzleManagerClass::Resolve(void)
 
 
 /// <summary>
-/// Throws away every pending request and announcement.
-/// The load code calls this routine before it starts reading, so that whatever a load that
-/// gave up partway through left behind cannot be resolved into the game that follows it.
-/// </summary>
-/// <summary>
 /// Takes back everything registered since the mark, clearing each pointer slot it covers.
 /// A slot that was registered still holds the identity read from the file, which is not
 /// an address; clearing it lets the object it belongs to be destroyed safely.
@@ -201,6 +196,11 @@ void SwizzleManagerClass::Abandon(MarkType const & mark)
 }
 
 
+/// <summary>
+/// Throws away every pending request and announcement.
+/// The load code calls this routine before it starts reading, so that whatever a load that
+/// gave up partway through left behind cannot be resolved into the game that follows it.
+/// </summary>
 void SwizzleManagerClass::Discard(void)
 {
 	RequestTable.clear();
