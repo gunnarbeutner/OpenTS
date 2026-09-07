@@ -2264,7 +2264,8 @@ bool MapClass::Read_Binary_1(Straw & straw)
 /// read past and thrown away.
 /// </summary>
 /// <param name="straw">The straw supplying the compressed map data.</param>
-/// <returns>bool; Was the map read? This routine always succeeds.</returns>
+/// <returns>bool; Was the map read? False if the compressed data was damaged, in which case
+/// the cells read before the damage are still in place.</returns>
 bool MapClass::Read_Binary_2(Straw & straw)
 {
 	LCWStraw decomp(LCWStraw::DECOMPRESS);
@@ -2289,7 +2290,7 @@ bool MapClass::Read_Binary_2(Straw & straw)
 		decomp.Get(&cell, sizeof(cell));
 	}
 	new (&BlubCell) CellClass;
-	return(true);
+	return(!decomp.Is_Damaged());
 }
 
 
