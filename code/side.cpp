@@ -7,7 +7,6 @@
  * See LICENSE.md for applicable additional terms and warranty disclaimers.
  ******************************************************************************/
 
-#define INCLUDE_COM
 #include "always.h"
 
 #include "side.h"
@@ -76,18 +75,9 @@ void SideClass::Compute_CRC(CRCEngine & crc) const
 }
 
 
-/// <summary>
-/// Fetches the class identifier of this object.
-/// This routine is part of the IPersist interface. It is used by the save and load
-/// system to recognize what kind of object it is about to create.
-/// </summary>
-/// <param name="retval">Pointer to the identifier to fill in.</param>
-/// <returns>Returns with S_OK, or E_POINTER if no destination was supplied.</returns>
-HRESULT SideClass::GetClassID(CLSID * retval)
+ClassID SideClass::Class_ID(void) const
 {
-	if (retval == NULL) return(E_POINTER);
-	*retval = CLSID_SideClass;
-	return(S_OK);
+	return(ClassID_SideClass);
 }
 
 
