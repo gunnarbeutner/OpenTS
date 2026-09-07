@@ -11,17 +11,16 @@
 
 #include "loco.h"
 
-#include "classfactory.h"
-#include "dbgprint.h"
-#include "saveload.h"
-
 #include "_map.h"
 #include "_tactica.h"
 #include "cell.h"
+#include "classfactory.h"
 #include "coord.h"
+#include "dbgprint.h"
 #include "foot.h"
 #include "globals.h"
 #include "map.h"
+#include "saveload.h"
 #include "savestream.h"
 #include "swizzle.h"
 #include "tactical.h"
