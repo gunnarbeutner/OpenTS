@@ -64,6 +64,7 @@
  *=============================================================================================*/
 LCWStraw::LCWStraw(CompControl control, int blocksize) :
 		Control(control),
+		IsDamaged(false),
 		Counter(0),
 		Buffer(NULL),
 		Buffer2(NULL),
@@ -157,18 +158,22 @@ int LCWStraw::Get(void * destbuf, int slen)
 
 		if (Control == DECOMPRESS) {
 			int incount = BASECLASS::Get(&BlockHeader, sizeof(BlockHeader));
-			if (incount != sizeof(BlockHeader)) break;
+			if (incount != sizeof(BlockHeader)) {
+				// No header at all is the end of the stream; a partial one is a cut stream.
+				if (incount != 0) IsDamaged = true;
+				break;
+			}
 
 			// The counts are stream data; a block the compressor could not have written
 			// would start before the buffer or expand past it.
-			if (BlockHeader.CompCount == 0 || BlockHeader.CompCount > BlockSize+SafetyMargin) break;
-			if (BlockHeader.UncompCount == 0 || BlockHeader.UncompCount > BlockSize) break;
+			if (BlockHeader.CompCount == 0 || BlockHeader.CompCount > BlockSize+SafetyMargin) { IsDamaged = true; break; }
+			if (BlockHeader.UncompCount == 0 || BlockHeader.UncompCount > BlockSize) { IsDamaged = true; break; }
 
 			void * ptr = &Buffer[(BlockSize+SafetyMargin) - BlockHeader.CompCount];
 			incount = BASECLASS::Get(ptr, BlockHeader.CompCount);
-			if (incount != BlockHeader.CompCount) break;
+			if (incount != BlockHeader.CompCount) { IsDamaged = true; break; }
 
-			if (LCW_Uncomp_Bounded(ptr, BlockHeader.CompCount, Buffer, BlockHeader.UncompCount) < BlockHeader.UncompCount) break;
+			if (LCW_Uncomp_Bounded(ptr, BlockHeader.CompCount, Buffer, BlockHeader.UncompCount) < BlockHeader.UncompCount) { IsDamaged = true; break; }
 			Counter = BlockHeader.UncompCount;
 		} else {
 			BlockHeader.UncompCount = (unsigned short)BASECLASS::Get(Buffer, BlockSize);
