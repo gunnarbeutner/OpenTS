@@ -119,7 +119,10 @@ alive, and unless a dialog is up or the game is parked the tactical view keeps
 taking input and redrawing. That wait runs every frame of every game and is
 the engine's hottest; the yield there is what keeps the tab answering.
 `Call_Back` also yields, because several waits (an audio stream finishing,
-mostly) spin on it alone and never reach the message handler.
+mostly) spin on it alone and never reach the message handler. A dialog over a
+single-player game runs neither pacer: `OwnerDraw::Dialog_Message_Handler`
+pumps the queue and calls `Call_Back`, whose yield is paced, so the pass yields
+once itself and the loop waits a frame instead of spinning through it.
 
 On this target `Windows_Message_Handler` has two jobs it does not have on
 Windows: it turns what the page reported into messages (`Browser_Service`,

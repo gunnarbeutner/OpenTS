@@ -22,6 +22,7 @@
 #include "_surface.h"
 #include "_xmouse.h"
 #include "arraylist.h"
+#include "browser.h"
 #include "bsurface.h"
 #include "conquer.h"
 #include "data.h"
@@ -7004,6 +7005,12 @@ bool OwnerDraw::Dialog_Message_Handler(void)
 		}
 	} else {
 		Call_Back();
+
+#if defined(OPENTS_WIN32_SUBSTITUTE)
+		// A dialog pass has no frame timer to wait on, and the paced yield inside
+		// Call_Back leaves the rest of the frame to be spun through.
+		Browser_Yield();
+#endif
 	}
 
 	return(false);
