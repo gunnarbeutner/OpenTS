@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "coord.h"
 
 struct CellNode {
@@ -44,8 +46,8 @@ struct CellNode {
 	template<typename S>
 	void Serialize(S & stream)
 	{
-		stream.Serialize(Element);
-		stream.Serialize(Score);
+		SERIALIZE(stream, Element);
+		SERIALIZE(stream, Score);
 	}
 };
 

@@ -845,18 +845,18 @@ void ParticleSystemClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Class);
-	stream.Serialize(CoordOffset);
-	stream.Serialize(SystemParticles);
-	stream.Serialize(SpawnCoord);
-	stream.Serialize(Source);
-	stream.Serialize(Target);
-	stream.Serialize(SpawnFrames);
-	stream.Serialize(Lifetime);
-	stream.Serialize(SparkSpawnFrames);
-	stream.Serialize(SparkRadius);
-	stream.Serialize(IsMarkedForDeletion);
-	stream.Serialize(IsRandomSparkDirection);
+	SERIALIZE(stream, Class);
+	SERIALIZE(stream, CoordOffset);
+	SERIALIZE(stream, SystemParticles);
+	SERIALIZE(stream, SpawnCoord);
+	SERIALIZE(stream, Source);
+	SERIALIZE(stream, Target);
+	SERIALIZE(stream, SpawnFrames);
+	SERIALIZE(stream, Lifetime);
+	SERIALIZE(stream, SparkSpawnFrames);
+	SERIALIZE(stream, SparkRadius);
+	SERIALIZE(stream, IsMarkedForDeletion);
+	SERIALIZE(stream, IsRandomSparkDirection);
 }
 
 

@@ -156,11 +156,11 @@ void CampaignClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(CDNumber);
-	stream.Serialize(ScenarioName);
-	stream.Serialize(FinalMovie);
-	stream.Serialize(Description);
-	stream.Serialize(RequiredAddon);
+	SERIALIZE(stream, CDNumber);
+	SERIALIZE(stream, ScenarioName);
+	SERIALIZE(stream, FinalMovie);
+	SERIALIZE(stream, Description);
+	SERIALIZE(stream, RequiredAddon);
 }
 
 

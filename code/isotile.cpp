@@ -178,7 +178,7 @@ void IsometricTileClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Class);
+	SERIALIZE(stream, Class);
 }
 
 

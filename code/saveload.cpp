@@ -179,7 +179,7 @@ bool Save_Object(SaveStreamClass & stream, IPersistent * persist)
 	stream.Serialize_Bytes(&classid, sizeof(classid));
 	unsigned int const lengthat = stream.Offset();
 	unsigned int length = 0;
-	stream.Serialize(length);
+	stream.Serialize_Raw(length);
 	unsigned int const start = stream.Offset();
 
 	bool result = persist->Save(stream, true);
@@ -220,7 +220,7 @@ std::unique_ptr<IPersistent> Load_Object(SaveStreamClass & stream, bool (*accept
 	ClassID classid;
 	unsigned int length = 0;
 	stream.Serialize_Bytes(&classid, sizeof(classid));
-	stream.Serialize(length);
+	stream.Serialize_Raw(length);
 	if (stream.Was_Error()) {
 		return(nullptr);
 	}
@@ -277,7 +277,7 @@ template<class T>
 static bool Load_Vector(SaveStreamClass & stream)
 {
 	int count = 0;
-	stream.Serialize(count);
+	stream.Serialize_Raw(count);
 	if (stream.Was_Error()) {
 		return(false);
 	}
@@ -307,7 +307,7 @@ template<class T>
 static bool Save_Vector(SaveStreamClass & stream, const DynamicVectorClass<T> &list)
 {
 	int count = list.Count();
-	stream.Serialize(count);
+	stream.Serialize_Raw(count);
 
 	for (int index = 0; index < count; index++) {
 		bool const result = Save_Object(stream, list[index]);
@@ -1210,29 +1210,29 @@ bool Load_Game(const char *file_name)
  *=========================================================================*/
 static void Serialize_Misc_Values(SaveStreamClass & stream)
 {
-	stream.Serialize(GasSystem);
-	stream.Serialize(PlayerPtr);
-	stream.Serialize(Frame);
-	stream.Serialize(CurrentObject);
-	stream.Serialize(Ground);
+	SERIALIZE(stream, GasSystem);
+	SERIALIZE(stream, PlayerPtr);
+	SERIALIZE(stream, Frame);
+	SERIALIZE(stream, CurrentObject);
+	SERIALIZE(stream, Ground);
 
 	IonStormClass::Serialize(stream);
 
-	stream.Serialize(LogicTags);
-	stream.Serialize(MapTags);
-	stream.Serialize(CrateShares);
-	stream.Serialize(CrateAnims);
-	stream.Serialize(CrateData);
-	stream.Serialize(MissionControl);
-	stream.Serialize(Session.ObiWan);
-	stream.Serialize(Session.AIOnly);
+	SERIALIZE(stream, LogicTags);
+	SERIALIZE(stream, MapTags);
+	SERIALIZE(stream, CrateShares);
+	SERIALIZE(stream, CrateAnims);
+	SERIALIZE(stream, CrateData);
+	SERIALIZE(stream, MissionControl);
+	SERIALIZE(stream, Session.ObiWan);
+	SERIALIZE(stream, Session.AIOnly);
 
 	/*
 	 * Speech is reached through a pair of accessors rather than a variable of its own,
 	 * so it travels through a local either way.
 	 */
 	int state = Get_Speech_State();
-	stream.Serialize(state);
+	SERIALIZE(stream, state);
 	if (stream.Is_Loading()) {
 		Set_Speech_State(state != 0);
 	}
@@ -1240,14 +1240,14 @@ static void Serialize_Misc_Values(SaveStreamClass & stream)
 	// The ring positions travel with every save, so a load continues where the save left off.
 	int campaign_slot = SaveManager.Autosave.Campaign_Slot();
 	int skirmish_slot = SaveManager.Autosave.Skirmish_Slot();
-	stream.Serialize(campaign_slot);
-	stream.Serialize(skirmish_slot);
+	SERIALIZE(stream, campaign_slot);
+	SERIALIZE(stream, skirmish_slot);
 	if (stream.Is_Loading()) {
 		SaveManager.Autosave.Seed_Slots(campaign_slot, skirmish_slot);
 	}
 
 	// The scenario's own tutorial lines travel here, since a load never re-reads the map.
-	stream.Serialize(TutorialText);
+	SERIALIZE(stream, TutorialText);
 
 	// Placed sounds and the sounds attached to objects come back on the next
 	// sound tick; the playing sounds themselves are not saved.

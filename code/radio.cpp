@@ -348,6 +348,6 @@ void RadioClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Old);
-	stream.Serialize(Radio);
+	SERIALIZE(stream, Old);
+	SERIALIZE(stream, Radio);
 }

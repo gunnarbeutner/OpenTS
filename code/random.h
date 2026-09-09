@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 /*
 **	This class functions like a 'magic' int value that returns a random number
 **	every time it is read. To set the "random seed" for this, just assign a number
@@ -109,9 +111,9 @@ class Random2Class {
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Index1);
-			stream.Serialize(Index2);
-			stream.Serialize(Table);
+			SERIALIZE(stream, Index1);
+			SERIALIZE(stream, Index2);
+			SERIALIZE(stream, Table);
 		}
 
 	protected:

@@ -410,44 +410,44 @@ void WaveClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Target);
-	stream.Serialize(Type);
-	stream.Serialize(StartCoord);
-	stream.Serialize(EndCoord);
-	stream.Serialize(WaveStartMiddle);
-	stream.Serialize(WaveEndMiddle);
-	stream.Serialize(WaveEndLeft);
-	stream.Serialize(WaveEndRight);
-	stream.Serialize(WaveStartLeft);
-	stream.Serialize(WaveStartRight);
-	stream.Serialize(WaveEndLeftCoord);
-	stream.Serialize(WaveEndRightCoord);
-	stream.Serialize(WaveStartLeftCoord);
-	stream.Serialize(WaveStartRightCoord);
-	stream.Serialize(IsWaveActive);
-	stream.Serialize(WaveEC);
-	stream.Serialize(WaveProgress);
-	stream.Serialize(FadeProgress);
+	SERIALIZE(stream, Target);
+	SERIALIZE(stream, Type);
+	SERIALIZE(stream, StartCoord);
+	SERIALIZE(stream, EndCoord);
+	SERIALIZE(stream, WaveStartMiddle);
+	SERIALIZE(stream, WaveEndMiddle);
+	SERIALIZE(stream, WaveEndLeft);
+	SERIALIZE(stream, WaveEndRight);
+	SERIALIZE(stream, WaveStartLeft);
+	SERIALIZE(stream, WaveStartRight);
+	SERIALIZE(stream, WaveEndLeftCoord);
+	SERIALIZE(stream, WaveEndRightCoord);
+	SERIALIZE(stream, WaveStartLeftCoord);
+	SERIALIZE(stream, WaveStartRightCoord);
+	SERIALIZE(stream, IsWaveActive);
+	SERIALIZE(stream, WaveEC);
+	SERIALIZE(stream, WaveProgress);
+	SERIALIZE(stream, FadeProgress);
 
 	/*
 	 * The outline of the wave is drawn from the active corners below, so only the number
 	 * of them travels; Post_Load points the shape back at them.
 	 */
-	stream.Serialize(WaveShape.Count);
+	SERIALIZE(stream, WaveShape.Count);
 
-	stream.Serialize(ActiveWaveStartMiddle);
-	stream.Serialize(ActiveWaveEndMiddle);
-	stream.Serialize(ActiveWaveEndLeft);
-	stream.Serialize(ActiveWaveEndRight);
-	stream.Serialize(ActiveWaveStartLeft);
-	stream.Serialize(ActiveWaveStartRight);
+	SERIALIZE(stream, ActiveWaveStartMiddle);
+	SERIALIZE(stream, ActiveWaveEndMiddle);
+	SERIALIZE(stream, ActiveWaveEndLeft);
+	SERIALIZE(stream, ActiveWaveEndRight);
+	SERIALIZE(stream, ActiveWaveStartLeft);
+	SERIALIZE(stream, ActiveWaveStartRight);
 	// DrawData -- the pixel offsets the wave is swept with, rebuilt before every draw.
 	// DirectionStrides
-	stream.Serialize(Direction);
-	stream.Serialize(LaserEC);
-	stream.Serialize(Source);
-	stream.Serialize(Facing);
-	stream.Serialize(AffectedCells);
+	SERIALIZE(stream, Direction);
+	SERIALIZE(stream, LaserEC);
+	SERIALIZE(stream, Source);
+	SERIALIZE(stream, Facing);
+	SERIALIZE(stream, AffectedCells);
 	// WaveIntensityTable -- the rasterized wave, which belongs to the surface being drawn to and
 	// is rebuilt before every draw.
 	// WaveShape.Vertices

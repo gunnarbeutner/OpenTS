@@ -318,11 +318,11 @@ void AircraftTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HeapID);
-	stream.Serialize(IsCarryall);
-	stream.Serialize(IsRotorEquipped);
-	stream.Serialize(IsRotorCustom);
-	stream.Serialize(IsLandable);
+	SERIALIZE(stream, HeapID);
+	SERIALIZE(stream, IsCarryall);
+	SERIALIZE(stream, IsRotorEquipped);
+	SERIALIZE(stream, IsRotorCustom);
+	SERIALIZE(stream, IsLandable);
 }
 
 

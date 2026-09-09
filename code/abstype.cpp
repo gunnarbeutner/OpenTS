@@ -133,6 +133,6 @@ void AbstractTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(IniName);
-	stream.Serialize(GivenName);
+	SERIALIZE(stream, IniName);
+	SERIALIZE(stream, GivenName);
 }

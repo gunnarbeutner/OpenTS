@@ -454,12 +454,12 @@ void TagClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Class);
-	stream.Serialize(Trigger);
-	stream.Serialize(AttachCount);
-	stream.Serialize(CellID);
-	stream.Serialize(IsToDie);
-	stream.Serialize(IsCurrentlySprung);
+	SERIALIZE(stream, Class);
+	SERIALIZE(stream, Trigger);
+	SERIALIZE(stream, AttachCount);
+	SERIALIZE(stream, CellID);
+	SERIALIZE(stream, IsToDie);
+	SERIALIZE(stream, IsCurrentlySprung);
 }
 
 

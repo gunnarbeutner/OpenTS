@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "speed.hh"
 
 
@@ -29,7 +31,7 @@ struct GroundType {
 	template<typename S>
 	void Serialize(S & stream)
 	{
-		stream.Serialize(Cost);
-		stream.Serialize(Build);
+		SERIALIZE(stream, Cost);
+		SERIALIZE(stream, Build);
 	}
 };

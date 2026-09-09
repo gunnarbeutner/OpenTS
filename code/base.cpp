@@ -549,14 +549,14 @@ void BaseClass::Write_INI(CCINIClass & ini, char const * hname)
 /// <returns>Returns with the result reported by the stream read.</returns>
 void BaseClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Serialize(Nodes);
-	stream.Serialize(PercentBuilt);
-	stream.Serialize(InnerCells);
-	stream.Serialize(OuterCells);
-	stream.Serialize(PlacementCenter);
-	stream.Serialize(BaseAreaRect);
-	stream.Serialize(LastBaseAreaRect);
-	stream.Serialize(House);
+	SERIALIZE(stream, Nodes);
+	SERIALIZE(stream, PercentBuilt);
+	SERIALIZE(stream, InnerCells);
+	SERIALIZE(stream, OuterCells);
+	SERIALIZE(stream, PlacementCenter);
+	SERIALIZE(stream, BaseAreaRect);
+	SERIALIZE(stream, LastBaseAreaRect);
+	SERIALIZE(stream, House);
 	// INI_NAME -- a constant shared by every base rather than owned by one.
 }
 

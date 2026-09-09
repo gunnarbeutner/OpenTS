@@ -130,7 +130,7 @@ void TeleportLocomotionClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(DestinationCoord);
+	SERIALIZE(stream, DestinationCoord);
 }
 
 

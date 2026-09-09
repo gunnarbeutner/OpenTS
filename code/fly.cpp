@@ -1529,19 +1529,19 @@ void FlyLocomotionClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(DestinationCoord);
-	stream.Serialize(HeadToCoord);
-	stream.Serialize(IsMoving);
-	stream.Serialize(FlightLevel);
-	stream.Serialize(TargetSpeed);
-	stream.Serialize(CurrentSpeed);
-	stream.Serialize(IsTakingOff);
-	stream.Serialize(IsLanding);
-	stream.Serialize(CommencedLanding);
-	stream.Serialize(IsTumbling);
-	stream.Serialize(CurrentROT);
-	stream.Serialize(Riser);
-	stream.Serialize(IsElevating);
+	SERIALIZE(stream, DestinationCoord);
+	SERIALIZE(stream, HeadToCoord);
+	SERIALIZE(stream, IsMoving);
+	SERIALIZE(stream, FlightLevel);
+	SERIALIZE(stream, TargetSpeed);
+	SERIALIZE(stream, CurrentSpeed);
+	SERIALIZE(stream, IsTakingOff);
+	SERIALIZE(stream, IsLanding);
+	SERIALIZE(stream, CommencedLanding);
+	SERIALIZE(stream, IsTumbling);
+	SERIALIZE(stream, CurrentROT);
+	SERIALIZE(stream, Riser);
+	SERIALIZE(stream, IsElevating);
 }
 
 

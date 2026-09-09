@@ -2259,39 +2259,39 @@ void TeamClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Class);
-	stream.Serialize(Script);
-	stream.Serialize(House);
-	stream.Serialize(HouseToScout);
-	stream.Serialize(Zone);
-	stream.Serialize(ClosestMember);
-	stream.Serialize(MissionTarget);
-	stream.Serialize(Target);
+	SERIALIZE(stream, Class);
+	SERIALIZE(stream, Script);
+	SERIALIZE(stream, House);
+	SERIALIZE(stream, HouseToScout);
+	SERIALIZE(stream, Zone);
+	SERIALIZE(stream, ClosestMember);
+	SERIALIZE(stream, MissionTarget);
+	SERIALIZE(stream, Target);
 	// UnusedPtr1 -- untyped, so it carries no swizzle identity, and nothing reads it.
-	stream.Serialize(Total);
-	stream.Serialize(Risk);
-	stream.Serialize(CreationFrame);
-	stream.Serialize(Member);
-	stream.Serialize(TimeOut);
-	stream.Serialize(SuspendTimer);
-	stream.Serialize(Tag);
-	stream.Serialize(IsDeleteTypeWhenDone);
-	stream.Serialize(IsRegrouping);
-	stream.Serialize(NeedsReinforcement);
-	stream.Serialize(IsForcedActive);
-	stream.Serialize(IsHasBeen);
-	stream.Serialize(IsFullStrength);
-	stream.Serialize(IsUnderStrength);
-	stream.Serialize(IsReforming);
-	stream.Serialize(IsLagging);
-	stream.Serialize(IsAltered);
-	stream.Serialize(JustAltered);
-	stream.Serialize(IsMoving);
-	stream.Serialize(IsNextMission);
-	stream.Serialize(IsLeaveMap);
-	stream.Serialize(Suspended);
-	stream.Serialize(Succeeded);
-	stream.Serialize(Quantity);
+	SERIALIZE(stream, Total);
+	SERIALIZE(stream, Risk);
+	SERIALIZE(stream, CreationFrame);
+	SERIALIZE(stream, Member);
+	SERIALIZE(stream, TimeOut);
+	SERIALIZE(stream, SuspendTimer);
+	SERIALIZE(stream, Tag);
+	SERIALIZE(stream, IsDeleteTypeWhenDone);
+	SERIALIZE(stream, IsRegrouping);
+	SERIALIZE(stream, NeedsReinforcement);
+	SERIALIZE(stream, IsForcedActive);
+	SERIALIZE(stream, IsHasBeen);
+	SERIALIZE(stream, IsFullStrength);
+	SERIALIZE(stream, IsUnderStrength);
+	SERIALIZE(stream, IsReforming);
+	SERIALIZE(stream, IsLagging);
+	SERIALIZE(stream, IsAltered);
+	SERIALIZE(stream, JustAltered);
+	SERIALIZE(stream, IsMoving);
+	SERIALIZE(stream, IsNextMission);
+	SERIALIZE(stream, IsLeaveMap);
+	SERIALIZE(stream, Suspended);
+	SERIALIZE(stream, Succeeded);
+	SERIALIZE(stream, Quantity);
 }
 
 

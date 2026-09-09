@@ -906,16 +906,16 @@ void LevitateLocomotionClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(State);
-	stream.Serialize(Speed);
-	stream.Serialize(MoveX);
-	stream.Serialize(MoveY);
-	stream.Serialize(AccelerationX);
-	stream.Serialize(AccelerationY);
-	stream.Serialize(AccelerationsRemaining);
-	stream.Serialize(BlockTriesRemaining);
-	stream.Serialize(MoveRate);
-	stream.Serialize(Dampen);
+	SERIALIZE(stream, State);
+	SERIALIZE(stream, Speed);
+	SERIALIZE(stream, MoveX);
+	SERIALIZE(stream, MoveY);
+	SERIALIZE(stream, AccelerationX);
+	SERIALIZE(stream, AccelerationY);
+	SERIALIZE(stream, AccelerationsRemaining);
+	SERIALIZE(stream, BlockTriesRemaining);
+	SERIALIZE(stream, MoveRate);
+	SERIALIZE(stream, Dampen);
 	// GlobalControls -- shared by the whole class and read from the rules rather than held per
 	// unit.
 	// PropulsionSoundEffects

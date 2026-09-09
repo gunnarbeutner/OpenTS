@@ -31,6 +31,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include <cmath>
 
 
@@ -90,8 +92,8 @@ class TPoint2D {
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(X);
-			stream.Serialize(Y);
+			SERIALIZE(stream, X);
+			SERIALIZE(stream, Y);
 		}
 
 	public:
@@ -195,7 +197,7 @@ class TPoint3D : public TPoint2D<T> {
 		void Serialize(S & stream)
 		{
 			BASECLASS::Serialize(stream);
-			stream.Serialize(Z);
+			SERIALIZE(stream, Z);
 		}
 
 		/*

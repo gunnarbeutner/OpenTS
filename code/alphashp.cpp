@@ -132,10 +132,10 @@ void AlphaShapeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Owner);
-	stream.Serialize(DrawRect);
+	SERIALIZE(stream, Owner);
+	SERIALIZE(stream, DrawRect);
 	// ImageData -- fetched again from the owner's type the next time the shape is drawn.
-	stream.Serialize(IsToDelete);
+	SERIALIZE(stream, IsToDelete);
 	// BrightnessTable -- a blending table built once and shared by every shape.
 }
 

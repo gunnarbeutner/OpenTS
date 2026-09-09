@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "coord.h"
 #include "ftimer.h"
 #include "globals.h"
@@ -52,8 +54,8 @@ class CrateClass {
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Timer);
-			stream.Serialize(Location);
+			SERIALIZE(stream, Timer);
+			SERIALIZE(stream, Location);
 		}
 
 	private:

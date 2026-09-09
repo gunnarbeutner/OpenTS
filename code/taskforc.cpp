@@ -311,10 +311,10 @@ void TaskForceClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Group);
-	stream.Serialize(ClassCount);
-	stream.Serialize(Scope);
-	stream.Serialize(Members);
+	SERIALIZE(stream, Group);
+	SERIALIZE(stream, ClassCount);
+	SERIALIZE(stream, Scope);
+	SERIALIZE(stream, Members);
 }
 
 

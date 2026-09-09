@@ -272,31 +272,31 @@ void VoxelAnimTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(IsNormalized);
-	stream.Serialize(IsTranslucent);
-	stream.Serialize(IsSharesSourceData);
-	stream.Serialize(VoxelIndex);
-	stream.Serialize(Duration);
-	stream.Serialize(Elasticity);
-	stream.Serialize(MinAngularVelocity);
-	stream.Serialize(MaxAngularVelocity);
-	stream.Serialize(MinZVel);
-	stream.Serialize(MaxZVel);
-	stream.Serialize(MaxXYVel);
-	stream.Serialize(IsMeteor);
-	stream.Serialize(Spawns);
-	stream.Serialize(SpawnCount);
-	stream.Serialize(StartSound);
-	stream.Serialize(BounceSound);
-	stream.Serialize(ExpireSound);
-	stream.Serialize(BounceAnim);
-	stream.Serialize(ExpireAnim);
-	stream.Serialize(TrailerAnim);
-	stream.Serialize(Damage);
-	stream.Serialize(DamageRadius);
-	stream.Serialize(Warhead);
-	stream.Serialize(AttachedSystem);
-	stream.Serialize(IsTiberium);
+	SERIALIZE(stream, IsNormalized);
+	SERIALIZE(stream, IsTranslucent);
+	SERIALIZE(stream, IsSharesSourceData);
+	SERIALIZE(stream, VoxelIndex);
+	SERIALIZE(stream, Duration);
+	SERIALIZE(stream, Elasticity);
+	SERIALIZE(stream, MinAngularVelocity);
+	SERIALIZE(stream, MaxAngularVelocity);
+	SERIALIZE(stream, MinZVel);
+	SERIALIZE(stream, MaxZVel);
+	SERIALIZE(stream, MaxXYVel);
+	SERIALIZE(stream, IsMeteor);
+	SERIALIZE(stream, Spawns);
+	SERIALIZE(stream, SpawnCount);
+	SERIALIZE(stream, StartSound);
+	SERIALIZE(stream, BounceSound);
+	SERIALIZE(stream, ExpireSound);
+	SERIALIZE(stream, BounceAnim);
+	SERIALIZE(stream, ExpireAnim);
+	SERIALIZE(stream, TrailerAnim);
+	SERIALIZE(stream, Damage);
+	SERIALIZE(stream, DamageRadius);
+	SERIALIZE(stream, Warhead);
+	SERIALIZE(stream, AttachedSystem);
+	SERIALIZE(stream, IsTiberium);
 }
 
 

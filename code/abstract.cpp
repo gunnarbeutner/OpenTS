@@ -140,7 +140,7 @@ bool AbstractClass::Load(SaveStreamClass & stream)
 bool AbstractClass::Save_Members(SaveStreamClass & stream, bool cleardirty)
 {
 	SwizzleIDType id = Swizzler.ID_Of(this);
-	stream.Serialize(id);
+	stream.Serialize_Raw(id);
 	Serialize(stream);
 	if (!stream.Was_Error() && cleardirty) {
 		Dirty = false;
@@ -159,7 +159,7 @@ bool AbstractClass::Save_Members(SaveStreamClass & stream, bool cleardirty)
 bool AbstractClass::Load_Members(SaveStreamClass & stream)
 {
 	SwizzleIDType id = 0;
-	stream.Serialize(id);
+	stream.Serialize_Raw(id);
 	if (stream.Was_Error()) {
 		return(false);
 	}
@@ -191,8 +191,8 @@ void AbstractClass::Post_Load(void)
 /// <param name="stream">The stream carrying the members.</param>
 void AbstractClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Serialize(ID);
-	stream.Serialize(Dirty);
+	SERIALIZE(stream, ID);
+	SERIALIZE(stream, Dirty);
 }
 
 

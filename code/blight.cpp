@@ -293,14 +293,14 @@ void BuildingLightClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Speed);
-	stream.Serialize(RotationPivot);
-	stream.Serialize(RotationTarget);
-	stream.Serialize(Acceleration);
-	stream.Serialize(IsOppositeDirection);
-	stream.Serialize(Behavior);
-	stream.Serialize(Target);
-	stream.Serialize(Owner);
+	SERIALIZE(stream, Speed);
+	SERIALIZE(stream, RotationPivot);
+	SERIALIZE(stream, RotationTarget);
+	SERIALIZE(stream, Acceleration);
+	SERIALIZE(stream, IsOppositeDirection);
+	SERIALIZE(stream, Behavior);
+	SERIALIZE(stream, Target);
+	SERIALIZE(stream, Owner);
 }
 
 
