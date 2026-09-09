@@ -74,9 +74,9 @@ void SaveStreamClass::Serialize_Bytes(void * data, int length)
 		Buffer->insert(Buffer->end(), bytes, bytes + length);
 		Cursor = (unsigned int)Buffer->size();
 	} else {
-		// The bound is the record being read rather than the whole stream, so a member that
-		// reads more than its own is refused instead of quietly spending the bytes of the
-		// record after it.
+		// The bound is the innermost field or body rather than the whole stream, so a
+		// member that reads more than its own is refused instead of quietly spending the
+		// bytes of the one after it.
 		if ((unsigned int)length > Limit - Cursor) {
 			Failed = true;
 			return;
