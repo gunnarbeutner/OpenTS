@@ -194,29 +194,29 @@ void ParticleSystemTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HoldsWhat);
-	stream.Serialize(Spawns);
-	stream.Serialize(SpawnFrames);
-	stream.Serialize(Slowdown);
-	stream.Serialize(ParticleCap);
-	stream.Serialize(SpawnRadius);
-	stream.Serialize(SpawnCutoff);
-	stream.Serialize(SpawnTranslucencyCutoff);
-	stream.Serialize(BehavesLike);
-	stream.Serialize(Lifetime);
-	stream.Serialize(SpawnDirection);
-	stream.Serialize(ParticlesPerCoord);
-	stream.Serialize(SpiralDeltaPerCoord);
-	stream.Serialize(SpiralRadius);
-	stream.Serialize(PositionPerturbationCoefficient);
-	stream.Serialize(MovementPerturbationCoefficient);
-	stream.Serialize(VelocityPerturbationCoefficient);
-	stream.Serialize(SpawnSparkPercentage);
-	stream.Serialize(SparkSpawnFrames);
-	stream.Serialize(LightSize);
-	stream.Serialize(LaserColor);
-	stream.Serialize(IsLaser);
-	stream.Serialize(OneFrameLight);
+	SERIALIZE(stream, HoldsWhat);
+	SERIALIZE(stream, Spawns);
+	SERIALIZE(stream, SpawnFrames);
+	SERIALIZE(stream, Slowdown);
+	SERIALIZE(stream, ParticleCap);
+	SERIALIZE(stream, SpawnRadius);
+	SERIALIZE(stream, SpawnCutoff);
+	SERIALIZE(stream, SpawnTranslucencyCutoff);
+	SERIALIZE(stream, BehavesLike);
+	SERIALIZE(stream, Lifetime);
+	SERIALIZE(stream, SpawnDirection);
+	SERIALIZE(stream, ParticlesPerCoord);
+	SERIALIZE(stream, SpiralDeltaPerCoord);
+	SERIALIZE(stream, SpiralRadius);
+	SERIALIZE(stream, PositionPerturbationCoefficient);
+	SERIALIZE(stream, MovementPerturbationCoefficient);
+	SERIALIZE(stream, VelocityPerturbationCoefficient);
+	SERIALIZE(stream, SpawnSparkPercentage);
+	SERIALIZE(stream, SparkSpawnFrames);
+	SERIALIZE(stream, LightSize);
+	SERIALIZE(stream, LaserColor);
+	SERIALIZE(stream, IsLaser);
+	SERIALIZE(stream, OneFrameLight);
 }
 
 

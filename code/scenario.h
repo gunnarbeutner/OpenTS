@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "addon.h"
 #include "coord.h"
 #include "ftimer.h"
@@ -342,8 +344,8 @@ class ScenarioClass {
 			template<typename S>
 			void Serialize(S & stream)
 			{
-				stream.Serialize(VariableName);
-				stream.Serialize(Value);
+				SERIALIZE(stream, VariableName);
+				SERIALIZE(stream, Value);
 			}
 		};
 

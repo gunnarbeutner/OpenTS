@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "coord.h"
 #include "matrix3d.h"
 #include "quat.h"
@@ -49,13 +51,13 @@ class BounceClass
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Elasticity);
-			stream.Serialize(Gravity);
-			stream.Serialize(MaxVelocity);
-			stream.Serialize(MyCoord);
-			stream.Serialize(Velocity);
-			stream.Serialize(Rotation);
-			stream.Serialize(AngularVelocity);
+			SERIALIZE(stream, Elasticity);
+			SERIALIZE(stream, Gravity);
+			SERIALIZE(stream, MaxVelocity);
+			SERIALIZE(stream, MyCoord);
+			SERIALIZE(stream, Velocity);
+			SERIALIZE(stream, Rotation);
+			SERIALIZE(stream, AngularVelocity);
 		}
 
 	public:

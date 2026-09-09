@@ -145,16 +145,16 @@ void SideClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Houses);
-	stream.Serialize(RegularPowerPlant);
-	stream.Serialize(AdvancedPowerPlant);
-	stream.Serialize(PowerTurbine);
-	stream.Serialize(HunterSeeker);
-	stream.Serialize(AIWallTowers);
-	stream.Serialize(AIBaseDefenseCoefficient);
-	stream.Serialize(AIWallDefense);
-	stream.Serialize(AIWallDefenseCoefficient);
-	stream.Serialize(IsAIBuildsWalls);
-	stream.Serialize(AIBaseDefensePlaceholders);
-	stream.Serialize(IsAIBaseDefensesWithWalls);
+	SERIALIZE(stream, Houses);
+	SERIALIZE(stream, RegularPowerPlant);
+	SERIALIZE(stream, AdvancedPowerPlant);
+	SERIALIZE(stream, PowerTurbine);
+	SERIALIZE(stream, HunterSeeker);
+	SERIALIZE(stream, AIWallTowers);
+	SERIALIZE(stream, AIBaseDefenseCoefficient);
+	SERIALIZE(stream, AIWallDefense);
+	SERIALIZE(stream, AIWallDefenseCoefficient);
+	SERIALIZE(stream, IsAIBuildsWalls);
+	SERIALIZE(stream, AIBaseDefensePlaceholders);
+	SERIALIZE(stream, IsAIBaseDefensesWithWalls);
 }

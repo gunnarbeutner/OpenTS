@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "face.h"
 #include "ftimer.h"
 #include "timer.h"
@@ -72,10 +74,10 @@ class FacingClass
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(DesiredFacing);
-			stream.Serialize(StartFacing);
-			stream.Serialize(RotationTimer);
-			stream.Serialize(ROT);
+			SERIALIZE(stream, DesiredFacing);
+			SERIALIZE(stream, StartFacing);
+			SERIALIZE(stream, RotationTimer);
+			SERIALIZE(stream, ROT);
 		}
 
 	private:

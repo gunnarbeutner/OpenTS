@@ -250,15 +250,15 @@ void JumpjetLocomotionClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HeadToCoord);
-	stream.Serialize(IsMoving);
-	stream.Serialize(CurrentState);
-	stream.Serialize(Facing);
-	stream.Serialize(CurrentSpeed);
-	stream.Serialize(TargetSpeed);
-	stream.Serialize(FlightLevel);
-	stream.Serialize(CurrentWobble);
-	stream.Serialize(IsLanding);
+	SERIALIZE(stream, HeadToCoord);
+	SERIALIZE(stream, IsMoving);
+	SERIALIZE(stream, CurrentState);
+	SERIALIZE(stream, Facing);
+	SERIALIZE(stream, CurrentSpeed);
+	SERIALIZE(stream, TargetSpeed);
+	SERIALIZE(stream, FlightLevel);
+	SERIALIZE(stream, CurrentWobble);
+	SERIALIZE(stream, IsLanding);
 }
 
 

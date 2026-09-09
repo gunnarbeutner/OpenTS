@@ -6053,19 +6053,19 @@ void UnitClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(FiringSyncDelay);
-	stream.Serialize(Reload);
-	stream.Serialize(Class);
-	stream.Serialize(FollowingMe);
-	stream.Serialize(Flagged);
-	stream.Serialize(IsFollowing);
-	stream.Serialize(IsDumping);
-	stream.Serialize(IsHarvesting);
-	stream.Serialize(IsCompositingToEightBitSurface);
-	stream.Serialize(VisceroidFacing);
-	stream.Serialize(Charge);
-	stream.Serialize(DeathCounter);
-	stream.Serialize(Unused1);
+	SERIALIZE(stream, FiringSyncDelay);
+	SERIALIZE(stream, Reload);
+	SERIALIZE(stream, Class);
+	SERIALIZE(stream, FollowingMe);
+	SERIALIZE(stream, Flagged);
+	SERIALIZE(stream, IsFollowing);
+	SERIALIZE(stream, IsDumping);
+	SERIALIZE(stream, IsHarvesting);
+	SERIALIZE(stream, IsCompositingToEightBitSurface);
+	SERIALIZE(stream, VisceroidFacing);
+	SERIALIZE(stream, Charge);
+	SERIALIZE(stream, DeathCounter);
+	SERIALIZE(stream, Unused1);
 }
 
 

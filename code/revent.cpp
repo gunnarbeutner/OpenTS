@@ -370,13 +370,13 @@ bool RadarEventClass::Save(SaveStreamClass & stream)
 {
 
 	int count = RadarEvents.Count();
-	stream.Serialize(count);
+	stream.Serialize_Raw(count);
 
 	for (int index = 0; index < count; index++) {
 		RadarEvents[index]->Serialize(stream);
 	}
 
-	stream.Serialize(LastRadarEventCell);
+	SERIALIZE(stream, LastRadarEventCell);
 
 	return(!stream.Was_Error());
 }
@@ -399,7 +399,7 @@ bool RadarEventClass::Load(SaveStreamClass & stream)
 	stream.Set_Context("RadarEventClass");
 
 	int count = 0;
-	stream.Serialize(count);
+	stream.Serialize_Raw(count);
 	if (!stream.Fits(count, 1)) {
 		return(false);
 	}
@@ -409,7 +409,7 @@ bool RadarEventClass::Load(SaveStreamClass & stream)
 		event->Serialize(stream);
 	}
 
-	stream.Serialize(LastRadarEventCell);
+	SERIALIZE(stream, LastRadarEventCell);
 
 	return(!stream.Was_Error());
 }
@@ -421,18 +421,18 @@ bool RadarEventClass::Load(SaveStreamClass & stream)
 /// <param name="stream">The stream carrying the members.</param>
 void RadarEventClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Serialize(Type);
-	stream.Serialize(Offset);
-	stream.Serialize(Radius);
-	stream.Serialize(RotationAngle);
-	stream.Serialize(RotationSpeed);
-	stream.Serialize(ColorFactor);
-	stream.Serialize(ColorSpeed);
-	stream.Serialize(Location);
-	stream.Serialize(DurationTimer);
-	stream.Serialize(VisibilityTimer);
-	stream.Serialize(IsRotating);
-	stream.Serialize(IsVisible);
+	SERIALIZE(stream, Type);
+	SERIALIZE(stream, Offset);
+	SERIALIZE(stream, Radius);
+	SERIALIZE(stream, RotationAngle);
+	SERIALIZE(stream, RotationSpeed);
+	SERIALIZE(stream, ColorFactor);
+	SERIALIZE(stream, ColorSpeed);
+	SERIALIZE(stream, Location);
+	SERIALIZE(stream, DurationTimer);
+	SERIALIZE(stream, VisibilityTimer);
+	SERIALIZE(stream, IsRotating);
+	SERIALIZE(stream, IsVisible);
 
 	// RadarEvents -- the master list, rebuilt as the events are constructed.
 }

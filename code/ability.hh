@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include <cstring>
 
 
@@ -66,7 +68,7 @@ struct AbilityFlagsType {
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(AbilitiesFlag);
+			SERIALIZE(stream, AbilitiesFlag);
 		}
 
 	private:

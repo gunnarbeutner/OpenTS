@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "dialog.hh"
 #include "facing.hh"
 #include "house.hh"
@@ -46,7 +48,7 @@ class TeamMissionClass
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Mission);
+			SERIALIZE(stream, Mission);
 			stream.Serialize_Bytes(&Data, sizeof(Data));
 		}
 

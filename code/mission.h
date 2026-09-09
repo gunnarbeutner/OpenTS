@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "ccini.h"
 #include "ftimer.h"
 #include "object.h"
@@ -211,14 +213,14 @@ class MissionControlClass
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Mission);
-			stream.Serialize(IsNoThreat);
-			stream.Serialize(IsZombie);
-			stream.Serialize(IsRecruitable);
-			stream.Serialize(IsParalyzed);
-			stream.Serialize(IsRetaliate);
-			stream.Serialize(IsScatter);
-			stream.Serialize(Rate);
-			stream.Serialize(AARate);
+			SERIALIZE(stream, Mission);
+			SERIALIZE(stream, IsNoThreat);
+			SERIALIZE(stream, IsZombie);
+			SERIALIZE(stream, IsRecruitable);
+			SERIALIZE(stream, IsParalyzed);
+			SERIALIZE(stream, IsRetaliate);
+			SERIALIZE(stream, IsScatter);
+			SERIALIZE(stream, Rate);
+			SERIALIZE(stream, AARate);
 		}
 };

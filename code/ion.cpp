@@ -105,10 +105,10 @@ bool IonStormClass::Load(SaveStreamClass & stream)
 /// <param name="stream">The stream carrying the members.</param>
 void IonStormClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Serialize(IsActive);
-	stream.Serialize(StartFrame);
-	stream.Serialize(Duration);
-	stream.Serialize(Deferment);
+	SERIALIZE(stream, IsActive);
+	SERIALIZE(stream, StartFrame);
+	SERIALIZE(stream, Duration);
+	SERIALIZE(stream, Deferment);
 	// StaticShape -- artwork fetched by name when it is first needed.
 	// PreviousTheme -- the score resumed after a storm is picked afresh.
 }

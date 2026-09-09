@@ -261,30 +261,30 @@ void WarheadTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Deform);
-	stream.Serialize(Modifier);
-	stream.Serialize(ProneDamage);
-	stream.Serialize(DeformThreshhold);
-	stream.Serialize(ExplosionSet);
-	stream.Serialize(InfantryDeath);
-	stream.Serialize(SpreadFactor);
-	stream.Serialize(WebDuration);
-	stream.Serialize(WebDurationVariation);
-	stream.Serialize(WebRadius);
-	stream.Serialize(LimpetFactor);
-	stream.Serialize(Particle);
-	stream.Serialize(IsWallDestroyer);
-	stream.Serialize(IsWebby);
-	stream.Serialize(IsWoodDestroyer);
-	stream.Serialize(IsTiberiumDestroyer);
-	stream.Serialize(IsOrganic);
-	stream.Serialize(IsSparky);
-	stream.Serialize(IsFire);
-	stream.Serialize(IsConventional);
-	stream.Serialize(IsRocker);
-	stream.Serialize(IsBright);
-	stream.Serialize(IsEMEffect);
-	stream.Serialize(IsVeinhole);
+	SERIALIZE(stream, Deform);
+	SERIALIZE(stream, Modifier);
+	SERIALIZE(stream, ProneDamage);
+	SERIALIZE(stream, DeformThreshhold);
+	SERIALIZE(stream, ExplosionSet);
+	SERIALIZE(stream, InfantryDeath);
+	SERIALIZE(stream, SpreadFactor);
+	SERIALIZE(stream, WebDuration);
+	SERIALIZE(stream, WebDurationVariation);
+	SERIALIZE(stream, WebRadius);
+	SERIALIZE(stream, LimpetFactor);
+	SERIALIZE(stream, Particle);
+	SERIALIZE(stream, IsWallDestroyer);
+	SERIALIZE(stream, IsWebby);
+	SERIALIZE(stream, IsWoodDestroyer);
+	SERIALIZE(stream, IsTiberiumDestroyer);
+	SERIALIZE(stream, IsOrganic);
+	SERIALIZE(stream, IsSparky);
+	SERIALIZE(stream, IsFire);
+	SERIALIZE(stream, IsConventional);
+	SERIALIZE(stream, IsRocker);
+	SERIALIZE(stream, IsBright);
+	SERIALIZE(stream, IsEMEffect);
+	SERIALIZE(stream, IsVeinhole);
 }
 
 

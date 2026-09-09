@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include <climits>
 
 #include "coord.h"
@@ -70,10 +72,10 @@ class FuseClass {
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Timer);
-			stream.Serialize(Arming);
-			stream.Serialize(HeadTo);
-			stream.Serialize(Proximity);
+			SERIALIZE(stream, Timer);
+			SERIALIZE(stream, Arming);
+			SERIALIZE(stream, HeadTo);
+			SERIALIZE(stream, Proximity);
 		}
 
 	private:

@@ -558,12 +558,12 @@ void MissionClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(CurrentMission);
-	stream.Serialize(SuspendedMission);
-	stream.Serialize(MissionQueue);
-	stream.Serialize(Status);
-	stream.Serialize(IsMissionUnloadStandby);
-	stream.Serialize(Timer);
+	SERIALIZE(stream, CurrentMission);
+	SERIALIZE(stream, SuspendedMission);
+	SERIALIZE(stream, MissionQueue);
+	SERIALIZE(stream, Status);
+	SERIALIZE(stream, IsMissionUnloadStandby);
+	SERIALIZE(stream, Timer);
 }
 
 

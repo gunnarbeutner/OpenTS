@@ -1438,23 +1438,23 @@ void BulletClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Class);
-	stream.Serialize(Payback);
-	stream.Serialize(IsInaccurate);
-	stream.Serialize(Fuse);
-	stream.Serialize(IsBright);
-	stream.Serialize(Velocity);
-	stream.Serialize(BounceCount);
-	stream.Serialize(field_A4);
-	stream.Serialize(IsLaunching);
-	stream.Serialize(TarCom);
-	stream.Serialize(MaxSpeed);
-	stream.Serialize(ClosureSamples);
-	stream.Serialize(SmoothedClosure);
-	stream.Serialize(Warhead);
-	stream.Serialize(AnimFrame);
-	stream.Serialize(AnimRate);
-	stream.Serialize(Range);
+	SERIALIZE(stream, Class);
+	SERIALIZE(stream, Payback);
+	SERIALIZE(stream, IsInaccurate);
+	SERIALIZE(stream, Fuse);
+	SERIALIZE(stream, IsBright);
+	SERIALIZE(stream, Velocity);
+	SERIALIZE(stream, BounceCount);
+	SERIALIZE(stream, field_A4);
+	SERIALIZE(stream, IsLaunching);
+	SERIALIZE(stream, TarCom);
+	SERIALIZE(stream, MaxSpeed);
+	SERIALIZE(stream, ClosureSamples);
+	SERIALIZE(stream, SmoothedClosure);
+	SERIALIZE(stream, Warhead);
+	SERIALIZE(stream, AnimFrame);
+	SERIALIZE(stream, AnimRate);
+	SERIALIZE(stream, Range);
 }
 
 

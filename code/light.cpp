@@ -291,13 +291,13 @@ void LightSourceClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Intensity);
-	stream.Serialize(RedTint);
-	stream.Serialize(GreenTint);
-	stream.Serialize(BlueTint);
-	stream.Serialize(Position);
-	stream.Serialize(Visibility);
-	stream.Serialize(IsEnabled);
+	SERIALIZE(stream, Intensity);
+	SERIALIZE(stream, RedTint);
+	SERIALIZE(stream, GreenTint);
+	SERIALIZE(stream, BlueTint);
+	SERIALIZE(stream, Position);
+	SERIALIZE(stream, Visibility);
+	SERIALIZE(stream, IsEnabled);
 	// PendingCells -- the relighting queue and its gate, shared by every light.
 	// Recalc
 }

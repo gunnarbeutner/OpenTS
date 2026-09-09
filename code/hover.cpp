@@ -1080,16 +1080,16 @@ void HoverLocomotionClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(DestinationCoord);
-	stream.Serialize(HeadToCoord);
-	stream.Serialize(Facing);
-	stream.Serialize(Height);
-	stream.Serialize(Acceleration);
-	stream.Serialize(Boost);
-	stream.Serialize(Bounciness);
-	stream.Serialize(WasShoved);
-	stream.Serialize(ShoveAccum);
-	stream.Serialize(WasPushed);
+	SERIALIZE(stream, DestinationCoord);
+	SERIALIZE(stream, HeadToCoord);
+	SERIALIZE(stream, Facing);
+	SERIALIZE(stream, Height);
+	SERIALIZE(stream, Acceleration);
+	SERIALIZE(stream, Boost);
+	SERIALIZE(stream, Bounciness);
+	SERIALIZE(stream, WasShoved);
+	SERIALIZE(stream, ShoveAccum);
+	SERIALIZE(stream, WasPushed);
 }
 
 

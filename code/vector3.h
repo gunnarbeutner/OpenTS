@@ -60,6 +60,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "visualc.h"
 
 #include <cassert>
@@ -116,9 +118,9 @@ public:
 	template<typename S>
 	void Serialize(S & stream)
 	{
-		stream.Serialize(X);
-		stream.Serialize(Y);
-		stream.Serialize(Z);
+		SERIALIZE(stream, X);
+		SERIALIZE(stream, Y);
+		SERIALIZE(stream, Z);
 	}
 
 	// cross product / outer product

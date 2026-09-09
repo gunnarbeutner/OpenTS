@@ -328,11 +328,11 @@ void SmudgeTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HeapID);
-	stream.Serialize(Width);
-	stream.Serialize(Height);
-	stream.Serialize(IsCrater);
-	stream.Serialize(IsScorch);
+	SERIALIZE(stream, HeapID);
+	SERIALIZE(stream, Width);
+	SERIALIZE(stream, Height);
+	SERIALIZE(stream, IsCrater);
+	SERIALIZE(stream, IsScorch);
 }
 
 

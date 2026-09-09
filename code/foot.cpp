@@ -3490,28 +3490,28 @@ void FootClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(CurrentPath);
-	stream.Serialize(WaypointOffsetCell);
-	stream.Serialize(WaypointTargetCell);
-	stream.Serialize(ThreatAvoidanceCoefficient);
-	stream.Serialize(TotalFramesWalked);
-	stream.Serialize(LastPathingCell);
-	stream.Serialize(LastAdjacencyCell);
-	stream.Serialize(LastTubeCoord);
-	stream.Serialize(Speed);
-	stream.Serialize(SpeedBias);
-	stream.Serialize(RouteQueue);
-	stream.Serialize(NavCom);
-	stream.Serialize(SuspendedNavCom);
-	stream.Serialize(NavQueue);
-	stream.Serialize(Team);
-	stream.Serialize(Member);
-	stream.Serialize(PatrolCell);
-	stream.Serialize(Path);
-	stream.Serialize(PathDelay);
-	stream.Serialize(TryTryAgain);
-	stream.Serialize(BaseAttackTimer);
-	stream.Serialize(BlockagePathDelay);
+	SERIALIZE(stream, CurrentPath);
+	SERIALIZE(stream, WaypointOffsetCell);
+	SERIALIZE(stream, WaypointTargetCell);
+	SERIALIZE(stream, ThreatAvoidanceCoefficient);
+	SERIALIZE(stream, TotalFramesWalked);
+	SERIALIZE(stream, LastPathingCell);
+	SERIALIZE(stream, LastAdjacencyCell);
+	SERIALIZE(stream, LastTubeCoord);
+	SERIALIZE(stream, Speed);
+	SERIALIZE(stream, SpeedBias);
+	SERIALIZE(stream, RouteQueue);
+	SERIALIZE(stream, NavCom);
+	SERIALIZE(stream, SuspendedNavCom);
+	SERIALIZE(stream, NavQueue);
+	SERIALIZE(stream, Team);
+	SERIALIZE(stream, Member);
+	SERIALIZE(stream, PatrolCell);
+	SERIALIZE(stream, Path);
+	SERIALIZE(stream, PathDelay);
+	SERIALIZE(stream, TryTryAgain);
+	SERIALIZE(stream, BaseAttackTimer);
+	SERIALIZE(stream, BlockagePathDelay);
 
 	/*
 	 * The locomotor is a sub-object rather than a member, so it travels as a record of
@@ -3523,27 +3523,27 @@ void FootClass::Serialize(SaveStreamClass & stream)
 		Locomotion = Load_Locomotor(stream);
 	}
 
-	stream.Serialize(HeadToCoord);
-	stream.Serialize(CurrentTube);
-	stream.Serialize(CurrentTubeDir);
-	stream.Serialize(NextWaypoint);
-	stream.Serialize(IsToScatter);
-	stream.Serialize(IsScanLimited);
-	stream.Serialize(IsInitiated);
-	stream.Serialize(IsNewNavCom);
-	stream.Serialize(IsPlanningToLook);
-	stream.Serialize(IsDeploying);
-	stream.Serialize(IsFiring);
-	stream.Serialize(IsRotating);
-	stream.Serialize(IsUnloading);
-	stream.Serialize(IsNavQueueLoop);
-	stream.Serialize(IsScattering);
-	stream.Serialize(IsIdle);
-	stream.Serialize(IonBlastYDrawOffset);
-	stream.Serialize(IsCrushing);
-	stream.Serialize(IsOccupyingCell);
-	stream.Serialize(IsToPathAroundBlockage);
-	stream.Serialize(IsDroppedFromTeam);
+	SERIALIZE(stream, HeadToCoord);
+	SERIALIZE(stream, CurrentTube);
+	SERIALIZE(stream, CurrentTubeDir);
+	SERIALIZE(stream, NextWaypoint);
+	SERIALIZE(stream, IsToScatter);
+	SERIALIZE(stream, IsScanLimited);
+	SERIALIZE(stream, IsInitiated);
+	SERIALIZE(stream, IsNewNavCom);
+	SERIALIZE(stream, IsPlanningToLook);
+	SERIALIZE(stream, IsDeploying);
+	SERIALIZE(stream, IsFiring);
+	SERIALIZE(stream, IsRotating);
+	SERIALIZE(stream, IsUnloading);
+	SERIALIZE(stream, IsNavQueueLoop);
+	SERIALIZE(stream, IsScattering);
+	SERIALIZE(stream, IsIdle);
+	SERIALIZE(stream, IonBlastYDrawOffset);
+	SERIALIZE(stream, IsCrushing);
+	SERIALIZE(stream, IsOccupyingCell);
+	SERIALIZE(stream, IsToPathAroundBlockage);
+	SERIALIZE(stream, IsDroppedFromTeam);
 }
 
 

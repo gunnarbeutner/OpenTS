@@ -2975,14 +2975,14 @@ void TActionClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HeapID);
-	stream.Serialize(Next);
-	stream.Serialize(Action);
-	stream.Serialize(Team);
-	stream.Serialize(TriggerRect);
-	stream.Serialize(EffectLocation);
-	stream.Serialize(Tag);
-	stream.Serialize(Trigger);
+	SERIALIZE(stream, HeapID);
+	SERIALIZE(stream, Next);
+	SERIALIZE(stream, Action);
+	SERIALIZE(stream, Team);
+	SERIALIZE(stream, TriggerRect);
+	SERIALIZE(stream, EffectLocation);
+	SERIALIZE(stream, Tag);
+	SERIALIZE(stream, Trigger);
 
 	/*
 	 * Which alternative of the data is live depends on the action, but every one of them

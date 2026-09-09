@@ -30,6 +30,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "coord.h"
 #include "rect.h"
 #include "vector.h"
@@ -71,8 +73,8 @@ class BaseNodeClass
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Type);
-			stream.Serialize(CellID);
+			SERIALIZE(stream, Type);
+			SERIALIZE(stream, CellID);
 		}
 };
 

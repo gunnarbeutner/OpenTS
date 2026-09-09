@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 class TechnoTypeClass;
 class CRCEngine;
 
@@ -36,8 +38,8 @@ class EnlistedMemberClass
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Quantity);
-			stream.Serialize(Class);
+			SERIALIZE(stream, Quantity);
+			SERIALIZE(stream, Class);
 		}
 
 		int Quantity;					// Number of objects desired for this type.

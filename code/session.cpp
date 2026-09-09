@@ -1577,30 +1577,30 @@ bool GameOptionsType::Load(SaveStreamClass & stream)
 /// <param name="stream">The stream carrying the members.</param>
 void GameOptionsType::Serialize(SaveStreamClass & stream)
 {
-	stream.Serialize(ScenarioIndex);
-	stream.Serialize(Bases);
-	stream.Serialize(Credits);
-	stream.Serialize(BridgeDestruction);
-	stream.Serialize(Goodies);
-	stream.Serialize(ShortGame);
-	stream.Serialize(GameSpeed);
-	stream.Serialize(CrapEngineers);
-	stream.Serialize(Ghosts);
-	stream.Serialize(UnitCount);
-	stream.Serialize(AIPlayers);
-	stream.Serialize(AIDifficulty);
-	stream.Serialize(AlliesAllowed);
-	stream.Serialize(HarvTruce);
-	stream.Serialize(CTF);
-	stream.Serialize(FogOfWar);
-	stream.Serialize(MCVRedeploy);
-	stream.Serialize(CoachMode);
-	stream.Serialize(AITakeover);
-	stream.Serialize(BuildOffAlly);
-	stream.Serialize(AutoDeployMCV);
-	stream.Serialize(AttackNeutralUnits);
-	stream.Serialize(ScrapMetal);
-	stream.Serialize(ScenarioDescription);
+	SERIALIZE(stream, ScenarioIndex);
+	SERIALIZE(stream, Bases);
+	SERIALIZE(stream, Credits);
+	SERIALIZE(stream, BridgeDestruction);
+	SERIALIZE(stream, Goodies);
+	SERIALIZE(stream, ShortGame);
+	SERIALIZE(stream, GameSpeed);
+	SERIALIZE(stream, CrapEngineers);
+	SERIALIZE(stream, Ghosts);
+	SERIALIZE(stream, UnitCount);
+	SERIALIZE(stream, AIPlayers);
+	SERIALIZE(stream, AIDifficulty);
+	SERIALIZE(stream, AlliesAllowed);
+	SERIALIZE(stream, HarvTruce);
+	SERIALIZE(stream, CTF);
+	SERIALIZE(stream, FogOfWar);
+	SERIALIZE(stream, MCVRedeploy);
+	SERIALIZE(stream, CoachMode);
+	SERIALIZE(stream, AITakeover);
+	SERIALIZE(stream, BuildOffAlly);
+	SERIALIZE(stream, AutoDeployMCV);
+	SERIALIZE(stream, AttackNeutralUnits);
+	SERIALIZE(stream, ScrapMetal);
+	SERIALIZE(stream, ScenarioDescription);
 }
 
 /************************** end of session.cpp *****************************/

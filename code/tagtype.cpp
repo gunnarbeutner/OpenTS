@@ -402,7 +402,7 @@ void TagTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HeapID);
-	stream.Serialize(Persistence);
-	stream.Serialize(FirstTrigger);
+	SERIALIZE(stream, HeapID);
+	SERIALIZE(stream, Persistence);
+	SERIALIZE(stream, FirstTrigger);
 }

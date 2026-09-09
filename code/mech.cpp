@@ -665,9 +665,9 @@ void MechLocomotionClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(DestinationCoord);
-	stream.Serialize(HeadToCoord);
-	stream.Serialize(IsMoving);
+	SERIALIZE(stream, DestinationCoord);
+	SERIALIZE(stream, HeadToCoord);
+	SERIALIZE(stream, IsMoving);
 }
 
 

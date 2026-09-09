@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include <cstring>
 
 
@@ -53,7 +55,7 @@ class RegionClass {
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Threat);
+			SERIALIZE(stream, Threat);
 		}
 
 	protected:

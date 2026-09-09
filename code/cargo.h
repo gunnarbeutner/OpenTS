@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 
 class FootClass;
 class MonoClass;
@@ -72,8 +74,8 @@ class CargoClass {
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Quantity);
-			stream.Serialize(CargoHold);
+			SERIALIZE(stream, Quantity);
+			SERIALIZE(stream, CargoHold);
 		}
 
 	private:

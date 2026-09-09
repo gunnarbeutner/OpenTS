@@ -3721,32 +3721,32 @@ void Tactical::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(ScreenText);
-	stream.Serialize(LastAIFrame);
-	stream.Serialize(field_58);
-	stream.Serialize(field_59);
-	stream.Serialize(TacPixelX);
-	stream.Serialize(TacPixelY);
-	stream.Serialize(LastTacPixelX);
-	stream.Serialize(LastTacPixelY);
-	stream.Serialize(ZoomFactor);
+	SERIALIZE(stream, ScreenText);
+	SERIALIZE(stream, LastAIFrame);
+	SERIALIZE(stream, field_58);
+	SERIALIZE(stream, field_59);
+	SERIALIZE(stream, TacPixelX);
+	SERIALIZE(stream, TacPixelY);
+	SERIALIZE(stream, LastTacPixelX);
+	SERIALIZE(stream, LastTacPixelY);
+	SERIALIZE(stream, ZoomFactor);
 	// SelectableObjects -- the click list is built afresh by the next render pass.
-	stream.Serialize(MoveFrom);
-	stream.Serialize(MoveTo);
-	stream.Serialize(MoveSpeed);
-	stream.Serialize(MoveFactor);
-	stream.Serialize(CellRedraw);
-	stream.Serialize(TacticalCoord);
-	stream.Serialize(LastTacticalCoord);
-	stream.Serialize(DesiredTacticalCoord);
-	stream.Serialize(IsFirstRender);
-	stream.Serialize(IsToRedraw);
-	stream.Serialize(UnusedBool);
-	stream.Serialize(VisibleCellRect);
-	stream.Serialize(RubberBandStart);
-	stream.Serialize(RubberBandEnd);
-	stream.Serialize(WaypointAnimCounter);
-	stream.Serialize(WaypointAnimTimer);
+	SERIALIZE(stream, MoveFrom);
+	SERIALIZE(stream, MoveTo);
+	SERIALIZE(stream, MoveSpeed);
+	SERIALIZE(stream, MoveFactor);
+	SERIALIZE(stream, CellRedraw);
+	SERIALIZE(stream, TacticalCoord);
+	SERIALIZE(stream, LastTacticalCoord);
+	SERIALIZE(stream, DesiredTacticalCoord);
+	SERIALIZE(stream, IsFirstRender);
+	SERIALIZE(stream, IsToRedraw);
+	SERIALIZE(stream, UnusedBool);
+	SERIALIZE(stream, VisibleCellRect);
+	SERIALIZE(stream, RubberBandStart);
+	SERIALIZE(stream, RubberBandEnd);
+	SERIALIZE(stream, WaypointAnimCounter);
+	SERIALIZE(stream, WaypointAnimTimer);
 	// CoordToPixelMatrix -- the isometric projections, built from constants as the map is
 	// constructed.
 	// PixelToCoordMatrix

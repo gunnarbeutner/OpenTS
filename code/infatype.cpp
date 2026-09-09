@@ -478,8 +478,8 @@ void InfantryTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HeapID);
-	stream.Serialize(Pip);
+	SERIALIZE(stream, HeapID);
+	SERIALIZE(stream, Pip);
 
 	/*
 	 * The animation sequence data hangs off the type rather than living inside it, so the
@@ -490,25 +490,25 @@ void InfantryTypeClass::Serialize(SaveStreamClass & stream)
 	}
 	stream.Serialize_Bytes((void *)DoControls, sizeof(*DoControls) * DO_COUNT);
 
-	stream.Serialize(FireLaunch);
-	stream.Serialize(ProneLaunch);
-	stream.Serialize(VoiceComment);
-	stream.Serialize(IsCyborg);
-	stream.Serialize(IsFearless);
-	stream.Serialize(IsCrawling);
-	stream.Serialize(IsCapture);
-	stream.Serialize(IsFraidyCat);
-	stream.Serialize(IsTiberiumProof);
-	stream.Serialize(IsCivilian);
-	stream.Serialize(IsBomber);
-	stream.Serialize(IsEngineer);
-	stream.Serialize(IsDisguised);
-	stream.Serialize(IsAgent);
-	stream.Serialize(IsThief);
-	stream.Serialize(IsVehicleThief);
-	stream.Serialize(IsDoggie);
-	stream.Serialize(IsJumpJet);
-	stream.Serialize(IsWebImmune);
+	SERIALIZE(stream, FireLaunch);
+	SERIALIZE(stream, ProneLaunch);
+	SERIALIZE(stream, VoiceComment);
+	SERIALIZE(stream, IsCyborg);
+	SERIALIZE(stream, IsFearless);
+	SERIALIZE(stream, IsCrawling);
+	SERIALIZE(stream, IsCapture);
+	SERIALIZE(stream, IsFraidyCat);
+	SERIALIZE(stream, IsTiberiumProof);
+	SERIALIZE(stream, IsCivilian);
+	SERIALIZE(stream, IsBomber);
+	SERIALIZE(stream, IsEngineer);
+	SERIALIZE(stream, IsDisguised);
+	SERIALIZE(stream, IsAgent);
+	SERIALIZE(stream, IsThief);
+	SERIALIZE(stream, IsVehicleThief);
+	SERIALIZE(stream, IsDoggie);
+	SERIALIZE(stream, IsJumpJet);
+	SERIALIZE(stream, IsWebImmune);
 }
 
 

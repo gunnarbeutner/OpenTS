@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "face.h"
 #include "techtype.h"
 
@@ -209,9 +211,9 @@ class BuildingTypeClass : public TechnoTypeClass
 			template<typename S>
 			void Serialize(S & stream)
 			{
-				stream.Serialize(Start);
-				stream.Serialize(Count);
-				stream.Serialize(Rate);
+				SERIALIZE(stream, Start);
+				SERIALIZE(stream, Count);
+				SERIALIZE(stream, Rate);
 			}
 		};
 		AnimControlType Anims[BSTATE_COUNT] = {};
@@ -263,13 +265,13 @@ class BuildingTypeClass : public TechnoTypeClass
 			template<typename S>
 			void Serialize(S & stream)
 			{
-				stream.Serialize(Anim);
-				stream.Serialize(AnimDamaged);
-				stream.Serialize(Location);
-				stream.Serialize(ZAdjust);
-				stream.Serialize(YSort);
-				stream.Serialize(Powered);
-				stream.Serialize(PoweredLight);
+				SERIALIZE(stream, Anim);
+				SERIALIZE(stream, AnimDamaged);
+				SERIALIZE(stream, Location);
+				SERIALIZE(stream, ZAdjust);
+				SERIALIZE(stream, YSort);
+				SERIALIZE(stream, Powered);
+				SERIALIZE(stream, PoweredLight);
 			}
 		};
 

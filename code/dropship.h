@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 class TechnoTypeClass;
 class XSurface;
 class ConvertClass;
@@ -61,13 +63,13 @@ class DropshipLoadoutClass
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(CreationFrame);
-			stream.Serialize(Unused1);
-			stream.Serialize(Unused2);
-			stream.Serialize(UnusedBool1);
-			stream.Serialize(EntryCount);
-			stream.Serialize(Entries);
-			stream.Serialize(TotalCost);
+			SERIALIZE(stream, CreationFrame);
+			SERIALIZE(stream, Unused1);
+			SERIALIZE(stream, Unused2);
+			SERIALIZE(stream, UnusedBool1);
+			SERIALIZE(stream, EntryCount);
+			SERIALIZE(stream, Entries);
+			SERIALIZE(stream, TotalCost);
 		}
 };
 

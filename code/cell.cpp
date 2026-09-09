@@ -4363,7 +4363,7 @@ void CellClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(CellID);
+	SERIALIZE(stream, CellID);
 
 	// Post_Load installs the cell in the array slot this coordinate names, so a coordinate
 	// that names none is refused here, while the record can still be thrown away whole.
@@ -4377,63 +4377,63 @@ void CellClass::Serialize(SaveStreamClass & stream)
 	 * so whether the cell has one at all travels ahead of its contents.
 	 */
 	bool hasfogged = (FoggedObjects != NULL);
-	stream.Serialize(hasfogged);
+	SERIALIZE(stream, hasfogged);
 	if (stream.Is_Loading() && hasfogged) {
 		FoggedObjects = new FOGGED_OBJECT_LIST;
 	}
 	if (hasfogged) {
-		stream.Serialize(*FoggedObjects);
+		stream.Serialize_Raw(*FoggedObjects);
 	}
 
-	stream.Serialize(BridgeDeckCell);
-	stream.Serialize(UnusedCell);
+	SERIALIZE(stream, BridgeDeckCell);
+	SERIALIZE(stream, UnusedCell);
 	// Drawer -- no save has ever carried it; a shared object the cell picks again when it is lit.
-	stream.Serialize(ITType);
-	stream.Serialize(Tag);
-	stream.Serialize(Overlay);
-	stream.Serialize(Smudge);
+	SERIALIZE(stream, ITType);
+	SERIALIZE(stream, Tag);
+	SERIALIZE(stream, Overlay);
+	SERIALIZE(stream, Smudge);
 	// Passability -- no save has ever carried it either; derived from the terrain and whatever is
 	// standing here.
-	stream.Serialize(Owner);
-	stream.Serialize(InfType);
-	stream.Serialize(BridgeInfType);
-	stream.Serialize(LastRedrawFrame);
-	stream.Serialize(LastUnknownDrawFrame);
-	stream.Serialize(LastBridgeDrawFrame);
-	stream.Serialize(LastBridgeDrawRect);
-	stream.Serialize(CloakedBy);
-	stream.Serialize(SensedBy);
-	stream.Serialize(OccupiedBy);
-	stream.Serialize(OccupierPtr);
-	stream.Serialize(BridgeOccupierPtr);
-	stream.Serialize(Land);
-	stream.Serialize(Intensity);
-	stream.Serialize(Ambient);
-	stream.Serialize(Brightness);
-	stream.Serialize(TileBrightness);
-	stream.Serialize(AltBrightness);
-	stream.Serialize(RedTint);
-	stream.Serialize(GreenTint);
-	stream.Serialize(BlueTint);
-	stream.Serialize(Tube);
-	stream.Serialize(LastBridgeDrawRedraws);
-	stream.Serialize(IsIceGrowthAllowed);
-	stream.Serialize(SubTile);
-	stream.Serialize(Height);
-	stream.Serialize(Ramp);
-	stream.Serialize(Elevation);
-	stream.Serialize(OverlayData);
-	stream.Serialize(SmudgeData);
-	stream.Serialize(ShadowFrame);
-	stream.Serialize(FogFrame);
-	stream.Serialize(AdjacentObjectCount);
+	SERIALIZE(stream, Owner);
+	SERIALIZE(stream, InfType);
+	SERIALIZE(stream, BridgeInfType);
+	SERIALIZE(stream, LastRedrawFrame);
+	SERIALIZE(stream, LastUnknownDrawFrame);
+	SERIALIZE(stream, LastBridgeDrawFrame);
+	SERIALIZE(stream, LastBridgeDrawRect);
+	SERIALIZE(stream, CloakedBy);
+	SERIALIZE(stream, SensedBy);
+	SERIALIZE(stream, OccupiedBy);
+	SERIALIZE(stream, OccupierPtr);
+	SERIALIZE(stream, BridgeOccupierPtr);
+	SERIALIZE(stream, Land);
+	SERIALIZE(stream, Intensity);
+	SERIALIZE(stream, Ambient);
+	SERIALIZE(stream, Brightness);
+	SERIALIZE(stream, TileBrightness);
+	SERIALIZE(stream, AltBrightness);
+	SERIALIZE(stream, RedTint);
+	SERIALIZE(stream, GreenTint);
+	SERIALIZE(stream, BlueTint);
+	SERIALIZE(stream, Tube);
+	SERIALIZE(stream, LastBridgeDrawRedraws);
+	SERIALIZE(stream, IsIceGrowthAllowed);
+	SERIALIZE(stream, SubTile);
+	SERIALIZE(stream, Height);
+	SERIALIZE(stream, Ramp);
+	SERIALIZE(stream, Elevation);
+	SERIALIZE(stream, OverlayData);
+	SERIALIZE(stream, SmudgeData);
+	SERIALIZE(stream, ShadowFrame);
+	SERIALIZE(stream, FogFrame);
+	SERIALIZE(stream, AdjacentObjectCount);
 
 	/*
 	 * Each set of sub position flags is carried as the composite byte it shares storage
 	 * with, which is every one of its eight bits in a single trip.
 	 */
-	stream.Serialize(Flag.Composite);
-	stream.Serialize(BridgeFlag.Composite);
+	SERIALIZE(stream, Flag.Composite);
+	SERIALIZE(stream, BridgeFlag.Composite);
 
 	SERIALIZE_BIT(stream, IsPlot);
 	SERIALIZE_BIT(stream, IsCursorHere);

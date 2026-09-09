@@ -223,28 +223,28 @@ void TiberiumClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HeapID);
-	stream.Serialize(SpreadDelay);
-	stream.Serialize(SpreadPercentage);
-	stream.Serialize(GrowthDelay);
-	stream.Serialize(GrowthPercentage);
-	stream.Serialize(CreditValue);
-	stream.Serialize(Power);
-	stream.Serialize(Color);
-	stream.Serialize(Debris);
-	stream.Serialize(Overlay);
-	stream.Serialize(FrameCount);
-	stream.Serialize(Variety);
-	stream.Serialize(RampVariety);
-	stream.Serialize(SpreadCount);
+	SERIALIZE(stream, HeapID);
+	SERIALIZE(stream, SpreadDelay);
+	SERIALIZE(stream, SpreadPercentage);
+	SERIALIZE(stream, GrowthDelay);
+	SERIALIZE(stream, GrowthPercentage);
+	SERIALIZE(stream, CreditValue);
+	SERIALIZE(stream, Power);
+	SERIALIZE(stream, Color);
+	SERIALIZE(stream, Debris);
+	SERIALIZE(stream, Overlay);
+	SERIALIZE(stream, FrameCount);
+	SERIALIZE(stream, Variety);
+	SERIALIZE(stream, RampVariety);
+	SERIALIZE(stream, SpreadCount);
 	// SpreadQueue -- sized to the map rather than to saved state; Load drops these and the
 	// tiberium systems build them again from the map itself.
 	// SpreadState
-	stream.Serialize(SpreadTimer);
-	stream.Serialize(GrowthCount);
+	SERIALIZE(stream, SpreadTimer);
+	SERIALIZE(stream, GrowthCount);
 	// GrowthQueue -- the growth records, dropped and rebuilt the same way.
 	// GrowthState
-	stream.Serialize(GrowthTimer);
+	SERIALIZE(stream, GrowthTimer);
 }
 
 

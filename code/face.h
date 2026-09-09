@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "coord.h"
 #include "visualc.h"
 
@@ -255,7 +257,7 @@ class DirType
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Raw);
+			SERIALIZE(stream, Raw);
 		}
 
 	/// probably should be private.

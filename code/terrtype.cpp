@@ -411,20 +411,20 @@ void TerrainTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HeapID);
-	stream.Serialize(Foundation);
-	stream.Serialize(RadarColor);
-	stream.Serialize(AnimationRate);
-	stream.Serialize(AnimationProbability);
-	stream.Serialize(YDrawFudge);
-	stream.Serialize(TiberiumToSpawn);
-	stream.Serialize(TemperateOccupationBits);
-	stream.Serialize(SnowOccupationBits);
-	stream.Serialize(IsWaterBased);
-	stream.Serialize(IsTiberiumSpawn);
-	stream.Serialize(IsFlammable);
-	stream.Serialize(IsAnimated);
-	stream.Serialize(IsVeinhole);
+	SERIALIZE(stream, HeapID);
+	SERIALIZE(stream, Foundation);
+	SERIALIZE(stream, RadarColor);
+	SERIALIZE(stream, AnimationRate);
+	SERIALIZE(stream, AnimationProbability);
+	SERIALIZE(stream, YDrawFudge);
+	SERIALIZE(stream, TiberiumToSpawn);
+	SERIALIZE(stream, TemperateOccupationBits);
+	SERIALIZE(stream, SnowOccupationBits);
+	SERIALIZE(stream, IsWaterBased);
+	SERIALIZE(stream, IsTiberiumSpawn);
+	SERIALIZE(stream, IsFlammable);
+	SERIALIZE(stream, IsAnimated);
+	SERIALIZE(stream, IsVeinhole);
 	// Occupy -- points into a static table, picked again from Foundation as this loads.
 }
 

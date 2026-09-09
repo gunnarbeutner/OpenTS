@@ -3001,10 +3001,10 @@ void SidebarClass::Serialize(SaveStreamClass & stream)
 	// SidebarMiddleShape
 	// SidebarBottomShape
 	// SidebarAddonShape
-	stream.Serialize(Column);
+	SERIALIZE(stream, Column);
 	// IsToRedraw -- a redraw flag; the load asks for a complete draw anyway.
-	stream.Serialize(IsCameoText);
-	stream.Serialize(IsSidebarActive);
+	SERIALIZE(stream, IsCameoText);
+	SERIALIZE(stream, IsSidebarActive);
 
 	// IsForceCompleteRedraw -- likewise redraw flags.
 	// IsToRedrawCredits
@@ -3014,9 +3014,9 @@ void SidebarClass::Serialize(SaveStreamClass & stream)
 	// Waypoint
 	// Background
 	// IsToBlitSidebar
-	stream.Serialize(IsRepairActive);
-	stream.Serialize(IsUpgradeActive);
-	stream.Serialize(IsDemolishActive);
+	SERIALIZE(stream, IsRepairActive);
+	SERIALIZE(stream, IsUpgradeActive);
+	SERIALIZE(stream, IsDemolishActive);
 }
 
 
@@ -3037,16 +3037,16 @@ void SidebarClass::StripClass::Serialize(SaveStreamClass & stream)
 	 * not saved: IsToSort -- raised on load below, because the rules and the ordering setting
 	 * can both differ from the ones the game was saved under.
 	 */
-	stream.Serialize(IsBuilding);
-	stream.Serialize(IsScrollingDown);
-	stream.Serialize(IsScrolling);
-	stream.Serialize(Flasher);
-	stream.Serialize(TopIndex);
-	stream.Serialize(Scroller);
-	stream.Serialize(Slid);
-	stream.Serialize(LastSlid);
-	stream.Serialize(BuildableCount);
-	stream.Serialize(Buildables);
+	SERIALIZE(stream, IsBuilding);
+	SERIALIZE(stream, IsScrollingDown);
+	SERIALIZE(stream, IsScrolling);
+	SERIALIZE(stream, Flasher);
+	SERIALIZE(stream, TopIndex);
+	SERIALIZE(stream, Scroller);
+	SERIALIZE(stream, Slid);
+	SERIALIZE(stream, LastSlid);
+	SERIALIZE(stream, BuildableCount);
+	SERIALIZE(stream, Buildables);
 
 	if (stream.Is_Loading()) {
 		IsToSort = true;

@@ -135,9 +135,9 @@ bool EnvironmentClass::Save(SaveStreamClass & stream)
 /// <param name="stream">The stream carrying the members.</param>
 void EnvironmentClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Serialize(Globals);
-	stream.Serialize(CarryOverMoney);
-	stream.Serialize(MissionTimer);
-	stream.Serialize(Difficulty);
-	stream.Serialize(Stage);
+	SERIALIZE(stream, Globals);
+	SERIALIZE(stream, CarryOverMoney);
+	SERIALIZE(stream, MissionTimer);
+	SERIALIZE(stream, Difficulty);
+	SERIALIZE(stream, Stage);
 }

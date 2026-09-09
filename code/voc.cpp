@@ -398,7 +398,7 @@ void Static_Sounds_Serialize(SaveStreamClass & stream)
 			Free_Static(_statics[i]);
 		}
 	}
-	stream.Serialize(count);
+	stream.Serialize_Raw(count);
 	if (count < 0 || count > STATIC_SOUND_MAX) {
 		stream.Fail();
 		return;
@@ -411,11 +411,11 @@ void Static_Sounds_Serialize(SaveStreamClass & stream)
 			continue;
 		}
 		int voc = item.Voc;
-		stream.Serialize(voc);
-		stream.Serialize(item.Position.X);
-		stream.Serialize(item.Position.Y);
-		stream.Serialize(item.Position.Z);
-		stream.Serialize(item.Type);
+		stream.Serialize_Raw(voc);
+		stream.Serialize_Raw(item.Position.X);
+		stream.Serialize_Raw(item.Position.Y);
+		stream.Serialize_Raw(item.Position.Z);
+		stream.Serialize_Raw(item.Type);
 		if (stream.Is_Loading()) {
 			item.Voc = (VocType)voc;
 			item.Handle.Clear();

@@ -34,6 +34,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 
 #include "point.h"
 
@@ -112,10 +114,10 @@ class TRect
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(X);
-			stream.Serialize(Y);
-			stream.Serialize(Width);
-			stream.Serialize(Height);
+			SERIALIZE(stream, X);
+			SERIALIZE(stream, Y);
+			SERIALIZE(stream, Width);
+			SERIALIZE(stream, Height);
 		}
 
 	public:
