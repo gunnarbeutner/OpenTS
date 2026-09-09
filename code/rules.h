@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "ccini.h"
 #include "face.h"
 
@@ -74,18 +76,18 @@ class DifficultyClass
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(FirepowerBias);
-			stream.Serialize(GroundspeedBias);
-			stream.Serialize(AirspeedBias);
-			stream.Serialize(ArmorBias);
-			stream.Serialize(ROFBias);
-			stream.Serialize(CostBias);
-			stream.Serialize(BuildSpeedBias);
-			stream.Serialize(RepairDelay);
-			stream.Serialize(BuildDelay);
-			stream.Serialize(IsBuildSlowdown);
-			stream.Serialize(IsWallDestroyer);
-			stream.Serialize(IsContentScan);
+			SERIALIZE(stream, FirepowerBias);
+			SERIALIZE(stream, GroundspeedBias);
+			SERIALIZE(stream, AirspeedBias);
+			SERIALIZE(stream, ArmorBias);
+			SERIALIZE(stream, ROFBias);
+			SERIALIZE(stream, CostBias);
+			SERIALIZE(stream, BuildSpeedBias);
+			SERIALIZE(stream, RepairDelay);
+			SERIALIZE(stream, BuildDelay);
+			SERIALIZE(stream, IsBuildSlowdown);
+			SERIALIZE(stream, IsWallDestroyer);
+			SERIALIZE(stream, IsContentScan);
 		}
 };
 

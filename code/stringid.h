@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -151,7 +153,7 @@ struct TStringID
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(StringBuffer);
+			SERIALIZE(stream, StringBuffer);
 		}
 
 	private:

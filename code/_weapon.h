@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "point.h"
 
 template<class T> class DynamicVectorClass;
@@ -47,9 +49,9 @@ struct WeaponDataStruct {
 	template<typename S>
 	void Serialize(S & stream)
 	{
-		stream.Serialize(Weapon);
-		stream.Serialize(FireFLH);
-		stream.Serialize(BarrelLength);
-		stream.Serialize(BarrelThickness);
+		SERIALIZE(stream, Weapon);
+		SERIALIZE(stream, FireFLH);
+		SERIALIZE(stream, BarrelLength);
+		SERIALIZE(stream, BarrelThickness);
 	}
 };

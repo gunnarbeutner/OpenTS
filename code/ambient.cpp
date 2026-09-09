@@ -145,7 +145,7 @@ void AmbientSoundTable::Serialize(SaveStreamClass & stream)
 	if (stream.Is_Loading()) {
 		Clear();
 	}
-	stream.Serialize(count);
+	stream.Serialize_Raw(count);
 	if (count < 0 || count > MAX_ENTRIES) {
 		stream.Fail();
 		return;
@@ -155,8 +155,8 @@ void AmbientSoundTable::Serialize(SaveStreamClass & stream)
 		for (int i = 0; i < MAX_ENTRIES; i++) {
 			if (Entries[i].Object != nullptr) {
 				int voc = Entries[i].Voc;
-				stream.Serialize(Entries[i].Object);
-				stream.Serialize(voc);
+				stream.Serialize_Raw(Entries[i].Object);
+				stream.Serialize_Raw(voc);
 			}
 		}
 		return;
@@ -166,8 +166,8 @@ void AmbientSoundTable::Serialize(SaveStreamClass & stream)
 	// back without its attack.
 	for (int i = 0; i < count; i++) {
 		int voc = VOC_NONE;
-		stream.Serialize(Entries[i].Object);
-		stream.Serialize(voc);
+		stream.Serialize_Raw(Entries[i].Object);
+		stream.Serialize_Raw(voc);
 		Entries[i].Voc = (VocType)voc;
 		Entries[i].Handle.Clear();
 		Entries[i].Started = true;

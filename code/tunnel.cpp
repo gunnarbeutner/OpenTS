@@ -646,10 +646,10 @@ void TunnelLocomotionClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(State);
-	stream.Serialize(DestinationCoord);
-	stream.Serialize(DigTimer);
-	stream.Serialize(IsUnderground);
+	SERIALIZE(stream, State);
+	SERIALIZE(stream, DestinationCoord);
+	SERIALIZE(stream, DigTimer);
+	SERIALIZE(stream, IsUnderground);
 }
 
 

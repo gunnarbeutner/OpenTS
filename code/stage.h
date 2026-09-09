@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "ftimer.h"
 #include "timer.h"
 
@@ -80,10 +82,10 @@ class StageClass {
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Stage);
-			stream.Serialize(Timer);
-			stream.Serialize(Rate);
-			stream.Serialize(Step);
+			SERIALIZE(stream, Stage);
+			SERIALIZE(stream, Timer);
+			SERIALIZE(stream, Rate);
+			SERIALIZE(stream, Step);
 		}
 
 		bool About_To_Change(void) const {return(Timer == 0 && Rate != 0);}

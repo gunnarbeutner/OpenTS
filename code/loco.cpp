@@ -236,7 +236,7 @@ bool LocomotionClass::Load(SaveStreamClass & stream)
 bool LocomotionClass::Save_Members(SaveStreamClass & stream, bool cleardirty)
 {
 	SwizzleIDType id = Swizzler.ID_Of(this);
-	stream.Serialize(id);
+	stream.Serialize_Raw(id);
 	Serialize(stream);
 	if (!stream.Was_Error() && cleardirty) {
 		Dirty = false;
@@ -248,7 +248,7 @@ bool LocomotionClass::Save_Members(SaveStreamClass & stream, bool cleardirty)
 bool LocomotionClass::Load_Members(SaveStreamClass & stream)
 {
 	SwizzleIDType id = 0;
-	stream.Serialize(id);
+	stream.Serialize_Raw(id);
 	if (stream.Was_Error()) {
 		return(false);
 	}
@@ -267,9 +267,9 @@ bool LocomotionClass::Load_Members(SaveStreamClass & stream)
 
 void LocomotionClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Serialize(LinkedTo);
-	stream.Serialize(IsPowered);
-	stream.Serialize(Dirty);
+	SERIALIZE(stream, LinkedTo);
+	SERIALIZE(stream, IsPowered);
+	SERIALIZE(stream, Dirty);
 }
 
 

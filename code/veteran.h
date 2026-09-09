@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 
 #include "ability.hh"
 
@@ -80,7 +82,7 @@ class VeterancyClass
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Experience);
+			SERIALIZE(stream, Experience);
 		}
 
 	//private:

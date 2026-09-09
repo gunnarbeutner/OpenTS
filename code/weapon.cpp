@@ -376,37 +376,37 @@ void WeaponTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(AmbientDamage);
-	stream.Serialize(Burst);
-	stream.Serialize(Bullet);
-	stream.Serialize(Attack);
-	stream.Serialize(MaxSpeed);
-	stream.Serialize(WarheadPtr);
-	stream.Serialize(ROF);
-	stream.Serialize(Range);
-	stream.Serialize(ProjectileRange);
-	stream.Serialize(BurstDelay);
-	stream.Serialize(MinimumRange);
-	stream.Serialize(Sound);
-	stream.Serialize(Anim);
-	stream.Serialize(AttachedParticleSystem);
-	stream.Serialize(LaserInnerColor);
-	stream.Serialize(LaserOuterColor);
-	stream.Serialize(LaserOuterSpread);
-	stream.Serialize(UseFireParticles);
-	stream.Serialize(UseSparkParticles);
-	stream.Serialize(IsRailgun);
-	stream.Serialize(IsLobber);
-	stream.Serialize(IsBright);
-	stream.Serialize(LaserDuration);
-	stream.Serialize(IsBigLaser);
-	stream.Serialize(IsSonic);
-	stream.Serialize(IsTurboBoosted);
-	stream.Serialize(IsSupressed);
-	stream.Serialize(IsCamera);
-	stream.Serialize(IsElectric);
-	stream.Serialize(IsLaser);
-	stream.Serialize(IsIonSensitive);
+	SERIALIZE(stream, AmbientDamage);
+	SERIALIZE(stream, Burst);
+	SERIALIZE(stream, Bullet);
+	SERIALIZE(stream, Attack);
+	SERIALIZE(stream, MaxSpeed);
+	SERIALIZE(stream, WarheadPtr);
+	SERIALIZE(stream, ROF);
+	SERIALIZE(stream, Range);
+	SERIALIZE(stream, ProjectileRange);
+	SERIALIZE(stream, BurstDelay);
+	SERIALIZE(stream, MinimumRange);
+	SERIALIZE(stream, Sound);
+	SERIALIZE(stream, Anim);
+	SERIALIZE(stream, AttachedParticleSystem);
+	SERIALIZE(stream, LaserInnerColor);
+	SERIALIZE(stream, LaserOuterColor);
+	SERIALIZE(stream, LaserOuterSpread);
+	SERIALIZE(stream, UseFireParticles);
+	SERIALIZE(stream, UseSparkParticles);
+	SERIALIZE(stream, IsRailgun);
+	SERIALIZE(stream, IsLobber);
+	SERIALIZE(stream, IsBright);
+	SERIALIZE(stream, LaserDuration);
+	SERIALIZE(stream, IsBigLaser);
+	SERIALIZE(stream, IsSonic);
+	SERIALIZE(stream, IsTurboBoosted);
+	SERIALIZE(stream, IsSupressed);
+	SERIALIZE(stream, IsCamera);
+	SERIALIZE(stream, IsElectric);
+	SERIALIZE(stream, IsLaser);
+	SERIALIZE(stream, IsIonSensitive);
 }
 
 

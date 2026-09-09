@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "control.h"
 #include "gadget.h"
 #include "power.h"
@@ -332,9 +334,9 @@ class SidebarClass : public PowerClass
 					template<typename S>
 					void Serialize(S & stream)
 					{
-						stream.Serialize(BuildableID);
-						stream.Serialize(BuildableType);
-						stream.Serialize(Factory);
+						SERIALIZE(stream, BuildableID);
+						SERIALIZE(stream, BuildableType);
+						SERIALIZE(stream, Factory);
 					}
 
 					int BuildableID;

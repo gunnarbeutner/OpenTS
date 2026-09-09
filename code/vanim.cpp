@@ -514,13 +514,13 @@ void VoxelAnimClass::Serialize(SaveStreamClass & stream)
 	BASECLASS::Serialize(stream);
 	BounceClass::Serialize(stream);
 
-	stream.Serialize(Unused1);
-	stream.Serialize(Class);
-	stream.Serialize(AttachedParticleSys);
-	stream.Serialize(House);
-	stream.Serialize(IsToDie);
-	stream.Serialize(IsInvisible);
-	stream.Serialize(ECCounter);
+	SERIALIZE(stream, Unused1);
+	SERIALIZE(stream, Class);
+	SERIALIZE(stream, AttachedParticleSys);
+	SERIALIZE(stream, House);
+	SERIALIZE(stream, IsToDie);
+	SERIALIZE(stream, IsInvisible);
+	SERIALIZE(stream, ECCounter);
 }
 
 

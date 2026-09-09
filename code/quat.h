@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "vector3.h"
 
 #include <cmath>
@@ -54,10 +56,10 @@ class Quaternion
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(X);
-			stream.Serialize(Y);
-			stream.Serialize(Z);
-			stream.Serialize(W);
+			SERIALIZE(stream, X);
+			SERIALIZE(stream, Y);
+			SERIALIZE(stream, Z);
+			SERIALIZE(stream, W);
 		}
 
 	public:

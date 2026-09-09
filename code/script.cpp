@@ -164,9 +164,9 @@ void ScriptClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Class);
-	stream.Serialize(Unused1);
-	stream.Serialize(CurrentLineNumber);
+	SERIALIZE(stream, Class);
+	SERIALIZE(stream, Unused1);
+	SERIALIZE(stream, CurrentLineNumber);
 }
 
 
@@ -372,10 +372,10 @@ void ScriptTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HeapID);
-	stream.Serialize(Scope);
-	stream.Serialize(MissionCount);
-	stream.Serialize(MissionList);
+	SERIALIZE(stream, HeapID);
+	SERIALIZE(stream, Scope);
+	SERIALIZE(stream, MissionCount);
+	SERIALIZE(stream, MissionList);
 }
 
 

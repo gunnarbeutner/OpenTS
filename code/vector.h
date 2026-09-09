@@ -49,6 +49,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "always.h"
 
 #include <algorithm>
@@ -120,7 +122,7 @@ class VectorClass
 		void Serialize(S & stream, std::source_location const & where = std::source_location::current())
 		{
 			int count = VectorMax;
-			stream.Serialize(count);
+			SERIALIZE(stream, count);
 
 			if (stream.Is_Loading()) {
 				if (!stream.Fits(count, (std::is_arithmetic_v<T> || std::is_enum_v<T>) ? sizeof(T) : 1)) {
@@ -139,10 +141,10 @@ class VectorClass
 			} else {
 				for (int index = 0; index < count; index++) {
 					// Elements report against the member's call site, not against this loop.
-					if constexpr (requires { stream.Serialize(Vector[index], where); }) {
-						stream.Serialize(Vector[index], where);
+					if constexpr (requires { stream.Serialize_Raw(Vector[index], where); }) {
+						stream.Serialize_Raw(Vector[index], where);
 					} else {
-						stream.Serialize(Vector[index]);
+						SERIALIZE(stream, Vector[index]);
 					}
 				}
 			}
@@ -514,7 +516,7 @@ class DynamicVectorClass : public VectorClass<T>
 		void Serialize(S & stream, std::source_location const & where = std::source_location::current())
 		{
 			int count = ActiveCount;
-			stream.Serialize(count);
+			SERIALIZE(stream, count);
 
 			if (stream.Is_Loading()) {
 				if (!stream.Fits(count, (std::is_arithmetic_v<T> || std::is_enum_v<T>) ? sizeof(T) : 1)) {
@@ -534,10 +536,10 @@ class DynamicVectorClass : public VectorClass<T>
 			} else {
 				for (int index = 0; index < count; index++) {
 					// Elements report against the member's call site, not against this loop.
-					if constexpr (requires { stream.Serialize((*this)[index], where); }) {
-						stream.Serialize((*this)[index], where);
+					if constexpr (requires { stream.Serialize_Raw((*this)[index], where); }) {
+						stream.Serialize_Raw((*this)[index], where);
 					} else {
-						stream.Serialize((*this)[index]);
+						stream.Serialize_Raw((*this)[index]);
 					}
 				}
 			}

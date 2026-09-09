@@ -52,6 +52,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 
 /*
 **	This is a timer class that watches a constant rate timer (specified by the parameter
@@ -90,14 +92,14 @@ class BasicTimerClass {
 		void Serialize(S & stream)
 		{
 			if constexpr (T::Reading_Survives_A_Save) {
-				stream.Serialize(Started);
+				SERIALIZE(stream, Started);
 				return;
 			}
 
 			int const now = Timer();
 			int elapsed = (Started == -1) ? -1 : now - Started;
 
-			stream.Serialize(elapsed);
+			SERIALIZE(stream, elapsed);
 
 			if (elapsed == -1) {
 				Started = -1;
@@ -254,7 +256,7 @@ class TTimerClass : public BasicTimerClass<T> {
 		void Serialize(S & stream)
 		{
 			BASECLASS::Serialize(stream);
-			stream.Serialize(Accumulated);
+			SERIALIZE(stream, Accumulated);
 		}
 
 	private:
@@ -483,7 +485,7 @@ class CDTimerClass : public BasicTimerClass<T> {
 		void Serialize(S & stream)
 		{
 			BASECLASS::Serialize(stream);
-			stream.Serialize(DelayTime);
+			SERIALIZE(stream, DelayTime);
 		}
 
 	protected:
@@ -731,7 +733,7 @@ class ProgressTimerClass : protected CDTimerClass<T>
 		void Serialize(S & stream)
 		{
 			BASECLASS::Serialize(stream);
-			stream.Serialize(TotalTime);
+			SERIALIZE(stream, TotalTime);
 		}
 
 	protected:

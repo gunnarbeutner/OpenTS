@@ -84,11 +84,11 @@ void TubeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Enter);
-	stream.Serialize(Exit);
-	stream.Serialize(EnterDir);
-	stream.Serialize(Dirs);
-	stream.Serialize(Count);
+	SERIALIZE(stream, Enter);
+	SERIALIZE(stream, Exit);
+	SERIALIZE(stream, EnterDir);
+	SERIALIZE(stream, Dirs);
+	SERIALIZE(stream, Count);
 	// INI_NAME -- a map file section name shared by every tunnel.
 }
 

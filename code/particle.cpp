@@ -899,28 +899,28 @@ void ParticleClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Class);
-	stream.Serialize(Color);
-	stream.Serialize(ColorIndex);
-	stream.Serialize(ColorAccum);
-	stream.Serialize(GasDrift);
-	stream.Serialize(GasVelocity);
-	stream.Serialize(UnusedCoord1);
-	stream.Serialize(Speed);
-	stream.Serialize(FireTarget);
-	stream.Serialize(FireOrigin);
-	stream.Serialize(FireMoveDelta);
-	stream.Serialize(MovementDirection);
-	stream.Serialize(PrecisePosition);
-	stream.Serialize(System);
-	stream.Serialize(RemainingEC);
-	stream.Serialize(RemainingDC);
-	stream.Serialize(StateAIAdvance);
-	stream.Serialize(IsFireBelowGround);
-	stream.Serialize(StateAI);
-	stream.Serialize(Translucency);
-	stream.Serialize(WasSaved);
-	stream.Serialize(IsToDie);
+	SERIALIZE(stream, Class);
+	SERIALIZE(stream, Color);
+	SERIALIZE(stream, ColorIndex);
+	SERIALIZE(stream, ColorAccum);
+	SERIALIZE(stream, GasDrift);
+	SERIALIZE(stream, GasVelocity);
+	SERIALIZE(stream, UnusedCoord1);
+	SERIALIZE(stream, Speed);
+	SERIALIZE(stream, FireTarget);
+	SERIALIZE(stream, FireOrigin);
+	SERIALIZE(stream, FireMoveDelta);
+	SERIALIZE(stream, MovementDirection);
+	SERIALIZE(stream, PrecisePosition);
+	SERIALIZE(stream, System);
+	SERIALIZE(stream, RemainingEC);
+	SERIALIZE(stream, RemainingDC);
+	SERIALIZE(stream, StateAIAdvance);
+	SERIALIZE(stream, IsFireBelowGround);
+	SERIALIZE(stream, StateAI);
+	SERIALIZE(stream, Translucency);
+	SERIALIZE(stream, WasSaved);
+	SERIALIZE(stream, IsToDie);
 }
 
 

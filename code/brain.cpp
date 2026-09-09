@@ -65,8 +65,8 @@ void NeuronClass::Serialize(SaveStreamClass & stream)
 	// Pointer2
 	// MyBrain -- a brain carries no swizzle identity of its own, and sets this again as it adopts
 	// the neuron on the way back in.
-	stream.Serialize(CreationFrame);
-	stream.Serialize(Unk1);
+	SERIALIZE(stream, CreationFrame);
+	SERIALIZE(stream, Unk1);
 }
 
 
@@ -179,7 +179,7 @@ bool BrainClass::Load(SaveStreamClass & stream)
 void BrainClass::Serialize(SaveStreamClass & stream, bool cleardirty)
 {
 	int count = Neurons.Count();
-	stream.Serialize(count);
+	stream.Serialize_Raw(count);
 
 	if (stream.Is_Loading()) {
 		Deinit();

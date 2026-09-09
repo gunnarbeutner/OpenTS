@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include <string>
 #include <utility>
 #include <vector>
@@ -29,7 +31,7 @@ class TutorialTextClass
 
 		// Only the scenario's lines travel; the base set is read again as the game starts.
 		template<typename StreamType>
-		void Serialize(StreamType & stream) {stream.Serialize(Overrides);}
+		void Serialize(StreamType & stream) {SERIALIZE(stream, Overrides);}
 
 	private:
 		using LineList = std::vector<std::pair<int, std::string>>;

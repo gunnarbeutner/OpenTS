@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 class CCINIClass;
 
 class SpecialClass
@@ -172,7 +174,7 @@ class SpecialClass
 		static bool Serialize_Flag(S & stream, unsigned field)
 		{
 			bool flag = (field != 0);
-			stream.Serialize(flag);
+			SERIALIZE(stream, flag);
 			return(flag);
 		}
 

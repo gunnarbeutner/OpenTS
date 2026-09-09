@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include <string>
 #include <vector>
 
@@ -36,8 +38,8 @@ class ScenarioFileClass
 		template<typename StreamType>
 		void Serialize(StreamType & stream)
 		{
-			stream.Serialize(FileName);
-			stream.Serialize(Bytes);
+			SERIALIZE(stream, FileName);
+			SERIALIZE(stream, Bytes);
 		}
 
 	private:

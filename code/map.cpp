@@ -264,18 +264,18 @@ void MapClass::Serialize(SaveStreamClass & stream)
 
 	// ZoneAdjacency -- scratch for the zone rebuild, which fills it again from the loaded terrain.
 	// Zones
-	stream.Serialize(ZoneCount);
+	SERIALIZE(stream, ZoneCount);
 	// ZoneConnections -- likewise part of the zone graph, read outside the archive.
 	// CellZones
-	stream.Serialize(CellZoneCount);
+	SERIALIZE(stream, CellZoneCount);
 	// CellSubzones -- the subzone graph, grown again from the loaded terrain.
 	// SubzoneTrackingEntryCount
 	// SubzoneConnectionStaging
 	// SubzoneTracking
-	stream.Serialize(PendingBridgeCells);
-	stream.Serialize(DirtyIceCells);
-	stream.Serialize(PlayRect);
-	stream.Serialize(LocalRect);
+	SERIALIZE(stream, PendingBridgeCells);
+	SERIALIZE(stream, DirtyIceCells);
+	SERIALIZE(stream, PlayRect);
+	SERIALIZE(stream, LocalRect);
 
 	// IterX -- the cell iterators, which name a slot of a cell array that the load throws away.
 	// Reset_Iterator establishes them before any walk.
@@ -284,21 +284,21 @@ void MapClass::Serialize(SaveStreamClass & stream)
 	// IterCell
 	// LocalIterX
 	// LocalIterY
-	stream.Serialize(MapRect);
-	stream.Serialize(TotalValue);
-	stream.Serialize(DeformMask);
-	stream.Serialize(DeformCell);
-	stream.Serialize(DeformFrame);
-	stream.Serialize(CrackedIce);
+	SERIALIZE(stream, MapRect);
+	SERIALIZE(stream, TotalValue);
+	SERIALIZE(stream, DeformMask);
+	SERIALIZE(stream, DeformCell);
+	SERIALIZE(stream, DeformFrame);
+	SERIALIZE(stream, CrackedIce);
 
 	// Array -- the cell array is reallocated by the load, and each cell reinstalls itself in
 	// CellClass::Post_Load.
 	// RadiusCount -- constant scan tables.
 	// RadiusOffset
 	// OcclusionOffset
-	stream.Serialize(XSize);
-	stream.Serialize(YSize);
-	stream.Serialize(Size);
+	SERIALIZE(stream, XSize);
+	SERIALIZE(stream, YSize);
+	SERIALIZE(stream, Size);
 
 	// The cell array is reallocated to Size and every cell then installs itself in it by
 	// coordinate, so a saved extent other than the one this build lays out is refused
@@ -309,9 +309,9 @@ void MapClass::Serialize(SaveStreamClass & stream)
 		return;
 	}
 
-	stream.Serialize(Crates);
-	stream.Serialize(Redraws);
-	stream.Serialize(TaggedCells);
+	SERIALIZE(stream, Crates);
+	SERIALIZE(stream, Redraws);
+	SERIALIZE(stream, TaggedCells);
 }
 
 

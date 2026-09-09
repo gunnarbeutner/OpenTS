@@ -3897,26 +3897,26 @@ void DisplayClass::Serialize(SaveStreamClass & stream)
 
 	// Layer -- the display layers are shared, and Load and Save carry them through their own
 	// persistence.
-	stream.Serialize(ZoneCell);
-	stream.Serialize(ZoneOffset);
+	SERIALIZE(stream, ZoneCell);
+	SERIALIZE(stream, ZoneOffset);
 
 	// CursorSize -- it names a scratch list local to Set_Cursor_Shape whose address means nothing
 	// in a fresh process, and the placement cursor is laid down again the moment the pending
 	// object is next moved.
-	stream.Serialize(ProximityCheck);
-	stream.Serialize(ShroudCheck);
-	stream.Serialize(FollowingObject);
-	stream.Serialize(FollowingObjectPtr);
+	SERIALIZE(stream, ProximityCheck);
+	SERIALIZE(stream, ShroudCheck);
+	SERIALIZE(stream, FollowingObject);
+	SERIALIZE(stream, FollowingObjectPtr);
 	// HoverObject -- the mouse position is not restored with the game, and the next input poll
 	// names whatever the pointer has come to rest over.
-	stream.Serialize(PendingObjectPtr);
-	stream.Serialize(PendingObject);
-	stream.Serialize(PendingHouse);
-	stream.Serialize(IsRepairMode);
-	stream.Serialize(IsSellMode);
-	stream.Serialize(IsPowerMode);
-	stream.Serialize(IsWaypointMode);
-	stream.Serialize(IsTargettingMode);
+	SERIALIZE(stream, PendingObjectPtr);
+	SERIALIZE(stream, PendingObject);
+	SERIALIZE(stream, PendingHouse);
+	SERIALIZE(stream, IsRepairMode);
+	SERIALIZE(stream, IsSellMode);
+	SERIALIZE(stream, IsPowerMode);
+	SERIALIZE(stream, IsWaypointMode);
+	SERIALIZE(stream, IsTargettingMode);
 	// DraggedWaypoint -- a waypoint drag cannot outlive the button that started it, and the load
 	// abandons it outright.
 	// DraggedWaypointCoord

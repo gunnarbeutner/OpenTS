@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "ftimer.h"
 #include "timer.h"
 
@@ -57,10 +59,10 @@ class DelayTimerClass
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Duration);
-			stream.Serialize(Timer);
-			stream.Serialize(IsActive);
-			stream.Serialize(IsToCountUp);
+			SERIALIZE(stream, Duration);
+			SERIALIZE(stream, Timer);
+			SERIALIZE(stream, IsActive);
+			SERIALIZE(stream, IsToCountUp);
 		}
 
 	private:

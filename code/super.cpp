@@ -814,16 +814,16 @@ void SuperClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Class);
-	stream.Serialize(House);
-	stream.Serialize(Control);
-	stream.Serialize(NeedsBuilding);
-	stream.Serialize(IsPresent);
-	stream.Serialize(IsOneTime);
-	stream.Serialize(IsReady);
-	stream.Serialize(IsSuspended);
-	stream.Serialize(OldStage);
-	stream.Serialize(ChargeDrainState);
+	SERIALIZE(stream, Class);
+	SERIALIZE(stream, House);
+	SERIALIZE(stream, Control);
+	SERIALIZE(stream, NeedsBuilding);
+	SERIALIZE(stream, IsPresent);
+	SERIALIZE(stream, IsOneTime);
+	SERIALIZE(stream, IsReady);
+	SERIALIZE(stream, IsSuspended);
+	SERIALIZE(stream, OldStage);
+	SERIALIZE(stream, ChargeDrainState);
 }
 
 

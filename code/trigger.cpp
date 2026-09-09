@@ -513,12 +513,12 @@ void TriggerClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Class);
-	stream.Serialize(LinkedTo);
-	stream.Serialize(IsToDelete);
-	stream.Serialize(Timer);
-	stream.Serialize(IsTripped);
-	stream.Serialize(IsActive);
+	SERIALIZE(stream, Class);
+	SERIALIZE(stream, LinkedTo);
+	SERIALIZE(stream, IsToDelete);
+	SERIALIZE(stream, Timer);
+	SERIALIZE(stream, IsTripped);
+	SERIALIZE(stream, IsActive);
 }
 
 

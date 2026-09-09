@@ -297,8 +297,8 @@ void EMPulseClass::Serialize(SaveStreamClass & stream)
 	BASECLASS::Serialize(stream);
 
 	// EMPulses -- the master list, which each pulse joins as it is constructed.
-	stream.Serialize(CellID);
-	stream.Serialize(Spread);
-	stream.Serialize(CreationFrame);
-	stream.Serialize(Duration);
+	SERIALIZE(stream, CellID);
+	SERIALIZE(stream, Spread);
+	SERIALIZE(stream, CreationFrame);
+	SERIALIZE(stream, Duration);
 }

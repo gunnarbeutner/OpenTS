@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "_house.h"
 #include "base.h"
 #include "coord.h"
@@ -131,11 +133,11 @@ class HouseStaticClass {
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(IQ);
-			stream.Serialize(TechLevel);
-			stream.Serialize(Allies);
-			stream.Serialize(InitialCredits);
-			stream.Serialize(Edge);
+			SERIALIZE(stream, IQ);
+			SERIALIZE(stream, TechLevel);
+			SERIALIZE(stream, Allies);
+			SERIALIZE(stream, InitialCredits);
+			SERIALIZE(stream, Edge);
 		}
 };
 
@@ -581,9 +583,9 @@ class HouseClass : public AbstractClass
 			template<typename S>
 			void Serialize(S & stream)
 			{
-				stream.Serialize(AirDefense);
-				stream.Serialize(ArmorDefense);
-				stream.Serialize(InfantryDefense);
+				SERIALIZE(stream, AirDefense);
+				SERIALIZE(stream, ArmorDefense);
+				SERIALIZE(stream, InfantryDefense);
 			}
 		} ZoneInfo[ZONE_COUNT];
 
@@ -665,8 +667,8 @@ class HouseClass : public AbstractClass
 			template<typename S>
 			void Serialize(S & stream)
 			{
-				stream.Serialize(Timer);
-				stream.Serialize(InitialAttack);
+				SERIALIZE(stream, Timer);
+				SERIALIZE(stream, InitialAttack);
 			}
 		} Attack;
 

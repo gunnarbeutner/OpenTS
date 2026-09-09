@@ -857,10 +857,10 @@ void TEventClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HeapID);
-	stream.Serialize(Next);
-	stream.Serialize(Event);
-	stream.Serialize(Team);
+	SERIALIZE(stream, HeapID);
+	SERIALIZE(stream, Next);
+	SERIALIZE(stream, Event);
+	SERIALIZE(stream, Team);
 
 	/*
 	 * Which alternative of the data is live depends on the event, but every one of them is

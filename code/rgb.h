@@ -31,6 +31,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 
 class PaletteClass;
 class HSVClass;
@@ -82,9 +84,9 @@ class RGBClass
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Red);
-			stream.Serialize(Green);
-			stream.Serialize(Blue);
+			SERIALIZE(stream, Red);
+			SERIALIZE(stream, Green);
+			SERIALIZE(stream, Blue);
 		}
 
 		int Get_Red(void) const {return(Red);}

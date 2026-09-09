@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 class HouseClass;
 
 
@@ -36,8 +38,8 @@ struct AngerStruct
 	template<typename S>
 	void Serialize(S & stream)
 	{
-		stream.Serialize(House);
-		stream.Serialize(Level);
+		SERIALIZE(stream, House);
+		SERIALIZE(stream, Level);
 	}
 };
 
@@ -65,7 +67,7 @@ struct ScoutStruct
 	template<typename S>
 	void Serialize(S & stream)
 	{
-		stream.Serialize(House);
-		stream.Serialize(IsScouted);
+		SERIALIZE(stream, House);
+		SERIALIZE(stream, IsScouted);
 	}
 };

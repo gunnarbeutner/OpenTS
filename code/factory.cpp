@@ -646,15 +646,15 @@ void FactoryClass::Serialize(SaveStreamClass & stream)
 	BASECLASS::Serialize(stream);
 	StageClass::Serialize(stream);
 
-	stream.Serialize(QueuedObjects);
-	stream.Serialize(Object);
-	stream.Serialize(IsDifferent);
-	stream.Serialize(Balance);
-	stream.Serialize(OriginalBalance);
-	stream.Serialize(SpecialItem);
-	stream.Serialize(House);
-	stream.Serialize(IsSuspended);
-	stream.Serialize(IsOnHold);
+	SERIALIZE(stream, QueuedObjects);
+	SERIALIZE(stream, Object);
+	SERIALIZE(stream, IsDifferent);
+	SERIALIZE(stream, Balance);
+	SERIALIZE(stream, OriginalBalance);
+	SERIALIZE(stream, SpecialItem);
+	SERIALIZE(stream, House);
+	SERIALIZE(stream, IsSuspended);
+	SERIALIZE(stream, IsOnHold);
 }
 
 

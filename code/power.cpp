@@ -116,12 +116,12 @@ void PowerClass::Serialize(SaveStreamClass & stream)
 	// UpdateTimer
 	// FlashCount -- it counts the flashes still owed by a power level change, and the timer that
 	// would pace them is not saved either.
-	stream.Serialize(GreenPipCount);
-	stream.Serialize(YellowPipCount);
-	stream.Serialize(RedPipCount);
-	stream.Serialize(HasChanged);
-	stream.Serialize(RecordedDrain);
-	stream.Serialize(RecordedPower);
+	SERIALIZE(stream, GreenPipCount);
+	SERIALIZE(stream, YellowPipCount);
+	SERIALIZE(stream, RedPipCount);
+	SERIALIZE(stream, HasChanged);
+	SERIALIZE(stream, RecordedDrain);
+	SERIALIZE(stream, RecordedPower);
 	// PowerPipShape -- artwork fetched by One_Time.
 }
 

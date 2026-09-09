@@ -294,8 +294,8 @@ void WaypointPathClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(CurrentWaypoint);
-	stream.Serialize(Waypoints);
+	SERIALIZE(stream, CurrentWaypoint);
+	SERIALIZE(stream, Waypoints);
 }
 
 

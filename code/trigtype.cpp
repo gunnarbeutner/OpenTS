@@ -825,14 +825,14 @@ void TriggerTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HeapID);
-	stream.Serialize(_IsEnabled);
-	stream.Serialize(IsEnabledOnEasy);
-	stream.Serialize(IsEnabledOnMedium);
-	stream.Serialize(IsEnabledOnHard);
-	stream.Serialize(IsToInherit);
-	stream.Serialize(House);
-	stream.Serialize(LinkedTo);
-	stream.Serialize(FirstEvent);
-	stream.Serialize(FirstAction);
+	SERIALIZE(stream, HeapID);
+	SERIALIZE(stream, _IsEnabled);
+	SERIALIZE(stream, IsEnabledOnEasy);
+	SERIALIZE(stream, IsEnabledOnMedium);
+	SERIALIZE(stream, IsEnabledOnHard);
+	SERIALIZE(stream, IsToInherit);
+	SERIALIZE(stream, House);
+	SERIALIZE(stream, LinkedTo);
+	SERIALIZE(stream, FirstEvent);
+	SERIALIZE(stream, FirstAction);
 }

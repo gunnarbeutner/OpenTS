@@ -943,12 +943,12 @@ void TerrainClass::Serialize(SaveStreamClass & stream)
 	BASECLASS::Serialize(stream);
 	StageClass::Serialize(stream);
 
-	stream.Serialize(Class);
-	stream.Serialize(IsOnFire);
-	stream.Serialize(IsCrumbling);
-	stream.Serialize(Unused1);
-	stream.Serialize(Unused2);
-	stream.Serialize(RenderPixelPos);
+	SERIALIZE(stream, Class);
+	SERIALIZE(stream, IsOnFire);
+	SERIALIZE(stream, IsCrumbling);
+	SERIALIZE(stream, Unused1);
+	SERIALIZE(stream, Unused2);
+	SERIALIZE(stream, RenderPixelPos);
 }
 
 

@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include <cstddef>
 #include <optional>
 #include <utility>
@@ -45,7 +47,7 @@ class PriorityQueueClass
 		 * them would build a different heap and reorder the ties within it.
 		 */
 		template<typename S>
-		void Serialize(S & stream) { stream.Serialize(Heap); }
+		void Serialize(S & stream) { SERIALIZE(stream, Heap); }
 
 	private:
 		void Heapify(std::size_t index);

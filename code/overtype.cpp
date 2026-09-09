@@ -459,25 +459,25 @@ void OverlayTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HeapID);
-	stream.Serialize(Land);
-	stream.Serialize(CellAnim);
-	stream.Serialize(DamageLevels);
-	stream.Serialize(DamagePoints);
-	stream.Serialize(IsWall);
-	stream.Serialize(IsHigh);
-	stream.Serialize(IsTiberium);
-	stream.Serialize(IsCrate);
-	stream.Serialize(IsCrateTrigger);
-	stream.Serialize(IsNoUseTileLandType);
-	stream.Serialize(IsVeinholeMonster);
-	stream.Serialize(IsVeins);
-	stream.Serialize(DemandLoad);
-	stream.Serialize(IsExplosive);
-	stream.Serialize(IsChainReaction);
-	stream.Serialize(IsOverrides);
-	stream.Serialize(IsDrawFlat);
-	stream.Serialize(IsARock);
+	SERIALIZE(stream, HeapID);
+	SERIALIZE(stream, Land);
+	SERIALIZE(stream, CellAnim);
+	SERIALIZE(stream, DamageLevels);
+	SERIALIZE(stream, DamagePoints);
+	SERIALIZE(stream, IsWall);
+	SERIALIZE(stream, IsHigh);
+	SERIALIZE(stream, IsTiberium);
+	SERIALIZE(stream, IsCrate);
+	SERIALIZE(stream, IsCrateTrigger);
+	SERIALIZE(stream, IsNoUseTileLandType);
+	SERIALIZE(stream, IsVeinholeMonster);
+	SERIALIZE(stream, IsVeins);
+	SERIALIZE(stream, DemandLoad);
+	SERIALIZE(stream, IsExplosive);
+	SERIALIZE(stream, IsChainReaction);
+	SERIALIZE(stream, IsOverrides);
+	SERIALIZE(stream, IsDrawFlat);
+	SERIALIZE(stream, IsARock);
 }
 
 

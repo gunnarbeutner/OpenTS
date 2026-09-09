@@ -238,11 +238,11 @@ void DropPodLocomotionClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Direction);
-	stream.Serialize(DestinationCoord);
+	SERIALIZE(stream, Direction);
+	SERIALIZE(stream, DestinationCoord);
 
 	bool haspiggy = (Piggybacker != NULL);
-	stream.Serialize(haspiggy);
+	SERIALIZE(stream, haspiggy);
 
 	if (haspiggy) {
 		if (stream.Is_Saving()) {

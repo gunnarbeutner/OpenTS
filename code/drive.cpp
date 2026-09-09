@@ -141,24 +141,24 @@ void DriveLocomotionClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(CurrentRamp);
-	stream.Serialize(PreviousRamp);
-	stream.Serialize(RampTimer);
-	stream.Serialize(DestinationCoord);
-	stream.Serialize(HeadToCoord);
-	stream.Serialize(SpeedAccum);
-	stream.Serialize(TargetSpeed);
-	stream.Serialize(TrackNumber);
-	stream.Serialize(TrackIndex);
-	stream.Serialize(IsOnShortTrack);
-	stream.Serialize(IsTurretLockedDown);
-	stream.Serialize(IsRotating);
-	stream.Serialize(IsDriving);
-	stream.Serialize(IsRocking);
-	stream.Serialize(IsLocomotorUnlocked);
+	SERIALIZE(stream, CurrentRamp);
+	SERIALIZE(stream, PreviousRamp);
+	SERIALIZE(stream, RampTimer);
+	SERIALIZE(stream, DestinationCoord);
+	SERIALIZE(stream, HeadToCoord);
+	SERIALIZE(stream, SpeedAccum);
+	SERIALIZE(stream, TargetSpeed);
+	SERIALIZE(stream, TrackNumber);
+	SERIALIZE(stream, TrackIndex);
+	SERIALIZE(stream, IsOnShortTrack);
+	SERIALIZE(stream, IsTurretLockedDown);
+	SERIALIZE(stream, IsRotating);
+	SERIALIZE(stream, IsDriving);
+	SERIALIZE(stream, IsRocking);
+	SERIALIZE(stream, IsLocomotorUnlocked);
 
 	bool haspiggy = (Piggybacker != NULL);
-	stream.Serialize(haspiggy);
+	SERIALIZE(stream, haspiggy);
 
 	if (haspiggy) {
 		if (stream.Is_Saving()) {

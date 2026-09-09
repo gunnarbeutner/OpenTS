@@ -245,36 +245,36 @@ void ParticleTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(NextParticleOffset);
-	stream.Serialize(XVelocity);
-	stream.Serialize(YVelocity);
-	stream.Serialize(MinZVelocity);
-	stream.Serialize(ZVelocityRange);
-	stream.Serialize(ColorSpeed);
-	stream.Serialize(ColorList);
-	stream.Serialize(StartColor1);
-	stream.Serialize(StartColor2);
-	stream.Serialize(MaxDC);
-	stream.Serialize(MaxEC);
-	stream.Serialize(Warhead);
-	stream.Serialize(Damage);
-	stream.Serialize(StartFrame);
-	stream.Serialize(NumLoopFrames);
-	stream.Serialize(Translucency);
-	stream.Serialize(WindEffect);
-	stream.Serialize(Velocity);
-	stream.Serialize(Deacc);
-	stream.Serialize(Radius);
-	stream.Serialize(DeleteOnStateLimit);
-	stream.Serialize(EndStateAI);
-	stream.Serialize(StartStateAI);
-	stream.Serialize(StateAIAdvance);
-	stream.Serialize(FinalDamageState);
-	stream.Serialize(Translucent25State);
-	stream.Serialize(Translucent50State);
-	stream.Serialize(IsNormalized);
-	stream.Serialize(NextParticle);
-	stream.Serialize(BehavesLike);
+	SERIALIZE(stream, NextParticleOffset);
+	SERIALIZE(stream, XVelocity);
+	SERIALIZE(stream, YVelocity);
+	SERIALIZE(stream, MinZVelocity);
+	SERIALIZE(stream, ZVelocityRange);
+	SERIALIZE(stream, ColorSpeed);
+	SERIALIZE(stream, ColorList);
+	SERIALIZE(stream, StartColor1);
+	SERIALIZE(stream, StartColor2);
+	SERIALIZE(stream, MaxDC);
+	SERIALIZE(stream, MaxEC);
+	SERIALIZE(stream, Warhead);
+	SERIALIZE(stream, Damage);
+	SERIALIZE(stream, StartFrame);
+	SERIALIZE(stream, NumLoopFrames);
+	SERIALIZE(stream, Translucency);
+	SERIALIZE(stream, WindEffect);
+	SERIALIZE(stream, Velocity);
+	SERIALIZE(stream, Deacc);
+	SERIALIZE(stream, Radius);
+	SERIALIZE(stream, DeleteOnStateLimit);
+	SERIALIZE(stream, EndStateAI);
+	SERIALIZE(stream, StartStateAI);
+	SERIALIZE(stream, StateAIAdvance);
+	SERIALIZE(stream, FinalDamageState);
+	SERIALIZE(stream, Translucent25State);
+	SERIALIZE(stream, Translucent50State);
+	SERIALIZE(stream, IsNormalized);
+	SERIALIZE(stream, NextParticle);
+	SERIALIZE(stream, BehavesLike);
 }
 
 

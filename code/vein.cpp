@@ -866,7 +866,7 @@ bool VeinholeMonsterClass::Load_All(SaveStreamClass & stream)
 	int cell_count = Map_Cell_Count();
 
 	int monster_count;
-	stream.Serialize(monster_count);
+	stream.Serialize_Raw(monster_count);
 	if (stream.Was_Error()) {
 		return(false);
 	}
@@ -886,7 +886,7 @@ bool VeinholeMonsterClass::Load_All(SaveStreamClass & stream)
 		VeinholeMonsterClass * monster = new VeinholeMonsterClass();
 
 		SwizzleIDType id;
-		stream.Serialize(id);
+		stream.Serialize_Raw(id);
 		if (stream.Was_Error()) {
 			return(false);
 		}
@@ -919,19 +919,19 @@ void VeinholeMonsterClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(GrowthCount);
-	GrowthQueue.Serialize(stream);
-	stream.Serialize(GrowthTimer);
+	SERIALIZE(stream, GrowthCount);
+	SERIALIZE(stream, GrowthQueue);
+	SERIALIZE(stream, GrowthTimer);
 	// GrowthState -- one flag per map cell, carried beside this record by Load_All and Save_All.
-	stream.Serialize(CurrentState);
-	stream.Serialize(DesiredState);
-	stream.Serialize(Control);
-	stream.Serialize(LogicTimer);
-	stream.Serialize(CellID);
-	stream.Serialize(ShapeFrame);
-	stream.Serialize(IsDead);
-	stream.Serialize(IsToPuffGas);
-	stream.Serialize(VeinCount);
+	SERIALIZE(stream, CurrentState);
+	SERIALIZE(stream, DesiredState);
+	SERIALIZE(stream, Control);
+	SERIALIZE(stream, LogicTimer);
+	SERIALIZE(stream, CellID);
+	SERIALIZE(stream, ShapeFrame);
+	SERIALIZE(stream, IsDead);
+	SERIALIZE(stream, IsToPuffGas);
+	SERIALIZE(stream, VeinCount);
 }
 
 
@@ -944,7 +944,7 @@ void VeinholeMonsterClass::Serialize(SaveStreamClass & stream)
 bool VeinholeMonsterClass::Save_All(SaveStreamClass & stream)
 {
 	int monster_count = VeinholeMonsters.Count();
-	stream.Serialize(monster_count);
+	stream.Serialize_Raw(monster_count);
 	if (stream.Was_Error()) {
 		return(false);
 	}
@@ -957,7 +957,7 @@ bool VeinholeMonsterClass::Save_All(SaveStreamClass & stream)
 
 	for (int i = 0; i < monster_count; i++) {
 		SwizzleIDType id = Swizzler.ID_Of(VeinholeMonsters[i]);
-		stream.Serialize(id);
+		stream.Serialize_Raw(id);
 		if (stream.Was_Error()) {
 			return(false);
 		}

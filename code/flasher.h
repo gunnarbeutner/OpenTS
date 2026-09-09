@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 
 class MonoClass;
 
@@ -58,8 +60,8 @@ class FlasherClass {
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(FlashCount);
-			stream.Serialize(IsBlushing);
+			SERIALIZE(stream, FlashCount);
+			SERIALIZE(stream, IsBlushing);
 		}
 
 #ifdef _DEBUG

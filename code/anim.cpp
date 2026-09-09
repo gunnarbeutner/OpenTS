@@ -1321,32 +1321,32 @@ void AnimClass::Serialize(SaveStreamClass & stream)
 	BASECLASS::Serialize(stream);
 	StageClass::Serialize(stream);
 
-	stream.Serialize(Class);
-	stream.Serialize(xObject);
-	stream.Serialize(OwnerHouse);
+	SERIALIZE(stream, Class);
+	SERIALIZE(stream, xObject);
+	SERIALIZE(stream, OwnerHouse);
 	// AlternativeDrawer -- a palette converter of the running session.
-	stream.Serialize(AlternativeBrightness);
-	stream.Serialize(ZAdjust);
-	stream.Serialize(YSortAdjust);
-	stream.Serialize(FlamingGuyCoords);
-	stream.Serialize(FlamingGuyRetries);
-	stream.Serialize(IsBuildingAnim);
-	stream.Serialize(Bounce);
-	stream.Serialize(TranslucencyLevel);
-	stream.Serialize(Delay);
-	stream.Serialize(Accum);
-	stream.Serialize(ShapeFlags);
-	stream.Serialize(IsBouncing);
-	stream.Serialize(Loops);
-	stream.Serialize(IsAttachedToCell);
-	stream.Serialize(IsToDeleteOnOverpass);
-	stream.Serialize(IsInert);
-	stream.Serialize(IsFogged);
-	stream.Serialize(IsFlamingGuyEnd);
-	stream.Serialize(IsToDelete);
-	stream.Serialize(IsBrandNew);
-	stream.Serialize(IsInvisible);
-	stream.Serialize(IsDisabled);
+	SERIALIZE(stream, AlternativeBrightness);
+	SERIALIZE(stream, ZAdjust);
+	SERIALIZE(stream, YSortAdjust);
+	SERIALIZE(stream, FlamingGuyCoords);
+	SERIALIZE(stream, FlamingGuyRetries);
+	SERIALIZE(stream, IsBuildingAnim);
+	SERIALIZE(stream, Bounce);
+	SERIALIZE(stream, TranslucencyLevel);
+	SERIALIZE(stream, Delay);
+	SERIALIZE(stream, Accum);
+	SERIALIZE(stream, ShapeFlags);
+	SERIALIZE(stream, IsBouncing);
+	SERIALIZE(stream, Loops);
+	SERIALIZE(stream, IsAttachedToCell);
+	SERIALIZE(stream, IsToDeleteOnOverpass);
+	SERIALIZE(stream, IsInert);
+	SERIALIZE(stream, IsFogged);
+	SERIALIZE(stream, IsFlamingGuyEnd);
+	SERIALIZE(stream, IsToDelete);
+	SERIALIZE(stream, IsBrandNew);
+	SERIALIZE(stream, IsInvisible);
+	SERIALIZE(stream, IsDisabled);
 }
 
 

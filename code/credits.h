@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 
 /****************************************************************************
 **	The animating credit counter display is controlled by this class.
@@ -57,11 +59,11 @@ class CreditClass {
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Credits);
-			stream.Serialize(Current);
-			stream.Serialize(IsUp);
-			stream.Serialize(IsAudible);
-			stream.Serialize(Countdown);
+			SERIALIZE(stream, Credits);
+			SERIALIZE(stream, Current);
+			SERIALIZE(stream, IsUp);
+			SERIALIZE(stream, IsAudible);
+			SERIALIZE(stream, Countdown);
 
 			// not saved: IsToRedraw -- a redraw flag; the load asks for a complete draw anyway.
 		}

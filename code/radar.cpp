@@ -1869,7 +1869,7 @@ void RadarClass::Serialize(SaveStreamClass & stream)
 	// LastDrawRect -- the region still owed to the visible page by the last render.
 	// RadarSurface -- the radar pictures, thrown away and built again by Post_Load_Radar_Fixup.
 	// BackgroundSurface
-	stream.Serialize(BackgroundStack);
+	SERIALIZE(stream, BackgroundStack);
 
 	// BackgroundColors -- part of the same radar picture, rebuilt by Post_Load_Radar_Fixup.
 	// RadarButton -- the radar input gadget is reattached by Init_IO.
@@ -1878,30 +1878,30 @@ void RadarClass::Serialize(SaveStreamClass & stream)
 	// CellRedrawRect
 	// RadarTracking -- rebuilt by Post_Load_Radar_Fixup, which also marks every object
 	// untracked so that it registers itself again.
-	stream.Serialize(PixelStack);
+	SERIALIZE(stream, PixelStack);
 
 	// PixelFlags -- all derived from the radar picture that Compute_Radar_Image builds after the
 	// load.
 	// Foundation
 	// ZoomFactor
-	stream.Serialize(RadarScale);
+	SERIALIZE(stream, RadarScale);
 
 	// RadarX -- the radar picture's origin and extent, recomputed by Set_Local_Dimensions and
 	// Compute_Radar_Image.
 	// field_149C
 	// RadarY
 	// RadarRect
-	stream.Serialize(RadarState);
-	stream.Serialize(RadarMode);
-	stream.Serialize(SuspendedRadarMode);
-	stream.Serialize(DoesRadarExist);
+	SERIALIZE(stream, RadarState);
+	SERIALIZE(stream, RadarMode);
+	SERIALIZE(stream, SuspendedRadarMode);
+	SERIALIZE(stream, DoesRadarExist);
 
 	// IsToRedraw -- redraw flags; Complete_Radar_Refresh asks for a complete one after the load.
 	// FullRedraw
 	// RadarViewRect -- the tactical view outline, recomputed from the tactical position every
 	// render.
 	// OldRadarViewRect
-	stream.Serialize(RadarAnimFrame);
+	SERIALIZE(stream, RadarAnimFrame);
 	// RadarAnimTimer -- it paces the activation animation off the system clock, so a saved value
 	// would carry the time of the save into the loaded game.
 	// RadarAnim -- artwork fetched by Init_For_House.

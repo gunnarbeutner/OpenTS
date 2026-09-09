@@ -104,8 +104,8 @@ GScreenClass::GScreenClass(void) :
 void GScreenClass::Serialize(SaveStreamClass & stream)
 {
 	// Buttons -- the input button list, rebuilt from scratch by Init_IO.
-	stream.Serialize(ScreenX);
-	stream.Serialize(ScreenY);
+	SERIALIZE(stream, ScreenX);
+	SERIALIZE(stream, ScreenY);
 	// DrawFlags -- a redraw request covers a single frame, and the load asks for a full one.
 }
 

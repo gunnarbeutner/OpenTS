@@ -11,6 +11,7 @@
 
 #include "abstract.h"
 #include "loco.h"
+#include "serialize.h"
 #include "swizzle.h"
 #include "win.h"
 
@@ -148,6 +149,36 @@ class SaveStreamClass
 		void Serialize_Bytes(void * data, int length);
 
 		/*
+		 * A member of the record being carried, under the name its class knows it by.
+		 * Use the SERIALIZE macro rather than calling this with a name of one's own: the
+		 * name is the member's identity in the file, and a save written under one name is
+		 * not read back under another.
+		 */
+		template<typename T>
+		void Serialize(char const * name, T & value, std::source_location const & where = std::source_location::current())
+		{
+			(void)name;
+			if constexpr (requires { Serialize_Raw(value, where); }) {
+				Serialize_Raw(value, where);
+			} else {
+				Serialize_Raw(value);
+			}
+		}
+
+		/*
+		 * A member whose interior the class lays out itself: a hand-rolled container, or a
+		 * flag and the value it guards. Everything the callable serializes belongs to this
+		 * one member and travels in the order the callable writes it.
+		 */
+		template<typename F>
+		void Field(char const * name, F && interior)
+		{
+			(void)name;
+			interior();
+		}
+
+
+		/*
 		 * Refuses a count that the bytes left in the stream could not hold, so a damaged
 		 * count fails the load before anything is allocated for it. Nothing serializes
 		 * an element in less than a byte.
@@ -193,7 +224,7 @@ class SaveStreamClass
 		 * Numbers and enumerations travel as their declared width.
 		 */
 		template<typename T> requires (std::is_arithmetic_v<T> || std::is_enum_v<T>)
-		void Serialize(T & value)
+		void Serialize_Raw(T & value)
 		{
 			Serialize_Bytes(&value, sizeof(value));
 		}
@@ -204,7 +235,7 @@ class SaveStreamClass
 		 * it landed.
 		 */
 		template<SwizzleTarget T>
-		void Serialize(T * & pointer, std::source_location const & where = std::source_location::current())
+		void Serialize_Raw(T * & pointer, std::source_location const & where = std::source_location::current())
 		{
 			SwizzleIDType id = Is_Loading() ? 0 : Swizzler.ID_Of(pointer);
 			Serialize_Bytes(&id, sizeof(id));
@@ -218,7 +249,7 @@ class SaveStreamClass
 		 * Anything that describes its own members.
 		 */
 		template<typename T> requires (HasSerializeMember<T> && !HasSerializeMemberWhere<T>)
-		void Serialize(T & object)
+		void Serialize_Raw(T & object)
 		{
 			object.Serialize(*this);
 		}
@@ -227,7 +258,7 @@ class SaveStreamClass
 		 * The same, for one that wants the call site to report its elements against.
 		 */
 		template<typename T> requires HasSerializeMemberWhere<T>
-		void Serialize(T & object, std::source_location const & where = std::source_location::current())
+		void Serialize_Raw(T & object, std::source_location const & where = std::source_location::current())
 		{
 			object.Serialize(*this, where);
 		}
@@ -237,7 +268,7 @@ class SaveStreamClass
 		 * serialized in place, one element at a time.
 		 */
 		template<typename T, int N>
-		void Serialize(T (&array)[N], std::source_location const & where = std::source_location::current())
+		void Serialize_Raw(T (&array)[N], std::source_location const & where = std::source_location::current())
 		{
 			if constexpr (std::is_arithmetic_v<T> || std::is_enum_v<T>) {
 				Serialize_Bytes(array, sizeof(array));
@@ -263,7 +294,7 @@ class SaveStreamClass
 				}
 			}
 
-			Serialize(count);
+			Serialize_Raw(count);
 
 			if (Is_Loading() && (count < 0 || count >= N)) {
 				Fail();
@@ -285,7 +316,7 @@ class SaveStreamClass
 		 * The standard library's fixed size array travels as the built in one does.
 		 */
 		template<typename T, std::size_t N>
-		void Serialize(std::array<T, N> & value, std::source_location const & where = std::source_location::current())
+		void Serialize_Raw(std::array<T, N> & value, std::source_location const & where = std::source_location::current())
 		{
 			if constexpr (std::is_arithmetic_v<T> || std::is_enum_v<T>) {
 				if constexpr (N > 0) {
@@ -303,10 +334,10 @@ class SaveStreamClass
 		 * full before any element registers the slot address it occupies.
 		 */
 		template<typename T> requires (!std::is_same_v<T, bool>)
-		void Serialize(std::vector<T> & value, std::source_location const & where = std::source_location::current())
+		void Serialize_Raw(std::vector<T> & value, std::source_location const & where = std::source_location::current())
 		{
 			int count = (int)value.size();
-			Serialize(count);
+			Serialize_Raw(count);
 
 			if (Is_Loading()) {
 				if (!Fits(count, (std::is_arithmetic_v<T> || std::is_enum_v<T>) ? sizeof(T) : 1)) {
@@ -332,10 +363,10 @@ class SaveStreamClass
 		 * An optional value is a flag followed by the value itself when there is one.
 		 */
 		template<typename T>
-		void Serialize(std::optional<T> & value, std::source_location const & where = std::source_location::current())
+		void Serialize_Raw(std::optional<T> & value, std::source_location const & where = std::source_location::current())
 		{
 			bool present = value.has_value();
-			Serialize(present);
+			Serialize_Raw(present);
 
 			if (Is_Loading()) {
 				value.reset();
@@ -354,10 +385,10 @@ class SaveStreamClass
 		 * in, since adding to either end leaves the elements already in it where they are.
 		 */
 		template<typename T>
-		void Serialize(std::deque<T> & value, std::source_location const & where = std::source_location::current())
+		void Serialize_Raw(std::deque<T> & value, std::source_location const & where = std::source_location::current())
 		{
 			int count = (int)value.size();
-			Serialize(count);
+			Serialize_Raw(count);
 
 			if (Is_Loading()) {
 				if (!Fits(count, 1)) {
@@ -378,10 +409,10 @@ class SaveStreamClass
 		 * element, so each one is unpacked into an ordinary variable for the trip and put
 		 * back afterwards. Assigning it back is harmless while saving.
 		 */
-		void Serialize(std::vector<bool> & value)
+		void Serialize_Raw(std::vector<bool> & value)
 		{
 			int count = (int)value.size();
-			Serialize(count);
+			Serialize_Raw(count);
 
 			if (Is_Loading()) {
 				if (!Fits(count, 1) || !Reserve(value, count)) {
@@ -391,7 +422,7 @@ class SaveStreamClass
 
 			for (int index = 0; index < count; index++) {
 				bool element = value[(std::size_t)index];
-				Serialize(element);
+				Serialize_Raw(element);
 				value[(std::size_t)index] = element;
 			}
 		}
@@ -399,10 +430,10 @@ class SaveStreamClass
 		/*
 		 * A string travels as its length followed by its characters.
 		 */
-		void Serialize(std::string & value)
+		void Serialize_Raw(std::string & value)
 		{
 			int count = (int)value.size();
-			Serialize(count);
+			Serialize_Raw(count);
 
 			if (Is_Loading()) {
 				if (!Fits(count, 1) || !Reserve(value, count)) {
@@ -419,7 +450,7 @@ class SaveStreamClass
 		 * A pair travels as its two halves, in order.
 		 */
 		template<typename A, typename B>
-		void Serialize(std::pair<A, B> & value, std::source_location const & where = std::source_location::current())
+		void Serialize_Raw(std::pair<A, B> & value, std::source_location const & where = std::source_location::current())
 		{
 			Serialize_Element(value.first, where);
 			Serialize_Element(value.second, where);
@@ -433,10 +464,10 @@ class SaveStreamClass
 		template<typename T>
 		void Serialize_Element(T & element, std::source_location const & where)
 		{
-			if constexpr (requires { Serialize(element, where); }) {
-				Serialize(element, where);
+			if constexpr (requires { Serialize_Raw(element, where); }) {
+				Serialize_Raw(element, where);
 			} else {
-				Serialize(element);
+				Serialize_Raw(element);
 			}
 		}
 
@@ -458,16 +489,6 @@ class SaveStreamClass
 };
 
 
-/*
- * A bit field has no address to hand out, so its value makes the trip in an ordinary
- * variable. Assigning it back is harmless while saving.
- */
-#define SERIALIZE_BIT(stream, field) \
-	do { \
-		bool serialize_bit = ((field) != 0); \
-		(stream).Serialize(serialize_bit); \
-		(field) = serialize_bit; \
-	} while (false)
 
 
 /*

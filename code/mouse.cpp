@@ -402,7 +402,7 @@ bool MouseClass::Load(SaveStreamClass & stream)
 	bool result = BASECLASS::Load(stream);
 	if (result) {
 		int theater;
-		stream.Serialize(theater);
+		stream.Serialize_Raw(theater);
 		if (stream.Was_Error()) {
 			return(false);
 		}
@@ -481,7 +481,7 @@ bool MouseClass::Load(SaveStreamClass & stream)
 			}
 		}
 
-		stream.Serialize(ZoneConnections);
+		SERIALIZE(stream, ZoneConnections);
 		if (stream.Was_Error()) {
 			return(false);
 		}
@@ -491,7 +491,7 @@ bool MouseClass::Load(SaveStreamClass & stream)
 			Array[i] = NULL;
 		}
 		int count;
-		stream.Serialize(count);
+		stream.Serialize_Raw(count);
 		if (stream.Was_Error()) {
 			return(false);
 		}
@@ -540,7 +540,7 @@ bool MouseClass::Save(SaveStreamClass & stream)
 	bool result = BASECLASS::Save(stream);
 	if (result) {
 		int theater = Scen->Theater;
-		stream.Serialize(theater);
+		stream.Serialize_Raw(theater);
 		if (stream.Was_Error()) {
 			return(false);
 		}
@@ -562,7 +562,7 @@ bool MouseClass::Save(SaveStreamClass & stream)
 			}
 		}
 
-		stream.Serialize(ZoneConnections);
+		SERIALIZE(stream, ZoneConnections);
 		if (stream.Was_Error()) {
 			return(false);
 		}
@@ -577,7 +577,7 @@ bool MouseClass::Save(SaveStreamClass & stream)
 			}
 			cptr = Iterate();
 		}
-		stream.Serialize(count);
+		stream.Serialize_Raw(count);
 		if (stream.Was_Error()) {
 			return(false);
 		}

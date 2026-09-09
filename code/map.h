@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "coord.h"
 #include "crate.h"
 #include "gscreen.h"
@@ -465,8 +467,8 @@ class MapClass: public GScreenClass
 			template<typename S>
 			void Serialize(S & stream)
 			{
-				stream.Serialize(CellID);
-				stream.Serialize(SolidifyFrame);
+				SERIALIZE(stream, CellID);
+				SERIALIZE(stream, SolidifyFrame);
 			}
 
 			/*

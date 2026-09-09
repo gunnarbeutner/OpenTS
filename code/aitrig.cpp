@@ -105,24 +105,24 @@ void AITriggerTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Type);
-	stream.Serialize(Scope);
-	stream.Serialize(TrigHouse);
-	stream.Serialize(IsEnabled);
-	stream.Serialize(House);
-	stream.Serialize(MultiSide);
-	stream.Serialize(TechLevelNeeded);
-	stream.Serialize(CurWeight);
-	stream.Serialize(MinWeight);
-	stream.Serialize(MaxWeight);
-	stream.Serialize(IsAvailableInSkirmish);
-	stream.Serialize(IsForBaseDefense);
-	stream.Serialize(IsEnabledInEasy);
-	stream.Serialize(IsEnabledInMedium);
-	stream.Serialize(IsEnabledInHard);
-	stream.Serialize(ConditionObject);
-	stream.Serialize(TeamTypeOne);
-	stream.Serialize(TeamTypeTwo);
+	SERIALIZE(stream, Type);
+	SERIALIZE(stream, Scope);
+	SERIALIZE(stream, TrigHouse);
+	SERIALIZE(stream, IsEnabled);
+	SERIALIZE(stream, House);
+	SERIALIZE(stream, MultiSide);
+	SERIALIZE(stream, TechLevelNeeded);
+	SERIALIZE(stream, CurWeight);
+	SERIALIZE(stream, MinWeight);
+	SERIALIZE(stream, MaxWeight);
+	SERIALIZE(stream, IsAvailableInSkirmish);
+	SERIALIZE(stream, IsForBaseDefense);
+	SERIALIZE(stream, IsEnabledInEasy);
+	SERIALIZE(stream, IsEnabledInMedium);
+	SERIALIZE(stream, IsEnabledInHard);
+	SERIALIZE(stream, ConditionObject);
+	SERIALIZE(stream, TeamTypeOne);
+	SERIALIZE(stream, TeamTypeTwo);
 
 	/*
 	 * Which alternative of the parameters is live depends on the condition, but both are
@@ -130,8 +130,8 @@ void AITriggerTypeClass::Serialize(SaveStreamClass & stream)
 	 */
 	stream.Serialize_Bytes(&Params, sizeof(Params));
 
-	stream.Serialize(TimesSucceded);
-	stream.Serialize(TimesExecuted);
+	SERIALIZE(stream, TimesSucceded);
+	SERIALIZE(stream, TimesExecuted);
 }
 
 

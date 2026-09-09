@@ -536,17 +536,17 @@ void FoggedObjectClass::Serialize(SaveStreamClass & stream)
 
 	// FoggyObjects -- the master list, which each record joins as it is constructed.
 	// FoggedObjectIndex -- the cell keyed index, re-registered by Post_Load.
-	stream.Serialize(Overlay);
-	stream.Serialize(House);
-	stream.Serialize(OverlayData);
-	stream.Serialize(RTTI);
-	stream.Serialize(Position);
-	stream.Serialize(BoundingRect);
-	stream.Serialize(CellHeight);
-	stream.Serialize(Smudge);
-	stream.Serialize(SmudgeData);
-	stream.Serialize(Records);
-	stream.Serialize(CanDraw);
+	SERIALIZE(stream, Overlay);
+	SERIALIZE(stream, House);
+	SERIALIZE(stream, OverlayData);
+	SERIALIZE(stream, RTTI);
+	SERIALIZE(stream, Position);
+	SERIALIZE(stream, BoundingRect);
+	SERIALIZE(stream, CellHeight);
+	SERIALIZE(stream, Smudge);
+	SERIALIZE(stream, SmudgeData);
+	SERIALIZE(stream, Records);
+	SERIALIZE(stream, CanDraw);
 }
 
 

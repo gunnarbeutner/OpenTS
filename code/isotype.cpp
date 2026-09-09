@@ -2763,32 +2763,32 @@ void IsometricTileTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HeapID);
-	stream.Serialize(MarbleMadness);
-	stream.Serialize(NonMarbleMadness);
-	stream.Serialize(TileSetBaseID);
+	SERIALIZE(stream, HeapID);
+	SERIALIZE(stream, MarbleMadness);
+	SERIALIZE(stream, NonMarbleMadness);
+	SERIALIZE(stream, TileSetBaseID);
 	// PreviewTiles -- radar and preview colors, baked again as this loads.
-	stream.Serialize(NextTileTypeInSet);
-	stream.Serialize(ToSnowTheater);
-	stream.Serialize(ToTemperateTheater);
-	stream.Serialize(Anim);
-	stream.Serialize(Offset);
-	stream.Serialize(AttachesTo);
-	stream.Serialize(ZAdjust);
-	stream.Serialize(Unused1);
-	stream.Serialize(IsMorphable);
-	stream.Serialize(IsShadowCaster);
-	stream.Serialize(IsAllowToPlace);
-	stream.Serialize(IsRequiredForRMG);
-	stream.Serialize(Width);
-	stream.Serialize(Height);
-	stream.Serialize(Unused2);
-	stream.Serialize(NumTileTypesInSet);
-	stream.Serialize(IsFileLoaded);
-	stream.Serialize(Filename);
-	stream.Serialize(IsAllowBurrowing);
-	stream.Serialize(IsAllowTiberium);
-	stream.Serialize(UseCount);
+	SERIALIZE(stream, NextTileTypeInSet);
+	SERIALIZE(stream, ToSnowTheater);
+	SERIALIZE(stream, ToTemperateTheater);
+	SERIALIZE(stream, Anim);
+	SERIALIZE(stream, Offset);
+	SERIALIZE(stream, AttachesTo);
+	SERIALIZE(stream, ZAdjust);
+	SERIALIZE(stream, Unused1);
+	SERIALIZE(stream, IsMorphable);
+	SERIALIZE(stream, IsShadowCaster);
+	SERIALIZE(stream, IsAllowToPlace);
+	SERIALIZE(stream, IsRequiredForRMG);
+	SERIALIZE(stream, Width);
+	SERIALIZE(stream, Height);
+	SERIALIZE(stream, Unused2);
+	SERIALIZE(stream, NumTileTypesInSet);
+	SERIALIZE(stream, IsFileLoaded);
+	SERIALIZE(stream, Filename);
+	SERIALIZE(stream, IsAllowBurrowing);
+	SERIALIZE(stream, IsAllowTiberium);
+	SERIALIZE(stream, UseCount);
 }
 
 

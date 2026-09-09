@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "coord.h"
 #include "vector.h"
 
@@ -115,10 +117,10 @@ struct ZoneConnectionClass
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(From);
-			stream.Serialize(To);
-			stream.Serialize(IsPassable);
-			stream.Serialize(Type);
+			SERIALIZE(stream, From);
+			SERIALIZE(stream, To);
+			SERIALIZE(stream, IsPassable);
+			SERIALIZE(stream, Type);
 		}
 
 	public:

@@ -2055,23 +2055,23 @@ void ObjectClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Riser);
-	stream.Serialize(Next);
-	stream.Serialize(Tag);
-	stream.Serialize(Strength);
-	stream.Serialize(IsDown);
-	stream.Serialize(IsToDamage);
-	stream.Serialize(IsToDisplay);
-	stream.Serialize(IsInLimbo);
-	stream.Serialize(IsSelected);
-	stream.Serialize(IsAnimAttached);
-	stream.Serialize(IsOnBridge);
-	stream.Serialize(IsFalling);
-	stream.Serialize(IsToExplode);
-	stream.Serialize(IsActive);
-	stream.Serialize(Layer);
-	stream.Serialize(IsSubmittedToLayer);
-	stream.Serialize(Position);
+	SERIALIZE(stream, Riser);
+	SERIALIZE(stream, Next);
+	SERIALIZE(stream, Tag);
+	SERIALIZE(stream, Strength);
+	SERIALIZE(stream, IsDown);
+	SERIALIZE(stream, IsToDamage);
+	SERIALIZE(stream, IsToDisplay);
+	SERIALIZE(stream, IsInLimbo);
+	SERIALIZE(stream, IsSelected);
+	SERIALIZE(stream, IsAnimAttached);
+	SERIALIZE(stream, IsOnBridge);
+	SERIALIZE(stream, IsFalling);
+	SERIALIZE(stream, IsToExplode);
+	SERIALIZE(stream, IsActive);
+	SERIALIZE(stream, Layer);
+	SERIALIZE(stream, IsSubmittedToLayer);
+	SERIALIZE(stream, Position);
 }
 
 

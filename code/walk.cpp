@@ -625,14 +625,14 @@ void WalkLocomotionClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(DestinationCoord);
-	stream.Serialize(HeadToCoord);
-	stream.Serialize(IsMoving);
-	stream.Serialize(IsProcessingMovement);
-	stream.Serialize(IsReallyMoving);
+	SERIALIZE(stream, DestinationCoord);
+	SERIALIZE(stream, HeadToCoord);
+	SERIALIZE(stream, IsMoving);
+	SERIALIZE(stream, IsProcessingMovement);
+	SERIALIZE(stream, IsReallyMoving);
 
 	bool haspiggy = (Piggybacker != NULL);
-	stream.Serialize(haspiggy);
+	SERIALIZE(stream, haspiggy);
 
 	if (haspiggy) {
 		if (stream.Is_Saving()) {

@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "face.h"
 
 #include <cmath>
@@ -70,8 +72,8 @@ class TVelocity2D
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(X);
-			stream.Serialize(Y);
+			SERIALIZE(stream, X);
+			SERIALIZE(stream, Y);
 		}
 
 	public:
@@ -191,7 +193,7 @@ class TVelocity3D : public TVelocity2D<T>
 		void Serialize(S & stream)
 		{
 			BASECLASS::Serialize(stream);
-			stream.Serialize(Z);
+			SERIALIZE(stream, Z);
 		}
 
 	public:

@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 
 class StorageClass
 {
@@ -32,7 +34,7 @@ class StorageClass
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Values);
+			SERIALIZE(stream, Values);
 		}
 
 	private:

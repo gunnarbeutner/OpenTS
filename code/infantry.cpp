@@ -3953,18 +3953,18 @@ void InfantryClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Class);
-	stream.Serialize(Doing);
-	stream.Serialize(Comment);
-	stream.Serialize(Fear);
-	stream.Serialize(IsBerzerk);
-	stream.Serialize(IsTechnician);
-	stream.Serialize(IsStoked);
-	stream.Serialize(IsProne);
-	stream.Serialize(IsZoneCheat);
-	stream.Serialize(WasSelected);
-	stream.Serialize(ProneStruggleTimer);
-	stream.Serialize(LookTimer);
+	SERIALIZE(stream, Class);
+	SERIALIZE(stream, Doing);
+	SERIALIZE(stream, Comment);
+	SERIALIZE(stream, Fear);
+	SERIALIZE(stream, IsBerzerk);
+	SERIALIZE(stream, IsTechnician);
+	SERIALIZE(stream, IsStoked);
+	SERIALIZE(stream, IsProne);
+	SERIALIZE(stream, IsZoneCheat);
+	SERIALIZE(stream, WasSelected);
+	SERIALIZE(stream, ProneStruggleTimer);
+	SERIALIZE(stream, LookTimer);
 }
 
 

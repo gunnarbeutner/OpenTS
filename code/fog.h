@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "abstract.h"
 #include "coord.h"
 #include "index.h"
@@ -118,10 +120,10 @@ class FoggedObjectClass : public AbstractClass
 			template<typename S>
 			void Serialize(S & stream)
 			{
-				stream.Serialize(TypeClass);
-				stream.Serialize(FrameNumber);
-				stream.Serialize(HeightAdjust);
-				stream.Serialize(ZAdjust);
+				SERIALIZE(stream, TypeClass);
+				SERIALIZE(stream, FrameNumber);
+				SERIALIZE(stream, HeightAdjust);
+				SERIALIZE(stream, ZAdjust);
 			}
 		};
 

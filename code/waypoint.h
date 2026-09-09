@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "abstract.h"
 #include "coord.h"
 #include "types.h"
@@ -29,7 +31,7 @@ public:
 	template<typename S>
 	void Serialize(S & stream)
 	{
-		stream.Serialize(Location);
+		SERIALIZE(stream, Location);
 	}
 
 	/*

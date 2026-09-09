@@ -238,23 +238,23 @@ void HouseTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HeapID);
-	stream.Serialize(House);
-	stream.Serialize(Side);
-	stream.Serialize(Scheme);
-	stream.Serialize(FirepowerBias);
-	stream.Serialize(GroundspeedBias);
-	stream.Serialize(AirspeedBias);
-	stream.Serialize(ArmorBias);
-	stream.Serialize(ROFBias);
-	stream.Serialize(CostBias);
-	stream.Serialize(BuildSpeedBias);
-	stream.Serialize(Suffix);
-	stream.Serialize(Prefix);
-	stream.Serialize(IsMultiplay);
-	stream.Serialize(IsMultiplayPassive);
-	stream.Serialize(IsWallOwner);
-	stream.Serialize(IsSmartAI);
+	SERIALIZE(stream, HeapID);
+	SERIALIZE(stream, House);
+	SERIALIZE(stream, Side);
+	SERIALIZE(stream, Scheme);
+	SERIALIZE(stream, FirepowerBias);
+	SERIALIZE(stream, GroundspeedBias);
+	SERIALIZE(stream, AirspeedBias);
+	SERIALIZE(stream, ArmorBias);
+	SERIALIZE(stream, ROFBias);
+	SERIALIZE(stream, CostBias);
+	SERIALIZE(stream, BuildSpeedBias);
+	SERIALIZE(stream, Suffix);
+	SERIALIZE(stream, Prefix);
+	SERIALIZE(stream, IsMultiplay);
+	SERIALIZE(stream, IsMultiplayPassive);
+	SERIALIZE(stream, IsWallOwner);
+	SERIALIZE(stream, IsSmartAI);
 }
 
 

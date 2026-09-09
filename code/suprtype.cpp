@@ -128,22 +128,22 @@ void SuperWeaponTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(HeapID);
-	stream.Serialize(Weapon);
-	stream.Serialize(VoxRecharge);
-	stream.Serialize(VoxCharging);
-	stream.Serialize(VoxImpatient);
-	stream.Serialize(VoxSuspend);
-	stream.Serialize(RechargeTime);
-	stream.Serialize(Type);
+	SERIALIZE(stream, HeapID);
+	SERIALIZE(stream, Weapon);
+	SERIALIZE(stream, VoxRecharge);
+	SERIALIZE(stream, VoxCharging);
+	SERIALIZE(stream, VoxImpatient);
+	SERIALIZE(stream, VoxSuspend);
+	SERIALIZE(stream, RechargeTime);
+	SERIALIZE(stream, Type);
 	// CameoData -- artwork, fetched from the mix files again as this loads.
-	stream.Serialize(CameoSortOrder);
-	stream.Serialize(Action);
-	stream.Serialize(AuxBuilding);
-	stream.Serialize(SidebarImage);
-	stream.Serialize(UseChargeDrain);
-	stream.Serialize(IsPowered);
-	stream.Serialize(IsManualControl);
+	SERIALIZE(stream, CameoSortOrder);
+	SERIALIZE(stream, Action);
+	SERIALIZE(stream, AuxBuilding);
+	SERIALIZE(stream, SidebarImage);
+	SERIALIZE(stream, UseChargeDrain);
+	SERIALIZE(stream, IsPowered);
+	SERIALIZE(stream, IsManualControl);
 }
 
 

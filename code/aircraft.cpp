@@ -3906,15 +3906,15 @@ void AircraftClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Class);
-	stream.Serialize(IsToSpendAmmo);
-	stream.Serialize(Passenger);
-	stream.Serialize(IsKamikaze);
-	stream.Serialize(field_35B);
-	stream.Serialize(IsLockedStraight);
-	stream.Serialize(SightTimer);
-	stream.Serialize(AttacksRemaining);
-	stream.Serialize(IsReadyToCommence);
+	SERIALIZE(stream, Class);
+	SERIALIZE(stream, IsToSpendAmmo);
+	SERIALIZE(stream, Passenger);
+	SERIALIZE(stream, IsKamikaze);
+	SERIALIZE(stream, field_35B);
+	SERIALIZE(stream, IsLockedStraight);
+	SERIALIZE(stream, SightTimer);
+	SERIALIZE(stream, AttacksRemaining);
+	SERIALIZE(stream, IsReadyToCommence);
 }
 
 

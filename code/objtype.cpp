@@ -688,31 +688,31 @@ void ObjectTypeClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(RadialColor);
-	stream.Serialize(Armor);
-	stream.Serialize(MaxStrength);
+	SERIALIZE(stream, RadialColor);
+	SERIALIZE(stream, Armor);
+	SERIALIZE(stream, MaxStrength);
 	// ImageData -- artwork, loaded on demand.
 	// AlphaImageData -- artwork, fetched again by name in Post_Load.
 	// Voxel -- the voxel model and its motion data, loaded on demand.
 	// AuxVoxel
 	// AuxVoxel2
-	stream.Serialize(MaxSize);
-	stream.Serialize(CrushSound);
-	stream.Serialize(GraphicName);
-	stream.Serialize(AlphaGraphicName);
-	stream.Serialize(IsTheater);
-	stream.Serialize(IsCrushable);
-	stream.Serialize(IsStealthy);
-	stream.Serialize(IsSelectable);
-	stream.Serialize(IsLegalTarget);
-	stream.Serialize(IsInsignificant);
-	stream.Serialize(IsImmune);
-	stream.Serialize(IsSentient);
-	stream.Serialize(IsFootprint);
-	stream.Serialize(IsVoxel);
-	stream.Serialize(IsNewTheater);
-	stream.Serialize(IsHasRadialIndicator);
-	stream.Serialize(IsIgnoresFirestorm);
+	SERIALIZE(stream, MaxSize);
+	SERIALIZE(stream, CrushSound);
+	SERIALIZE(stream, GraphicName);
+	SERIALIZE(stream, AlphaGraphicName);
+	SERIALIZE(stream, IsTheater);
+	SERIALIZE(stream, IsCrushable);
+	SERIALIZE(stream, IsStealthy);
+	SERIALIZE(stream, IsSelectable);
+	SERIALIZE(stream, IsLegalTarget);
+	SERIALIZE(stream, IsInsignificant);
+	SERIALIZE(stream, IsImmune);
+	SERIALIZE(stream, IsSentient);
+	SERIALIZE(stream, IsFootprint);
+	SERIALIZE(stream, IsVoxel);
+	SERIALIZE(stream, IsNewTheater);
+	SERIALIZE(stream, IsHasRadialIndicator);
+	SERIALIZE(stream, IsIgnoresFirestorm);
 	// VoxelIndex -- caches rendered from the voxel artwork, built again as it is drawn.
 	// AuxVoxelIndex
 	// ShadowVoxelIndex

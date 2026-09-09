@@ -90,11 +90,11 @@ void TabClass::Serialize(SaveStreamClass & stream)
 {
 	BASECLASS::Serialize(stream);
 
-	stream.Serialize(Credits);
-	stream.Serialize(FlasherTimer);
+	SERIALIZE(stream, Credits);
+	SERIALIZE(stream, FlasherTimer);
 
 	// IsToRedraw -- a redraw flag; the load asks for a complete draw anyway.
-	stream.Serialize(MoneyFlashTimer);
+	SERIALIZE(stream, MoneyFlashTimer);
 	// TabShape -- artwork fetched by One_Time.
 }
 
