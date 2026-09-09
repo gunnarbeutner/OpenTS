@@ -360,10 +360,7 @@ SaveFileClass::~SaveFileClass(void)
 }
 
 
-/*
- * Puts one run of bytes on the end of the file being written and takes them into the
- * payload's checksum.
- */
+// Every byte of the payload passes here, since its checksum is accumulated as it goes.
 SaveFileClass::ResultType SaveFileClass::Append_Payload(unsigned char const * data, std::uint32_t length)
 {
 	if (!Writing.Is_Open()) {
@@ -383,9 +380,8 @@ SaveFileClass::ResultType SaveFileClass::Append_Payload(unsigned char const * da
 
 
 /// <summary>
-/// Opens a save for writing and puts the listing fields in it.
-/// The header is left as room to fill in, since what goes in it is known only once the
-/// sections and their names have been written.
+/// Opens a save for writing and puts the listing fields in it. The header is left as room
+/// to fill in, since what belongs in it is known only once everything else is written.
 /// </summary>
 SaveFileClass::ResultType SaveFileClass::Begin_Write(char const * path)
 {
@@ -429,10 +425,7 @@ SaveFileClass::ResultType SaveFileClass::Begin_Write(char const * path)
 }
 
 
-/*
- * Compresses what it is given when that makes it smaller, and reports which it did by
- * the two lengths it writes ahead of the block.
- */
+// Compressed only where that makes it smaller, which the caller's two lengths tell apart.
 static bool Pack(unsigned char const * data, std::uint32_t length, std::vector<unsigned char> & out)
 {
 	out.clear();
@@ -556,10 +549,7 @@ void SaveFileClass::Abandon_Write(void)
 }
 
 
-/*
- * Takes one stored run back to what it was. A run whose two lengths agree was stored as
- * it is; anything else went through LZO.
- */
+// A run whose two lengths agree was stored as it is; anything else went through LZO.
 bool SaveFileClass::Unpack(std::uint32_t offset, std::uint32_t stored, std::uint32_t unpacked,
 	std::vector<unsigned char> & out) const
 {
@@ -615,8 +605,8 @@ std::vector<unsigned short> SaveFileClass::Section_Ids(void) const
 
 
 /// <summary>
-/// Reads a save far enough to take anything out of it: the header, the listing fields,
-/// and where every section sits. A section is unpacked only when it is asked for.
+/// Reads the header, the listing fields and where every section sits. A section is
+/// unpacked only when it is asked for.
 /// </summary>
 SaveFileClass::ResultType SaveFileClass::Read(char const * path)
 {
