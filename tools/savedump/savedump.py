@@ -34,74 +34,29 @@ import lzo
 # HARD-CODED: what the file cannot tell us.
 # --------------------------------------------------------------------------------------
 
-# The top level, in the order `Put_All` in code/saveload.cpp writes it. The kind says how
-# to read each one: "body" is a run of named members, "heap" a count and that many object
-# records, "record" one object record, and "block" a length and a layout only the engine
-# knows.
-SECTIONS = [
-    ("Scenario", "body"),
-    ("Environment", "body"),
-    ("Rules", "body"),
-    ("AnimTypes", "heap"),
-    ("Map", "block"),
-    ("Tubes", "heap"),
-    ("MiscValues", "body"),
-    ("Logic", "block"),
-    ("TacticalMap", "record"),
-    ("HouseTypes", "heap"),
-    ("Houses", "heap"),
-    ("Units", "heap"),
-    ("UnitTypes", "heap"),
-    ("InfantryTypes", "heap"),
-    ("Infantry", "heap"),
-    ("BuildingTypes", "heap"),
-    ("Buildings", "heap"),
-    ("AircraftTypes", "heap"),
-    ("Aircraft", "heap"),
-    ("Anims", "heap"),
-    ("TaskForces", "heap"),
-    ("TeamTypes", "heap"),
-    ("Teams", "heap"),
-    ("ScriptTypes", "heap"),
-    ("Scripts", "heap"),
-    ("TagTypes", "heap"),
-    ("Tags", "heap"),
-    ("TriggerTypes", "heap"),
-    ("Triggers", "heap"),
-    ("AITriggerTypes", "heap"),
-    ("Actions", "heap"),
-    ("Events", "heap"),
-    ("Factories", "heap"),
-    ("VoxelAnimTypes", "heap"),
-    ("VoxelAnims", "heap"),
-    ("Warheads", "heap"),
-    ("Weapons", "heap"),
-    ("ParticleTypes", "heap"),
-    ("Particles", "heap"),
-    ("ParticleSystemTypes", "heap"),
-    ("ParticleSystems", "heap"),
-    ("BulletTypes", "heap"),
-    ("Bullets", "heap"),
-    ("WaypointPaths", "heap"),
-    ("SmudgeTypes", "heap"),
-    ("OverlayTypes", "heap"),
-    ("LightSources", "heap"),
-    ("BuildingLights", "heap"),
-    ("Sides", "heap"),
-    ("Tiberiums", "heap"),
-    ("EMPulses", "heap"),
-    ("SuperWeaponTypes", "heap"),
-    ("SuperWeapons", "heap"),
-    ("TerrainTypes", "heap"),
-    ("Terrains", "heap"),
-    ("FoggyObjects", "heap"),
-    ("AlphaShapes", "heap"),
-    ("Waves", "heap"),
-    ("VeinholeMonsters", "block"),
-    ("RadarEvents", "block"),
-    # Written only when the game is not a campaign, so the sequence has no fixed length.
-    ("Session.Options", "body"),
-]
+# How a section reads: a body of named members, a count and that many object records, one
+# record, or a run only the engine knows the shape of. The file names its sections but not
+# what is inside them, so this is the last thing here that tracks the engine, and a name it
+# does not list is walked as a body when it looks like one.
+SECTION_KINDS = {
+    "AnimTypes": "heap", "Tubes": "heap", "HouseTypes": "heap", "Houses": "heap",
+    "Units": "heap", "UnitTypes": "heap", "InfantryTypes": "heap", "Infantry": "heap",
+    "BuildingTypes": "heap", "Buildings": "heap", "AircraftTypes": "heap", "Aircraft": "heap",
+    "Anims": "heap", "TaskForces": "heap", "TeamTypes": "heap", "Teams": "heap",
+    "ScriptTypes": "heap", "Scripts": "heap", "TagTypes": "heap", "Tags": "heap",
+    "TriggerTypes": "heap", "Triggers": "heap", "AITriggerTypes": "heap", "Actions": "heap",
+    "Events": "heap", "Factories": "heap", "VoxelAnimTypes": "heap", "VoxelAnims": "heap",
+    "Warheads": "heap", "Weapons": "heap", "ParticleTypes": "heap", "Particles": "heap",
+    "ParticleSystemTypes": "heap", "ParticleSystems": "heap", "BulletTypes": "heap",
+    "Bullets": "heap", "WaypointPaths": "heap", "SmudgeTypes": "heap", "OverlayTypes": "heap",
+    "LightSources": "heap", "BuildingLights": "heap", "Sides": "heap", "Tiberiums": "heap",
+    "EMPulses": "heap", "SuperWeaponTypes": "heap", "SuperWeapons": "heap",
+    "TerrainTypes": "heap", "Terrains": "heap", "FoggyObjects": "heap", "AlphaShapes": "heap",
+    "Waves": "heap",
+    "TacticalMap": "record",
+    "Map": "block", "Logic": "block", "VeinholeMonsters": "block", "RadarEvents": "block",
+}
+
 
 # The classes a record can name, from code/classids.cpp. kept in step with it by hand; a class it does not list is printed as its identifier.
 CLASS_IDS = {
@@ -187,9 +142,8 @@ LISTING_FIELDS = {
     100: "ScenarioNumber", 101: "CampaignNumber", 102: "GameType",
 }
 
-HEADER_SIZE = 32
-FORMAT_VERSION = 2
-FLAG_LZO = 0x0001
+HEADER_SIZE = 40
+FORMAT_VERSION = 3
 KIND_VARIABLE = 0
 
 
@@ -228,26 +182,30 @@ class Save:
         if len(image) < HEADER_SIZE or image[:4] != b"OTSV":
             raise SystemExit("%s does not begin with OTSV, so it is not a saved game" % path)
 
-        (self.signature, self.version, self.flags, self.table_length, self.content_offset,
-         self.stored_length, self.content_length, self.content_crc,
-         self.header_crc) = struct.unpack_from("<4sHHIIIIII", image, 0)
+        (self.signature, self.version, self.flags, self.table_length, self.payload_at,
+         self.payload_length, self.names_at, self.names_stored, self.names_unpacked,
+         self.payload_crc, self.header_crc) = struct.unpack_from("<4sHHIIIIIIII", image, 0)
 
         self.image = image
         self.listing = self._read_listing()
 
-        checksum = zlib.crc32(image[:28])
+        checksum = zlib.crc32(image[:HEADER_SIZE - 4])
         checksum = zlib.crc32(image[HEADER_SIZE:HEADER_SIZE + self.table_length], checksum)
         self.header_ok = (checksum == self.header_crc)
-
-        stored = image[self.content_offset:self.content_offset + self.stored_length]
-        self.content_ok = (zlib.crc32(stored) == self.content_crc)
+        self.payload_ok = (zlib.crc32(image[self.payload_at:self.payload_at + self.payload_length])
+                           == self.payload_crc)
 
         if self.version != FORMAT_VERSION:
-            self.content = None
+            self.names = []
+            self.sections = []
             return
 
-        self.content = lzo.decompress(stored, self.content_length) if (self.flags & FLAG_LZO) else stored
         self.names = self._read_names()
+        self.sections = self._read_sections()
+
+    def _unpack(self, at, stored, unpacked):
+        block = self.image[at:at + stored]
+        return block if stored == unpacked else lzo.decompress(block, unpacked)
 
     def _read_listing(self):
         out = []
@@ -267,17 +225,31 @@ class Save:
         return out
 
     def _read_names(self):
-        reader = Reader(self.content, 0)
+        table = self._unpack(self.names_at, self.names_stored, self.names_unpacked)
+        reader = Reader(table, 0)
         count = reader.u16()
         names = []
         for _ in range(count):
             kind = reader.u8()
             names.append((reader.bytes(reader.u8()).decode("latin-1"), kind))
-        self.content_start = reader.at
         return names
 
+    def _read_sections(self):
+        """Every section, in the order the file holds them: name, kind, and its bytes."""
 
-def walk_body(save, start, end, depth, limit, out, indent):
+        out = []
+        at = self.payload_at
+        while at < self.names_at:
+            identifier, stored, unpacked = struct.unpack_from("<IHI", self.image, at)[0:3] \
+                if False else struct.unpack_from("<HII", self.image, at)
+            body = self._unpack(at + 10, stored, unpacked)
+            name = self.names[identifier][0] if identifier < len(self.names) else "id %d" % identifier
+            out.append((name, SECTION_KINDS.get(name, "body"), body, at, stored))
+            at += 10 + stored
+        return out
+
+
+def walk_body(names, data, start, end, depth, limit, out, indent):
     """Prints the members of one body, and the bodies inside them."""
 
     at = start
@@ -285,15 +257,15 @@ def walk_body(save, start, end, depth, limit, out, indent):
         if end - at < 2:
             out.append("%s<%d bytes left over>" % (indent, end - at))
             return
-        identifier = struct.unpack_from("<H", save.content, at)[0]
+        identifier = struct.unpack_from("<H", data, at)[0]
         at += 2
-        if identifier >= len(save.names):
+        if identifier >= len(names):
             out.append("%s<identifier %d is not in the name table>" % (indent, identifier))
             return
-        name, kind = save.names[identifier]
+        name, kind = names[identifier]
 
         if kind == KIND_VARIABLE:
-            width = struct.unpack_from("<I", save.content, at)[0]
+            width = struct.unpack_from("<I", data, at)[0]
             payload = at + 4
         else:
             width = kind
@@ -303,10 +275,9 @@ def walk_body(save, start, end, depth, limit, out, indent):
             out.append("%s%s: <claims %d bytes, past the body>" % (indent, name, width))
             return
 
-        value = save.content[payload:payload + width]
+        value = data[payload:payload + width]
         if kind in (1, 2, 4, 8):
-            number = int.from_bytes(value, "little")
-            out.append("%s%s = %d (%s)" % (indent, name, number, value.hex()))
+            out.append("%s%s = %d (%s)" % (indent, name, int.from_bytes(value, "little"), value.hex()))
         else:
             text = as_text(value)
             if text is not None:
@@ -314,10 +285,10 @@ def walk_body(save, start, end, depth, limit, out, indent):
                 at = payload + width
                 continue
 
-            nested = looks_like_body(save, payload, width)
+            nested = looks_like_body(names, data, payload, width)
             if nested and (limit < 0 or depth < limit):
                 out.append("%s%s: body of %d bytes" % (indent, name, width))
-                walk_body(save, payload, payload + width, depth + 1, limit, out, indent + "  ")
+                walk_body(names, data, payload, payload + width, depth + 1, limit, out, indent + "  ")
             elif nested:
                 out.append("%s%s: body of %d bytes, not shown (--depth %d)" %
                            (indent, name, width, depth + 1))
@@ -356,7 +327,7 @@ def as_text(blob):
     return None
 
 
-def looks_like_body(save, at, width):
+def looks_like_body(names, data, at, width):
     """A variable member holds either a body of its own or bytes only its class knows.
 
     Nothing in the file says which, so the shape is the test: the members of a body tile
@@ -372,15 +343,15 @@ def looks_like_body(save, at, width):
     while cursor < end:
         if end - cursor < 2:
             return False
-        identifier = struct.unpack_from("<H", save.content, cursor)[0]
+        identifier = struct.unpack_from("<H", data, cursor)[0]
         cursor += 2
-        if identifier >= len(save.names):
+        if identifier >= len(names):
             return False
-        kind = save.names[identifier][1]
+        kind = names[identifier][1]
         if kind == KIND_VARIABLE:
             if end - cursor < 4:
                 return False
-            size = struct.unpack_from("<I", save.content, cursor)[0]
+            size = struct.unpack_from("<I", data, cursor)[0]
             cursor += 4
         else:
             size = kind
@@ -391,19 +362,20 @@ def looks_like_body(save, at, width):
     return fields > 0
 
 
-def walk_record(save, at, depth, limit, out, indent):
+def walk_record(names, data, at, depth, limit, out, indent):
     """One object record: its class, its length, and the body of members inside it."""
 
-    classid = save.content[at:at + 16]
-    length = struct.unpack_from("<I", save.content, at + 16)[0]
+    classid = data[at:at + 16]
+    length = struct.unpack_from("<I", data, at + 16)[0]
     body_at = at + 20
-    identity = struct.unpack_from("<I", save.content, body_at)[0]
+    identity = struct.unpack_from("<I", data, body_at)[0]
 
-    out.append("%srecord %s, %d bytes, swizzle id %d" % (indent, format_clsid(classid), length, identity))
+    out.append("%srecord %s, %d bytes, swizzle id %d" %
+               (indent, format_clsid(classid), length, identity))
 
     if limit < 0 or depth < limit:
-        inner = struct.unpack_from("<I", save.content, body_at + 4)[0]
-        walk_body(save, body_at + 8, body_at + 8 + inner, depth + 1, limit, out, indent + "  ")
+        inner = struct.unpack_from("<I", data, body_at + 4)[0]
+        walk_body(names, data, body_at + 8, body_at + 8 + inner, depth + 1, limit, out, indent + "  ")
 
     return body_at + length
 
@@ -418,47 +390,28 @@ def format_clsid(raw):
 
 
 def dump(save, wanted, limit, out):
-    at = save.content_start
-    for name, kind in SECTIONS:
-        if at >= len(save.content):
-            out.append("%s: not written" % name)
+    for name, kind, body, at, stored in save.sections:
+        if wanted is not None and name.lower() != wanted.lower():
             continue
 
-        show = (wanted is None or name.lower() == wanted.lower())
+        out.append("%s at %d, %d bytes stored, %d unpacked (%s)" % (name, at, stored, len(body), kind))
 
-        if kind == "record":
-            if show:
-                out.append("%s at %d (record)" % (name, at))
-                at = walk_record(save, at, 0, limit, out, "  ")
-            else:
-                at = walk_record(save, at, 0, 0, [], "")
-            continue
-
-        length = struct.unpack_from("<I", save.content, at)[0]
-        start = at + 4
-        end = start + length
-        if end > len(save.content):
-            out.append("%s: claims %d bytes at %d, past the content" % (name, length, at))
-            return
-        if show:
-            out.append("%s at %d, %d bytes (%s)" % (name, at, length, kind))
-
-        if show and kind == "body":
-            walk_body(save, start, end, 0, limit, out, "  ")
-        elif show and kind == "heap":
-            count = struct.unpack_from("<I", save.content, start)[0]
+        # A section holds what one stream wrote, which opens with the frame around it: a
+        # body or a block writes its length first, and the section's own length is what
+        # the file already carried it by.
+        if kind == "body":
+            inner = struct.unpack_from("<I", body, 0)[0]
+            walk_body(save.names, body, 4, 4 + inner, 0, limit, out, "  ")
+        elif kind == "heap":
+            count = struct.unpack_from("<I", body, 4)[0]
             out.append("  %d records" % count)
-            cursor = start + 4
+            cursor = 8
             for _ in range(count):
-                cursor = walk_record(save, cursor, 0, limit, out, "  ")
-        elif show and kind == "block":
-            out.append("  a layout only the engine knows; %d bytes" % length)
-
-        at = end
-
-    if at != len(save.content):
-        out.append("")
-        out.append("%d bytes past the last section" % (len(save.content) - at))
+                cursor = walk_record(save.names, body, cursor, 0, limit, out, "  ")
+        elif kind == "record":
+            walk_record(save.names, body, 0, 0, limit, out, "  ")
+        else:
+            out.append("  a layout only the engine knows")
 
 
 def main():
@@ -475,9 +428,9 @@ def main():
     save = Save(options.save)
 
     print("%s: format version %d, flags 0x%04X" % (options.save, save.version, save.flags))
-    print("  header checksum %s, content checksum %s" %
-          ("ok" if save.header_ok else "WRONG", "ok" if save.content_ok else "WRONG"))
-    print("  %d bytes stored, %d unpacked" % (save.stored_length, save.content_length))
+    print("  header checksum %s, payload checksum %s" %
+          ("ok" if save.header_ok else "WRONG", "ok" if save.payload_ok else "WRONG"))
+    print("  %d bytes of payload" % save.payload_length)
     for name, value in save.listing:
         print("  %-20s %s" % (name, value))
 
@@ -487,7 +440,7 @@ def main():
         print("nothing below this line can be read without the build that wrote it.")
         return 0
 
-    print("  %d names in the table, content begins at %d" % (len(save.names), save.content_start))
+    print("  %d names in the table, %d sections" % (len(save.names), len(save.sections)))
 
     if options.names:
         for identifier, (name, kind) in enumerate(save.names):
@@ -495,14 +448,11 @@ def main():
         return 0
 
     if options.raw:
-        at = save.content_start
-        for name, kind in SECTIONS:
-            length = struct.unpack_from("<I", save.content, at)[0]
+        for name, kind, body, at, stored in save.sections:
             if name.lower() == options.raw.lower():
-                Path(options.out or (name + ".bin")).write_bytes(save.content[at + 4:at + 4 + length])
-                print("wrote %d bytes" % length)
+                Path(options.out or (name + ".bin")).write_bytes(body)
+                print("wrote %d bytes" % len(body))
                 return 0
-            at += 4 + length
         raise SystemExit("no section is named %r" % options.raw)
 
     print()
