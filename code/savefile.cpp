@@ -10,12 +10,11 @@
 #include "savefile.h"
 
 #include "crc.h"
-#include "platform/file.h"
-
-#include <lzo/lzo1x.h>
 
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
+#include <lzo/lzo1x.h>
 #include <new>
 #include <string>
 
@@ -117,10 +116,12 @@ struct HeaderType {
 	std::uint32_t Version;
 	std::uint32_t Flags;
 	std::uint32_t TableLength;
-	std::uint32_t ContentOffset;
-	std::uint32_t StoredLength;
-	std::uint32_t ContentLength;
-	std::uint32_t ContentCRC;
+	std::uint32_t PayloadOffset;
+	std::uint32_t PayloadLength;
+	std::uint32_t NamesOffset;
+	std::uint32_t NamesStored;
+	std::uint32_t NamesUnpacked;
+	std::uint32_t PayloadCRC;
 	std::uint32_t HeaderCRC;
 };
 
@@ -147,11 +148,13 @@ SaveFileClass::ResultType Parse_Header(unsigned char const * bytes, std::uint32_
 	header.Version = Get_U16(bytes + 4);
 	header.Flags = Get_U16(bytes + 6);
 	header.TableLength = Get_U32(bytes + 8);
-	header.ContentOffset = Get_U32(bytes + 12);
-	header.StoredLength = Get_U32(bytes + 16);
-	header.ContentLength = Get_U32(bytes + 20);
-	header.ContentCRC = Get_U32(bytes + 24);
-	header.HeaderCRC = Get_U32(bytes + 28);
+	header.PayloadOffset = Get_U32(bytes + 12);
+	header.PayloadLength = Get_U32(bytes + 16);
+	header.NamesOffset = Get_U32(bytes + 20);
+	header.NamesStored = Get_U32(bytes + 24);
+	header.NamesUnpacked = Get_U32(bytes + 28);
+	header.PayloadCRC = Get_U32(bytes + 32);
+	header.HeaderCRC = Get_U32(bytes + 36);
 
 	if (header.Version == 0 || header.Version > SaveFileClass::FORMAT_VERSION) {
 		return(SaveFileClass::RESULT_UNSUPPORTED_VERSION);
@@ -162,10 +165,15 @@ SaveFileClass::ResultType Parse_Header(unsigned char const * bytes, std::uint32_
 	if (header.TableLength > MAX_TABLE_LENGTH) {
 		return(SaveFileClass::RESULT_CORRUPT);
 	}
-	if (header.ContentOffset != SaveFileClass::HEADER_SIZE + header.TableLength) {
+	if (header.PayloadOffset != SaveFileClass::HEADER_SIZE + header.TableLength) {
 		return(SaveFileClass::RESULT_CORRUPT);
 	}
-	if (header.StoredLength > MAX_CONTENT_LENGTH || header.ContentLength > MAX_CONTENT_LENGTH) {
+	if (header.PayloadLength > MAX_CONTENT_LENGTH || header.NamesUnpacked > MAX_CONTENT_LENGTH) {
+		return(SaveFileClass::RESULT_CORRUPT);
+	}
+	if (header.NamesOffset < header.PayloadOffset
+			|| header.NamesStored > header.PayloadLength
+			|| header.NamesOffset - header.PayloadOffset > header.PayloadLength - header.NamesStored) {
 		return(SaveFileClass::RESULT_CORRUPT);
 	}
 
@@ -346,13 +354,47 @@ SaveFileClass::ResultType SaveFileClass::Parse_Fields(unsigned char const * tabl
 
 // The file lands under its final name only once every byte is on disk, so a save
 // interrupted at any point leaves the previous file untouched.
-SaveFileClass::ResultType SaveFileClass::Write(char const * path) const
+SaveFileClass::~SaveFileClass(void)
 {
-	if (path == nullptr) return(RESULT_WRITE_FAILED);
+	Abandon_Write();
+}
 
-	// The reader's limits bind the writer too, so a save this build writes is one it reads,
-	// and one it cannot write leaves the file on disk alone.
-	if (Content.size() > MAX_CONTENT_LENGTH) return(RESULT_TOO_LARGE);
+
+/*
+ * Puts one run of bytes on the end of the file being written and takes them into the
+ * payload's checksum.
+ */
+SaveFileClass::ResultType SaveFileClass::Append_Payload(unsigned char const * data, std::uint32_t length)
+{
+	if (!Writing.Is_Open()) {
+		return(RESULT_WRITE_FAILED);
+	}
+	if (length > MAX_CONTENT_LENGTH - PayloadLength) {
+		return(RESULT_TOO_LARGE);
+	}
+	if (!Write_Range(Writing, data, length)) {
+		return(RESULT_WRITE_FAILED);
+	}
+
+	PayloadCRC = Checksum(data, length, PayloadCRC);
+	PayloadLength += length;
+	return(RESULT_OK);
+}
+
+
+/// <summary>
+/// Opens a save for writing and puts the listing fields in it.
+/// The header is left as room to fill in, since what goes in it is known only once the
+/// sections and their names have been written.
+/// </summary>
+SaveFileClass::ResultType SaveFileClass::Begin_Write(char const * path)
+{
+	Abandon_Write();
+
+	if (path == nullptr) {
+		return(RESULT_WRITE_FAILED);
+	}
+
 	for (FieldType const & field : Fields) {
 		if (field.Bytes.size() > MAX_FIELD_LENGTH) return(RESULT_TOO_LARGE);
 	}
@@ -361,58 +403,25 @@ SaveFileClass::ResultType SaveFileClass::Write(char const * path) const
 	Serialize_Fields(table);
 	if (table.size() > MAX_TABLE_LENGTH) return(RESULT_TOO_LARGE);
 
-	// The compressed block is kept only when it is smaller than the content; otherwise
-	// the content is written where it already sits, rather than copied to be written.
-	std::vector<unsigned char> compressed;
-	unsigned char const * payload = Content.data();
-	std::uint32_t payload_length = (std::uint32_t)Content.size();
-	std::uint32_t flags = 0;
+	Target = path;
+	Temporary = Target + ".tmp";
 
-	if (!Content.empty()) {
-		std::vector<unsigned char> work;
-		if (!Reserve(work, LZO1X_MEM_COMPRESS)
-		 || !Reserve(compressed, Content.size() + Content.size() / 16 + 64 + 3)) {
-			return(RESULT_NO_MEMORY);
-		}
-
-		lzo_uint packed = 0;
-		int const status = lzo1x_1_compress(Content.data(), (lzo_uint)Content.size(),
-			compressed.data(), &packed, work.data());
-
-		if (status == LZO_E_OK && packed < Content.size()) {
-			payload = compressed.data();
-			payload_length = (std::uint32_t)packed;
-			flags |= FLAG_LZO;
-		}
+	if (!Writing.Open(Temporary.c_str(), PlatformOpenType::WRITE)) {
+		return(RESULT_WRITE_FAILED);
 	}
 
-	unsigned char header[HEADER_SIZE];
-	memcpy(header, Signature, sizeof(Signature));
-	Put_U16(header + 4, FORMAT_VERSION);
-	Put_U16(header + 6, flags);
-	Put_U32(header + 8, (std::uint32_t)table.size());
-	Put_U32(header + 12, HEADER_SIZE + (std::uint32_t)table.size());
-	Put_U32(header + 16, payload_length);
-	Put_U32(header + 20, (std::uint32_t)Content.size());
-	Put_U32(header + 24, Checksum(payload, payload_length));
-	// The header checksum covers everything before itself, so it is filled in last.
-	Put_U32(header + 28, Header_CRC(header, table.data(), (std::uint32_t)table.size()));
+	TableLength = (std::uint32_t)table.size();
+	PayloadAt = HEADER_SIZE + TableLength;
+	PayloadLength = 0;
+	PayloadCRC = 0;
+	NamesAt = 0;
+	NamesStored = 0;
+	NamesUnpacked = 0;
 
-	std::string const temporary = std::string(path) + ".tmp";
-
-	PlatformFileClass file;
-	if (!file.Open(temporary.c_str(), PlatformOpenType::WRITE)) return(RESULT_WRITE_FAILED);
-
-	bool ok = Write_Range(file, header, HEADER_SIZE);
-	if (ok && !table.empty()) ok = Write_Range(file, table.data(), (std::uint32_t)table.size());
-	if (ok && payload_length > 0) ok = Write_Range(file, payload, payload_length);
-	if (ok) ok = file.Flush();
-	if (!file.Close()) ok = false;
-
-	if (ok) ok = Platform_Replace_File(temporary.c_str(), path);
-
-	if (!ok) {
-		Platform_Remove_File(temporary.c_str());
+	std::vector<unsigned char> const room(HEADER_SIZE, 0);
+	if (!Write_Range(Writing, room.data(), HEADER_SIZE)
+			|| !Write_Range(Writing, table.data(), TableLength)) {
+		Abandon_Write();
 		return(RESULT_WRITE_FAILED);
 	}
 
@@ -420,89 +429,291 @@ SaveFileClass::ResultType SaveFileClass::Write(char const * path) const
 }
 
 
-SaveFileClass::ResultType SaveFileClass::Read(char const * path)
+/*
+ * Compresses what it is given when that makes it smaller, and reports which it did by
+ * the two lengths it writes ahead of the block.
+ */
+static bool Pack(unsigned char const * data, std::uint32_t length, std::vector<unsigned char> & out)
 {
-	Fields.clear();
-	Content.clear();
-
-	if (path == nullptr) return(RESULT_MISSING);
-
-	PlatformFileClass file;
-	if (!file.Open(path, PlatformOpenType::READ)) return(RESULT_MISSING);
-
-	// The header is judged before anything the file's size could ask for is allocated.
-	unsigned char head[HEADER_SIZE];
-	std::uint32_t got = 0;
-	bool const ok = file.Read(head, HEADER_SIZE, got);
-
-	HeaderType header;
-	ResultType result = ok ? Parse_Header(head, got, header) : RESULT_CORRUPT;
-
-	std::vector<unsigned char> image;
-	if (result == RESULT_OK) {
-		std::int64_t const size = file.Size();
-		if (size != (std::int64_t)header.ContentOffset + header.StoredLength) {
-			result = RESULT_CORRUPT;
-		} else if (!Reserve(image, (std::size_t)size)) {
-			result = RESULT_NO_MEMORY;
-		} else {
-			memcpy(image.data(), head, HEADER_SIZE);
-			if (!Read_Range(file, image.data() + HEADER_SIZE, (std::uint32_t)size - HEADER_SIZE)) result = RESULT_CORRUPT;
-		}
+	out.clear();
+	if (length == 0) {
+		return(true);
 	}
-	file.Close();
+
+	// Sized rather than thrown for, as everything else the writer asks memory for is.
+	std::vector<unsigned char> work;
+	if (!Reserve(work, LZO1X_MEM_COMPRESS)
+			|| !Reserve(out, (std::size_t)length + length / 16 + 64 + 3)) {
+		return(false);
+	}
+
+	lzo_uint packed = 0;
+	int const status = lzo1x_1_compress(data, (lzo_uint)length, out.data(), &packed, work.data());
+
+	if (status == LZO_E_OK && packed < length) {
+		out.resize((std::size_t)packed);
+		return(true);
+	}
+
+	out.assign(data, data + length);
+	return(true);
+}
+
+
+/// <summary>
+/// Puts one section in the file under the identifier its name has in the table.
+/// </summary>
+SaveFileClass::ResultType SaveFileClass::Write_Section(unsigned short id, unsigned char const * data,
+	std::uint32_t length)
+{
+	if (!Writing.Is_Open()) return(RESULT_WRITE_FAILED);
+	if (length > MAX_CONTENT_LENGTH) return(RESULT_TOO_LARGE);
+
+	std::vector<unsigned char> stored;
+	if (!Pack(data, length, stored)) {
+		return(RESULT_NO_MEMORY);
+	}
+
+	unsigned char entry[10];
+	Put_U16(entry, id);
+	Put_U32(entry + 2, (std::uint32_t)stored.size());
+	Put_U32(entry + 6, length);
+
+	ResultType result = Append_Payload(entry, sizeof(entry));
 	if (result != RESULT_OK) return(result);
 
-	if (Header_CRC(image.data(), image.data() + HEADER_SIZE, header.TableLength) != header.HeaderCRC) {
-		return(RESULT_CORRUPT);
+	return(Append_Payload(stored.data(), (std::uint32_t)stored.size()));
+}
+
+
+/// <summary>
+/// Writes the name table, fills the header in, and moves the file into place.
+/// </summary>
+SaveFileClass::ResultType SaveFileClass::End_Write(unsigned char const * names, std::uint32_t length)
+{
+	if (!Writing.Is_Open()) return(RESULT_WRITE_FAILED);
+
+	std::vector<unsigned char> stored;
+	if (!Pack(names, length, stored)) {
+		Abandon_Write();
+		return(RESULT_NO_MEMORY);
 	}
 
-	result = Parse_Fields(image.data() + HEADER_SIZE, header.TableLength);
-	if (result != RESULT_OK) return(result);
+	NamesAt = PayloadAt + PayloadLength;
+	NamesStored = (std::uint32_t)stored.size();
+	NamesUnpacked = length;
 
-	unsigned char const * const stored = image.data() + header.ContentOffset;
-	if (Checksum(stored, header.StoredLength) != header.ContentCRC) {
-		Fields.clear();
-		return(RESULT_CORRUPT);
+	ResultType result = Append_Payload(stored.data(), NamesStored);
+	if (result != RESULT_OK) {
+		Abandon_Write();
+		return(result);
 	}
 
-	if ((header.Flags & FLAG_LZO) != 0) {
-		if (!Reserve(Content, header.ContentLength)) {
-			Fields.clear();
-			return(RESULT_NO_MEMORY);
-		}
+	std::vector<unsigned char> table;
+	Serialize_Fields(table);
 
-		lzo_uint unpacked = (lzo_uint)Content.size();
-		int const status = lzo1x_decompress_safe(stored, (lzo_uint)header.StoredLength,
-			Content.data(), &unpacked, nullptr);
+	unsigned char header[HEADER_SIZE];
+	memset(header, 0, sizeof(header));
+	memcpy(header, Signature, sizeof(Signature));
+	Put_U16(header + 4, FORMAT_VERSION);
+	Put_U16(header + 6, 0);
+	Put_U32(header + 8, TableLength);
+	Put_U32(header + 12, PayloadAt);
+	Put_U32(header + 16, PayloadLength);
+	Put_U32(header + 20, NamesAt);
+	Put_U32(header + 24, NamesStored);
+	Put_U32(header + 28, NamesUnpacked);
+	Put_U32(header + 32, PayloadCRC);
+	Put_U32(header + 36, Header_CRC(header, table.data(), TableLength));
 
-		if (status != LZO_E_OK || unpacked != header.ContentLength) {
-			Fields.clear();
-			Content.clear();
-			return(RESULT_CORRUPT);
-		}
-	} else {
-		if (header.StoredLength != header.ContentLength) {
-			Fields.clear();
-			return(RESULT_CORRUPT);
-		}
-		if (!Reserve(Content, header.StoredLength)) {
-			Fields.clear();
-			return(RESULT_NO_MEMORY);
-		}
-		memcpy(Content.data(), stored, header.StoredLength);
+	bool ok = (Writing.Seek(0, SEEK_SET) == 0);
+	if (ok) ok = Write_Range(Writing, header, HEADER_SIZE);
+	if (ok) ok = Writing.Flush();
+	if (!Writing.Close()) ok = false;
+
+	if (ok) ok = Platform_Replace_File(Temporary.c_str(), Target.c_str());
+
+	if (!ok) {
+		Platform_Remove_File(Temporary.c_str());
+		return(RESULT_WRITE_FAILED);
 	}
 
 	return(RESULT_OK);
 }
 
 
-// Reads the header and the field table only, so listing a folder of saves touches a
-// few hundred bytes of each file.
+/// <summary>
+/// Gives up on a save being written, leaving whatever was under the name untouched.
+/// </summary>
+void SaveFileClass::Abandon_Write(void)
+{
+	if (!Writing.Is_Open()) {
+		return;
+	}
+
+	Writing.Close();
+	Platform_Remove_File(Temporary.c_str());
+}
+
+
+/*
+ * Takes one stored run back to what it was. A run whose two lengths agree was stored as
+ * it is; anything else went through LZO.
+ */
+bool SaveFileClass::Unpack(std::uint32_t offset, std::uint32_t stored, std::uint32_t unpacked,
+	std::vector<unsigned char> & out) const
+{
+	if (offset > Image.size() || stored > Image.size() - offset) {
+		return(false);
+	}
+
+	try {
+		out.resize(unpacked);
+	} catch (std::bad_alloc const &) {
+		return(false);
+	}
+
+	if (stored == unpacked) {
+		memcpy(out.data(), Image.data() + offset, unpacked);
+		return(true);
+	}
+
+	lzo_uint length = unpacked;
+	int const status = lzo1x_decompress_safe(Image.data() + offset, (lzo_uint)stored,
+		out.data(), &length, nullptr);
+
+	return(status == LZO_E_OK && length == unpacked);
+}
+
+
+bool SaveFileClass::Get_Names(std::vector<unsigned char> & out) const
+{
+	return(Unpack(NamesAt, NamesStored, NamesUnpacked, out));
+}
+
+
+bool SaveFileClass::Get_Section(unsigned short id, std::vector<unsigned char> & out) const
+{
+	for (SectionType const & section : Sections) {
+		if (section.ID == id) {
+			return(Unpack(section.Offset, section.Stored, section.Unpacked, out));
+		}
+	}
+	return(false);
+}
+
+
+std::vector<unsigned short> SaveFileClass::Section_Ids(void) const
+{
+	std::vector<unsigned short> ids;
+	ids.reserve(Sections.size());
+	for (SectionType const & section : Sections) {
+		ids.push_back(section.ID);
+	}
+	return(ids);
+}
+
+
+/// <summary>
+/// Reads a save far enough to take anything out of it: the header, the listing fields,
+/// and where every section sits. A section is unpacked only when it is asked for.
+/// </summary>
+SaveFileClass::ResultType SaveFileClass::Read(char const * path)
+{
+	Fields.clear();
+	Sections.clear();
+	Image.clear();
+
+	if (path == nullptr) return(RESULT_MISSING);
+
+	PlatformFileClass file;
+	if (!file.Open(path, PlatformOpenType::READ)) return(RESULT_MISSING);
+
+	std::int64_t const whole = file.Size();
+	bool ok = (whole >= 0 && whole <= (std::int64_t)0xFFFFFFFE);
+	std::uint32_t const size = ok ? (std::uint32_t)whole : 0;
+
+	if (ok) {
+		try {
+			Image.resize(size);
+		} catch (std::bad_alloc const &) {
+			return(RESULT_NO_MEMORY);
+		}
+		ok = Read_Range(file, Image.data(), size);
+	}
+
+	file.Close();
+
+	if (!ok) {
+		Image.clear();
+		return(RESULT_CORRUPT);
+	}
+
+	HeaderType header;
+	ResultType result = Parse_Header(Image.data(), size, header);
+	if (result != RESULT_OK) {
+		Image.clear();
+		return(result);
+	}
+
+	if (size != header.PayloadOffset + header.PayloadLength) {
+		Image.clear();
+		return(RESULT_CORRUPT);
+	}
+
+	if (Header_CRC(Image.data(), Image.data() + HEADER_SIZE, header.TableLength) != header.HeaderCRC) {
+		Image.clear();
+		return(RESULT_CORRUPT);
+	}
+
+	result = Parse_Fields(Image.data() + HEADER_SIZE, header.TableLength);
+	if (result != RESULT_OK) {
+		Image.clear();
+		return(result);
+	}
+
+	if (Checksum(Image.data() + header.PayloadOffset, header.PayloadLength) != header.PayloadCRC) {
+		Fields.clear();
+		Image.clear();
+		return(RESULT_CORRUPT);
+	}
+
+	// The sections run from the payload to the names, which are last.
+	std::uint32_t at = header.PayloadOffset;
+	while (at < header.NamesOffset) {
+		if (header.NamesOffset - at < 10) {
+			Fields.clear();
+			Image.clear();
+			return(RESULT_CORRUPT);
+		}
+
+		SectionType section;
+		section.ID = (unsigned short)Get_U16(Image.data() + at);
+		section.Stored = Get_U32(Image.data() + at + 2);
+		section.Unpacked = Get_U32(Image.data() + at + 6);
+		section.Offset = at + 10;
+
+		if (section.Unpacked > MAX_CONTENT_LENGTH || section.Stored > header.NamesOffset - section.Offset) {
+			Fields.clear();
+			Image.clear();
+			return(RESULT_CORRUPT);
+		}
+
+		Sections.push_back(section);
+		at = section.Offset + section.Stored;
+	}
+
+	NamesAt = header.NamesOffset;
+	NamesStored = header.NamesStored;
+	NamesUnpacked = header.NamesUnpacked;
+
+	return(RESULT_OK);
+}
+
+
 SaveFileClass::ResultType SaveFileClass::Read_Fields(char const * path)
 {
 	Fields.clear();
-	Content.clear();
 
 	if (path == nullptr) return(RESULT_MISSING);
 

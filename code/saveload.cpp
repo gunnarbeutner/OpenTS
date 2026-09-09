@@ -405,6 +405,78 @@ void Print_Heap_CRCs(FILE * fp)
 #undef HEAP_ROWS
 }
 
+
+/*
+ * A section body says whether it worked, or says nothing and is taken at its word.
+ */
+template<typename F>
+static bool Ran(F && body, SaveStreamClass & stream)
+{
+	if constexpr (std::is_void_v<decltype(body(stream))>) {
+		body(stream);
+		return(true);
+	} else {
+		return(body(stream));
+	}
+}
+
+
+/*
+ * One section of a save, under the name the file records it by. Each is written through a
+ * stream of its own, so no more than the section in hand is ever held in memory, and the
+ * order the sections are written in is not what a load finds them by.
+ */
+template<typename F>
+static bool Save_Section(SaveFileClass & file, SaveNamesClass & names, char const * name, F && body)
+{
+	unsigned short id = 0;
+	if (!names.Intern(name, SaveNamesClass::KIND_VARIABLE, id)) {
+		return(false);
+	}
+
+	std::vector<unsigned char> bytes;
+	SaveStreamClass stream(bytes, SaveStreamClass::MODE_SAVE, names);
+
+	if (!Ran(body, stream) || stream.Was_Error()) {
+		return(false);
+	}
+
+	return(file.Write_Section(id, bytes.data(), (std::uint32_t)bytes.size()) == SaveFileClass::RESULT_OK);
+}
+
+
+/*
+ * The counterpart, which asks for a section by name. A save that carries none under that
+ * name fails the load rather than leaving the subsystem at whatever it was built with.
+ */
+template<typename F>
+static bool Load_Section(SaveFileClass const & file, SaveNamesClass & names, char const * name, F && body)
+{
+	unsigned short id = 0;
+	std::vector<unsigned char> bytes;
+
+	if (!names.Find(name, SaveNamesClass::KIND_VARIABLE, id) || !file.Get_Section(id, bytes)) {
+		DebugString("The save carries no %s\n", name);
+		return(false);
+	}
+
+	SaveStreamClass stream(bytes, SaveStreamClass::MODE_LOAD, names);
+
+	return(Ran(body, stream) && !stream.Was_Error());
+}
+
+
+/*
+ * A section is written and read under one name, and its body is written as though it had
+ * a stream to itself, because it has: each of these opens one for the section named.
+ */
+#define SAVE_SECTION(section, body)	Save_Section(file, names, section, \
+	[&](SaveStreamClass & stream) { return(body); })
+
+#define LOAD_SECTION(section, body)	Load_Section(file, names, section, \
+	[&](SaveStreamClass & stream) { return(body); })
+
+
 /***********************************************************************************************
  * Put_All -- Store all save game data to the pipe.                                            *
  *                                                                                             *
@@ -420,17 +492,20 @@ void Print_Heap_CRCs(FILE * fp)
  * HISTORY:                                                                                    *
  *   07/08/1996 JLB : Created.                                                                 *
  *=============================================================================================*/
-static bool Put_All(SaveStreamClass & stream, int save_net)
+static bool Put_All(SaveFileClass & file, SaveNamesClass & names, int save_net)
 {
 	/*
 	**	Save the scenario global information.
 	*/
-	Scen->Save(stream);
-	Environment.Save(stream);
-	Rule->Save(stream);
+	if (!SAVE_SECTION("Scenario", Scen->Save(stream))
+			|| !SAVE_SECTION("Environment", Environment.Save(stream))
+			|| !SAVE_SECTION("Rules", Rule->Save(stream))) {
+		DebugString("\t***** FAILED!\n");
+		return(false);
+	}
 
 	DebugString("Saving AnimTypes\n");
-	if (!Save_Vector(stream, AnimTypes)) {
+	if (!SAVE_SECTION("AnimTypes", Save_Vector(stream, AnimTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
@@ -439,13 +514,13 @@ static bool Put_All(SaveStreamClass & stream, int save_net)
 	**	Save the map.  The map must be saved first, since it saves the Theater.
 	*/
 	DebugString("Saving Map\n");
-	if (!Map.Save(stream)) {
+	if (!SAVE_SECTION("Map", Map.Save(stream))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 
 	DebugString("Saving Tunnels\n");
-	if (!Save_Vector(stream, Tubes)) {
+	if (!SAVE_SECTION("Tubes", Save_Vector(stream, Tubes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
@@ -454,7 +529,7 @@ static bool Put_All(SaveStreamClass & stream, int save_net)
 	**	Save miscellaneous variables.
 	*/
 	DebugString("Saving Misc. Values\n");
-	if (!Save_Misc_Values(stream)) {
+	if (!SAVE_SECTION("MiscValues", Save_Misc_Values(stream) != 0)) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
@@ -463,13 +538,13 @@ static bool Put_All(SaveStreamClass & stream, int save_net)
 	**	Save the Logic & Map layers
 	*/
 	DebugString("Saving Logic\n");
-	if (!Logic.Save(stream)) {
+	if (!SAVE_SECTION("Logic", Logic.Save(stream))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 
 	DebugString("Saving TacticalMap\n");
-	if (!Save_Object(stream, TacticalMap)) {
+	if (!SAVE_SECTION("TacticalMap", Save_Object(stream, TacticalMap))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
@@ -479,258 +554,258 @@ static bool Put_All(SaveStreamClass & stream, int save_net)
 	**	TFixedIHeap class.
 	*/
 	DebugString("Saving HouseTypes\n");
-	if (!Save_Vector(stream, HouseTypes)) {
+	if (!SAVE_SECTION("HouseTypes", Save_Vector(stream, HouseTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Houses\n");
-	if (!Save_Vector(stream, Houses)) {
+	if (!SAVE_SECTION("Houses", Save_Vector(stream, Houses))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Units\n");
-	if (!Save_Vector(stream, Units)) {
+	if (!SAVE_SECTION("Units", Save_Vector(stream, Units))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving UnitTypes\n");
-	if (!Save_Vector(stream, UnitTypes)) {
+	if (!SAVE_SECTION("UnitTypes", Save_Vector(stream, UnitTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving InfantryTypes\n");
-	if (!Save_Vector(stream, InfantryTypes)) {
+	if (!SAVE_SECTION("InfantryTypes", Save_Vector(stream, InfantryTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Infantry\n");
-	if (!Save_Vector(stream, Infantry)) {
+	if (!SAVE_SECTION("Infantry", Save_Vector(stream, Infantry))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving BuildingTypes\n");
-	if (!Save_Vector(stream, BuildingTypes)) {
+	if (!SAVE_SECTION("BuildingTypes", Save_Vector(stream, BuildingTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Buildings\n");
-	if (!Save_Vector(stream, Buildings)) {
+	if (!SAVE_SECTION("Buildings", Save_Vector(stream, Buildings))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving AircraftTypes\n");
-	if (!Save_Vector(stream, AircraftTypes)) {
+	if (!SAVE_SECTION("AircraftTypes", Save_Vector(stream, AircraftTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Aircraft\n");
-	if (!Save_Vector(stream, Aircraft)) {
+	if (!SAVE_SECTION("Aircraft", Save_Vector(stream, Aircraft))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Anims\n");
-	if (!Save_Vector(stream, Anims)) {
+	if (!SAVE_SECTION("Anims", Save_Vector(stream, Anims))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving TaskForces\n");
-	if (!Save_Vector(stream, TaskForces)) {
+	if (!SAVE_SECTION("TaskForces", Save_Vector(stream, TaskForces))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving TeamTypes\n");
-	if (!Save_Vector(stream, TeamTypes)) {
+	if (!SAVE_SECTION("TeamTypes", Save_Vector(stream, TeamTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Teams\n");
-	if (!Save_Vector(stream, Teams)) {
+	if (!SAVE_SECTION("Teams", Save_Vector(stream, Teams))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving ScriptTypes\n");
-	if (!Save_Vector(stream, ScriptTypes)) {
+	if (!SAVE_SECTION("ScriptTypes", Save_Vector(stream, ScriptTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Scripts\n");
-	if (!Save_Vector(stream, Scripts)) {
+	if (!SAVE_SECTION("Scripts", Save_Vector(stream, Scripts))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving TagTypes\n");
-	if (!Save_Vector(stream, TagTypes)) {
+	if (!SAVE_SECTION("TagTypes", Save_Vector(stream, TagTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Tags\n");
-	if (!Save_Vector(stream, Tags)) {
+	if (!SAVE_SECTION("Tags", Save_Vector(stream, Tags))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving TriggerTypes\n");
-	if (!Save_Vector(stream, TriggerTypes)) {
+	if (!SAVE_SECTION("TriggerTypes", Save_Vector(stream, TriggerTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Triggers\n");
-	if (!Save_Vector(stream, Triggers)) {
+	if (!SAVE_SECTION("Triggers", Save_Vector(stream, Triggers))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving AITriggerTypes\n");
-	if (!Save_Vector(stream, AITriggerTypes)) {
+	if (!SAVE_SECTION("AITriggerTypes", Save_Vector(stream, AITriggerTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 
 	DebugString("Saving Actions\n");
-	if (!Save_Vector(stream, Actions)) {
+	if (!SAVE_SECTION("Actions", Save_Vector(stream, Actions))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Events\n");
-	if (!Save_Vector(stream, Events)) {
+	if (!SAVE_SECTION("Events", Save_Vector(stream, Events))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Factories\n");
-	if (!Save_Vector(stream, Factories)) {
+	if (!SAVE_SECTION("Factories", Save_Vector(stream, Factories))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving VoxelAnimTypes\n");
-	if (!Save_Vector(stream, VoxelAnimTypes)) {
+	if (!SAVE_SECTION("VoxelAnimTypes", Save_Vector(stream, VoxelAnimTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving VoxelAnims\n");
-	if (!Save_Vector(stream, VoxelAnims)) {
+	if (!SAVE_SECTION("VoxelAnims", Save_Vector(stream, VoxelAnims))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Warheads\n");
-	if (!Save_Vector(stream, Warheads)) {
+	if (!SAVE_SECTION("Warheads", Save_Vector(stream, Warheads))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Weapons\n");
-	if (!Save_Vector(stream, Weapons)) {
+	if (!SAVE_SECTION("Weapons", Save_Vector(stream, Weapons))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving ParticleTypes\n");
-	if (!Save_Vector(stream, ParticleTypes)) {
+	if (!SAVE_SECTION("ParticleTypes", Save_Vector(stream, ParticleTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Particles\n");
-	if (!Save_Vector(stream, Particles)) {
+	if (!SAVE_SECTION("Particles", Save_Vector(stream, Particles))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving ParticleSystemTypes\n");
-	if (!Save_Vector(stream, ParticleSystemTypes)) {
+	if (!SAVE_SECTION("ParticleSystemTypes", Save_Vector(stream, ParticleSystemTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving ParticleSystems\n");
-	if (!Save_Vector(stream, ParticleSystems)) {
+	if (!SAVE_SECTION("ParticleSystems", Save_Vector(stream, ParticleSystems))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving BulletTypes\n");
-	if (!Save_Vector(stream, BulletTypes)) {
+	if (!SAVE_SECTION("BulletTypes", Save_Vector(stream, BulletTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Bullets\n");
-	if (!Save_Vector(stream, Bullets)) {
+	if (!SAVE_SECTION("Bullets", Save_Vector(stream, Bullets))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving WaypointPaths\n");
-	if (!Save_Vector(stream, WaypointPaths)) {
+	if (!SAVE_SECTION("WaypointPaths", Save_Vector(stream, WaypointPaths))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving SmudgeTypes\n");
-	if (!Save_Vector(stream, SmudgeTypes)) {
+	if (!SAVE_SECTION("SmudgeTypes", Save_Vector(stream, SmudgeTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving OverlayTypes\n");
-	if (!Save_Vector(stream, OverlayTypes)) {
+	if (!SAVE_SECTION("OverlayTypes", Save_Vector(stream, OverlayTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving LightSources\n");
-	if (!Save_Vector(stream, LightSources)) {
+	if (!SAVE_SECTION("LightSources", Save_Vector(stream, LightSources))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving BuildingLights\n");
-	if (!Save_Vector(stream, BuildingLights)) {
+	if (!SAVE_SECTION("BuildingLights", Save_Vector(stream, BuildingLights))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Sides\n");
-	if (!Save_Vector(stream, Sides)) {
+	if (!SAVE_SECTION("Sides", Save_Vector(stream, Sides))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Tiberiums\n");
-	if (!Save_Vector(stream, Tiberiums)) {
+	if (!SAVE_SECTION("Tiberiums", Save_Vector(stream, Tiberiums))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Empulses\n");
-	if (!Save_Vector(stream, EMPulseClass::EMPulses)) {
+	if (!SAVE_SECTION("EMPulses", Save_Vector(stream, EMPulseClass::EMPulses))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving SuperWeaponTypes\n");
-	if (!Save_Vector(stream, SuperWeaponTypes)) {
+	if (!SAVE_SECTION("SuperWeaponTypes", Save_Vector(stream, SuperWeaponTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving SuperWeapons\n");
-	if (!Save_Vector(stream, SuperWeapons)) {
+	if (!SAVE_SECTION("SuperWeapons", Save_Vector(stream, SuperWeapons))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving TerrianTypes\n");
-	if (!Save_Vector(stream, TerrainTypes)) {
+	if (!SAVE_SECTION("TerrainTypes", Save_Vector(stream, TerrainTypes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Terrains\n");
-	if (!Save_Vector(stream, Terrains)) {
+	if (!SAVE_SECTION("Terrains", Save_Vector(stream, Terrains))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving FoggedObjects\n");
-	if (!Save_Vector(stream, FoggedObjectClass::FoggyObjects)) {
+	if (!SAVE_SECTION("FoggyObjects", Save_Vector(stream, FoggedObjectClass::FoggyObjects))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving AlphaShapes\n");
-	if (!Save_Vector(stream, AlphaShapes)) {
+	if (!SAVE_SECTION("AlphaShapes", Save_Vector(stream, AlphaShapes))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving Waves\n");
-	if (!Save_Vector(stream, Waves)) {
+	if (!SAVE_SECTION("Waves", Save_Vector(stream, Waves))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving VeinholeMonster\n");
-	if (!VeinholeMonsterClass::Save_All(stream)) {
+	if (!SAVE_SECTION("VeinholeMonsters", VeinholeMonsterClass::Save_All(stream))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
 	DebugString("Saving RadarEvents\n");
-	if (!RadarEventClass::Save(stream)) {
+	if (!SAVE_SECTION("RadarEvents", RadarEventClass::Save(stream))) {
 		DebugString("\t***** FAILED!\n");
 		return(false);
 	}
@@ -741,13 +816,13 @@ static bool Put_All(SaveStreamClass & stream, int save_net)
 	 */
 	if (Session.Type != GAME_NORMAL) {
 		DebugString("Writing Session.Options\n");
-		if (!Session.Options.Save(stream)) {
+		if (!SAVE_SECTION("SessionOptions", Session.Options.Save(stream))) {
 			DebugString("\t***** FAILED!\n");
 			return(false);
 		}
 	}
 
-	return(!stream.Was_Error());
+	return(true);
 }
 
 
@@ -759,10 +834,12 @@ static bool Put_All(SaveStreamClass & stream, int save_net)
 /// order they were written out.
 /// </summary>
 /// <returns>bool; Was the game state restored?</returns>
-static bool Get_All(SaveStreamClass & stream, bool save_net)
+static bool Get_All(SaveFileClass const & file, SaveNamesClass & names, bool save_net)
 {
 	Clear_Scenario();
-	Scen->Load(stream);
+	if (!LOAD_SECTION("Scenario", Scen->Load(stream))) {
+		return(false);
+	}
 	Disable_Addon(ADDON_ANY);
 	Set_Required_Addon(Scen->RequiredAddOn);
 	if (!Addon_Installed(Scen->RequiredAddOn)) {
@@ -781,7 +858,9 @@ static bool Get_All(SaveStreamClass & stream, bool save_net)
 
 	Map.Set_View_Dimensions(temp);
 
-	Environment.Load(stream);
+	if (!LOAD_SECTION("Environment", Environment.Load(stream))) {
+		return(false);
+	}
 
 	Init_Theater(Scen->Theater);
 
@@ -794,31 +873,33 @@ static bool Get_All(SaveStreamClass & stream, bool save_net)
 		}
 	}
 
-	Rule->Load(stream);
+	if (!LOAD_SECTION("Rules", Rule->Load(stream))) {
+		return(false);
+	}
 
 	SideType speech = Scen->SpeechSide != SIDE_NONE ? Scen->SpeechSide : Scen->PlayerSide;
 	if (Prep_Speech_For_Side_Or_First(speech) == SIDE_NONE) {
 		return(false);
 	}
 
-	if (!Load_Vector<AnimTypeClass>(stream)) {	/// AnimTypes
+	if (!LOAD_SECTION("AnimTypes", Load_Vector<AnimTypeClass>(stream))) {
 		return(false);
 	}
 
-	if (!Map.Load(stream)) {
+	if (!LOAD_SECTION("Map", Map.Load(stream))) {
 		return(false);
 	}
 
-	if (!Load_Vector<TubeClass>(stream)) {	/// Tubes
+	if (!LOAD_SECTION("Tubes", Load_Vector<TubeClass>(stream))) {
 		return(false);
 	}
 
-	if (!Load_Misc_Values(stream)) {
+	if (!LOAD_SECTION("MiscValues", Load_Misc_Values(stream) != 0)) {
 		return(false);
 	}
 
 	Map.Reset_All_Subzones();
-	if (!Logic.Load(stream)) {
+	if (!LOAD_SECTION("Logic", Logic.Load(stream))) {
 		return(false);
 	}
 
@@ -826,7 +907,13 @@ static bool Get_All(SaveStreamClass & stream, bool save_net)
 		delete TacticalMap;
 		TacticalMap = NULL;
 	}
-	std::unique_ptr<Tactical> tactical = Load_Object_As<Tactical>(stream);
+	std::unique_ptr<Tactical> tactical;
+	if (!Load_Section(file, names, "TacticalMap", [&](SaveStreamClass & stream){
+			tactical = Load_Object_As<Tactical>(stream);
+			return(tactical != nullptr);
+		})) {
+		return(false);
+	}
 	if (tactical == nullptr) {
 		return(false);
 	}
@@ -834,163 +921,163 @@ static bool Get_All(SaveStreamClass & stream, bool save_net)
 	// what deletes it from here on.
 	tactical.release();
 
-	if (!Load_Vector<HouseTypeClass>(stream)) {	/// HouseTypes
+	if (!LOAD_SECTION("HouseTypes", Load_Vector<HouseTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<HouseClass>(stream)) {	/// Houses
+	if (!LOAD_SECTION("Houses", Load_Vector<HouseClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<UnitClass>(stream)) {	/// Units
+	if (!LOAD_SECTION("Units", Load_Vector<UnitClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<UnitTypeClass>(stream)) {	/// UnitTypes
+	if (!LOAD_SECTION("UnitTypes", Load_Vector<UnitTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<InfantryTypeClass>(stream)) {	/// InfantryTypes
+	if (!LOAD_SECTION("InfantryTypes", Load_Vector<InfantryTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<InfantryClass>(stream)) {	/// Infantry
+	if (!LOAD_SECTION("Infantry", Load_Vector<InfantryClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<BuildingTypeClass>(stream)) {	/// BuildingTypes
+	if (!LOAD_SECTION("BuildingTypes", Load_Vector<BuildingTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<BuildingClass>(stream)) {	/// Buildings
+	if (!LOAD_SECTION("Buildings", Load_Vector<BuildingClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<AircraftTypeClass>(stream)) {	/// AircraftTypes
+	if (!LOAD_SECTION("AircraftTypes", Load_Vector<AircraftTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<AircraftClass>(stream)) {	/// Aircraft
+	if (!LOAD_SECTION("Aircraft", Load_Vector<AircraftClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<AnimClass>(stream)) {	/// Anims
+	if (!LOAD_SECTION("Anims", Load_Vector<AnimClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<TaskForceClass>(stream)) {	/// TaskForces
+	if (!LOAD_SECTION("TaskForces", Load_Vector<TaskForceClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<TeamTypeClass>(stream)) {	/// TeamTypes
+	if (!LOAD_SECTION("TeamTypes", Load_Vector<TeamTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<TeamClass>(stream)) {	/// Teams
+	if (!LOAD_SECTION("Teams", Load_Vector<TeamClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<ScriptTypeClass>(stream)) {	/// ScriptTypes
+	if (!LOAD_SECTION("ScriptTypes", Load_Vector<ScriptTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<ScriptClass>(stream)) {	/// Scripts
+	if (!LOAD_SECTION("Scripts", Load_Vector<ScriptClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<TagTypeClass>(stream)) {	/// TagTypes
+	if (!LOAD_SECTION("TagTypes", Load_Vector<TagTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<TagClass>(stream)) {	/// Tags
+	if (!LOAD_SECTION("Tags", Load_Vector<TagClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<TriggerTypeClass>(stream)) {	/// TriggerTypes
+	if (!LOAD_SECTION("TriggerTypes", Load_Vector<TriggerTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<TriggerClass>(stream)) {	/// Triggers
+	if (!LOAD_SECTION("Triggers", Load_Vector<TriggerClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<AITriggerTypeClass>(stream)) {	/// AITriggerTypes
+	if (!LOAD_SECTION("AITriggerTypes", Load_Vector<AITriggerTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<TActionClass>(stream)) {	/// Actions
+	if (!LOAD_SECTION("Actions", Load_Vector<TActionClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<TEventClass>(stream)) {	/// Events
+	if (!LOAD_SECTION("Events", Load_Vector<TEventClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<FactoryClass>(stream)) {	/// Factories
+	if (!LOAD_SECTION("Factories", Load_Vector<FactoryClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<VoxelAnimTypeClass>(stream)) {	/// VoxelAnimTypes
+	if (!LOAD_SECTION("VoxelAnimTypes", Load_Vector<VoxelAnimTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<VoxelAnimClass>(stream)) {	/// VoxelAnims
+	if (!LOAD_SECTION("VoxelAnims", Load_Vector<VoxelAnimClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<WarheadTypeClass>(stream)) {	/// Warheads
+	if (!LOAD_SECTION("Warheads", Load_Vector<WarheadTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<WeaponTypeClass>(stream)) {	/// Weapons
+	if (!LOAD_SECTION("Weapons", Load_Vector<WeaponTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<ParticleTypeClass>(stream)) {	/// ParticleTypes
+	if (!LOAD_SECTION("ParticleTypes", Load_Vector<ParticleTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<ParticleClass>(stream)) {	/// Particles
+	if (!LOAD_SECTION("Particles", Load_Vector<ParticleClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<ParticleSystemTypeClass>(stream)) {	/// ParticleSystemTypes
+	if (!LOAD_SECTION("ParticleSystemTypes", Load_Vector<ParticleSystemTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<ParticleSystemClass>(stream)) {	/// ParticleSystems
+	if (!LOAD_SECTION("ParticleSystems", Load_Vector<ParticleSystemClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<BulletTypeClass>(stream)) {	/// BulletTypes
+	if (!LOAD_SECTION("BulletTypes", Load_Vector<BulletTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<BulletClass>(stream)) {	/// Bullets
+	if (!LOAD_SECTION("Bullets", Load_Vector<BulletClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<WaypointPathClass>(stream)) {	/// WaypointPaths
+	if (!LOAD_SECTION("WaypointPaths", Load_Vector<WaypointPathClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<SmudgeTypeClass>(stream)) {	/// SmudgeTypes
+	if (!LOAD_SECTION("SmudgeTypes", Load_Vector<SmudgeTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<OverlayTypeClass>(stream)) {	/// OverlayTypes
+	if (!LOAD_SECTION("OverlayTypes", Load_Vector<OverlayTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<LightSourceClass>(stream)) {	/// LightSources
+	if (!LOAD_SECTION("LightSources", Load_Vector<LightSourceClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<BuildingLightClass>(stream)) {	/// BuildingLights
+	if (!LOAD_SECTION("BuildingLights", Load_Vector<BuildingLightClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<SideClass>(stream)) {	/// Sides
+	if (!LOAD_SECTION("Sides", Load_Vector<SideClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<TiberiumClass>(stream)) {	/// Tiberiums
+	if (!LOAD_SECTION("Tiberiums", Load_Vector<TiberiumClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<EMPulseClass>(stream)) {	/// EMPulseClass::EMPulses
+	if (!LOAD_SECTION("EMPulses", Load_Vector<EMPulseClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<SuperWeaponTypeClass>(stream)) {	/// SuperWeaponTypes
+	if (!LOAD_SECTION("SuperWeaponTypes", Load_Vector<SuperWeaponTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<SuperClass>(stream)) {	/// SuperWeapons
+	if (!LOAD_SECTION("SuperWeapons", Load_Vector<SuperClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<TerrainTypeClass>(stream)) {	/// TerrainTypes
+	if (!LOAD_SECTION("TerrainTypes", Load_Vector<TerrainTypeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<TerrainClass>(stream)) {	/// Terrains
+	if (!LOAD_SECTION("Terrains", Load_Vector<TerrainClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<FoggedObjectClass>(stream)) {	/// FoggedObjectClass::FoggyObjects
+	if (!LOAD_SECTION("FoggyObjects", Load_Vector<FoggedObjectClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<AlphaShapeClass>(stream)) {	/// AlphaShapes
+	if (!LOAD_SECTION("AlphaShapes", Load_Vector<AlphaShapeClass>(stream))) {
 		return(false);
 	}
-	if (!Load_Vector<WaveClass>(stream)) {	/// Waves
+	if (!LOAD_SECTION("Waves", Load_Vector<WaveClass>(stream))) {
 		return(false);
 	}
-	if (!VeinholeMonsterClass::Load_All(stream)) {
+	if (!LOAD_SECTION("VeinholeMonsters", VeinholeMonsterClass::Load_All(stream))) {
 		return(false);
 	}
-	if (!RadarEventClass::Load(stream)) {
+	if (!LOAD_SECTION("RadarEvents", RadarEventClass::Load(stream))) {
 		return(false);
 	}
 
 	if (Session.Type != GAME_NORMAL) {
 		DebugString("Reading Session.Options\n");
-		if (!Session.Options.Load(stream)) {
+		if (!LOAD_SECTION("SessionOptions", Session.Options.Load(stream))) {
 			DebugString("\t***** FAILED!\n");
 			return(false);
 		}
@@ -998,7 +1085,7 @@ static bool Get_All(SaveStreamClass & stream, bool save_net)
 
 	Map.Flag_To_Redraw(GS_REDRAW_ALL);
 
-	return(!stream.Was_Error());
+	return(true);
 }
 
 /***************************************************************************
@@ -1064,30 +1151,30 @@ bool Save_Game(const char *file_name, char const * descr)
 	SaveFileClass file;
 	info.Save(file);
 
+	DebugString("Writing %s\n", file_name);
+	SaveFileClass::ResultType result = file.Begin_Write(Saved_Game_Name(file_name).c_str());
+	if (result != SaveFileClass::RESULT_OK) {
+		DebugString("\t***** FAILED! (%s)\n", SaveFileClass::Result_Text(result));
+		return(false);
+	}
+
 	DebugString("Calling Put_All()\n");
 	SaveNamesClass names;
-	SaveStreamClass stream(file.Content, SaveStreamClass::MODE_SAVE, names);
-	bool res = Put_All(stream, 0);
-	if (!res) {
-		DebugString("\t***** FAILED!\n");
-	}
+	bool res = Put_All(file, names, 0);
 
-	// The names the content is read through are known only once it has been written, and
-	// they are read before it, so they go in front of what they describe.
+	// The names the sections and their members were written under are known only once
+	// they have been written, so the table goes in last.
 	if (res) {
-		std::vector<unsigned char> image;
-		names.Write(image);
-		image.insert(image.end(), file.Content.begin(), file.Content.end());
-		file.Content.swap(image);
-	}
-
-	if (res) {
-		DebugString("Writing %s\n", file_name);
-		SaveFileClass::ResultType const result = file.Write(Saved_Game_Name(file_name).c_str());
+		std::vector<unsigned char> table;
+		names.Write(table);
+		result = file.End_Write(table.data(), (std::uint32_t)table.size());
 		if (result != SaveFileClass::RESULT_OK) {
 			DebugString("\t***** FAILED! (%s)\n", SaveFileClass::Result_Text(result));
 			res = false;
 		}
+	} else {
+		DebugString("\t***** FAILED!\n");
+		file.Abandon_Write();
 	}
 
 	DebugString("SAVING GAME [%s - %s] - %s\n\n", file_name, descr, res ? "Complete" : "Failed");
@@ -1166,34 +1253,28 @@ bool Load_Game(const char *file_name)
 
 	Swizzler.Discard();
 
+	std::vector<unsigned char> table;
 	SaveNamesClass names;
-	if (!names.Read(file.Content.data(), file.Content.size())) {
+	if (!file.Get_Names(table) || !names.Read(table.data(), table.size())) {
 		DebugString("\t***** FAILED! (the name table is not one this build reads)\n");
 		return(false);
 	}
 
-	SaveStreamClass stream(file.Content, SaveStreamClass::MODE_LOAD, names, (unsigned int)names.Byte_Size());
 	bool res = false;
 	// The catch sits here rather than around the whole routine because what was already
 	// loaded still has to be abandoned below. Both of the ways a count read from the file
 	// can end an allocation are refused here; anything else still raises.
 	try {
-		res = Get_All(stream, false);
+		res = Get_All(file, names, false);
 	} catch (std::bad_alloc const &) {
-		DebugString("\t***** FAILED! (out of memory at %u of %u bytes)\n", stream.Offset(), stream.Size());
-	} catch (std::length_error const &) {
-		DebugString("\t***** FAILED! (a count no container can hold at %u of %u bytes)\n",
-			stream.Offset(), stream.Size());
+		DebugString("\t***** FAILED! (out of memory)\n");
 	}
 	if (!res) {
-		DebugString("\t***** FAILED! (at %u of %u bytes)\n", stream.Offset(), stream.Size());
-		// What was loaded stays in the heaps until the next teardown, so the requests it
-		// registered must not be answered into it once the game that follows has moved on.
+		DebugString("\t***** FAILED!\n");
+		// What was loaded stays in the heaps until the next teardown, which must not
+		// follow the identities still sitting in its pointer slots.
 		Swizzler.Discard();
 		return(false);
-	}
-	if (stream.Offset() != stream.Size()) {
-		DebugString("Save carries %u bytes past its last record\n", stream.Size() - stream.Offset());
 	}
 
 	Swizzler.Resolve();

@@ -12,20 +12,23 @@ Every integer is little-endian. Offsets are from the start of the file.
 | Offset | Size | Field |
 | --- | --- | --- |
 | 0 | 4 | Signature, the bytes `OTSV` |
-| 4 | 2 | Format version, currently 2 |
-| 6 | 2 | Flags; bit 0 set when the content is LZO-compressed |
+| 4 | 2 | Format version, currently 3 |
+| 6 | 2 | Flags; none are defined |
 | 8 | 4 | Length of the field table |
-| 12 | 4 | Offset of the content |
-| 16 | 4 | Stored length of the content |
-| 20 | 4 | Uncompressed length of the content |
-| 24 | 4 | CRC-32 of the stored content |
-| 28 | 4 | CRC-32 of the first 28 bytes of the header, continued over the field table |
+| 12 | 4 | Offset of the payload |
+| 16 | 4 | Length of the payload |
+| 20 | 4 | Offset of the name table |
+| 24 | 4 | Stored length of the name table |
+| 28 | 4 | Unpacked length of the name table |
+| 32 | 4 | CRC-32 of the payload |
+| 36 | 4 | CRC-32 of the first 36 bytes of the header, continued over the field table |
 
-The header is 32 bytes, the field table follows it directly, and the content
-follows the table directly. The content offset is recorded rather than assumed
-so a later format version can put something between the two; this version
-refuses a file whose offset says otherwise. A field table is refused above
-1 MiB, since a listing is a dozen short fields.
+The header is 40 bytes and the field table follows it directly. The payload
+follows the table and runs to the end of the file: the sections first, then the
+name table. The payload offset is recorded rather than assumed so a later
+format version can put something between the two; this version refuses a file
+whose offset says otherwise, and one with anything after the payload. A field
+table is refused above 1 MiB, since a listing is a dozen short fields.
 
 Both checksums are the CRC-32 of IEEE 802.3, polynomial `0xEDB88320`
 reflected, initial value and final complement of all ones, as PNG and gzip
@@ -55,26 +58,39 @@ A file time counts 100-nanosecond intervals from the start of 1601 UTC, as a
 Windows `FILETIME` does, and is stored as two 4-byte words, the low word first.
 The engine holds it as a `FileTimeType` (`code/platform/filetime.h`).
 
-## Content
+## The payload
 
-The content is the game state: the bytes `Put_All` in `code/saveload.cpp`
-writes through `SaveStreamClass`, compressed as one block with LZO1X-1 when
-that makes it smaller, and stored as it is otherwise. The reader checks the
-stored length and checksum before decompressing, and refuses a block that does
-not expand to exactly the recorded length. An uncompressed length above 256 MiB
-is refused before anything is allocated for it.
+The payload is the sections, in the order `Put_All` in `code/saveload.cpp`
+writes them, and then the name table. Each section is:
 
-The block is decompressed through `lzo1x_decompress_safe`, which stops at the
-end of the output buffer, so a block forged to expand past the recorded length
-is refused rather than written past it. The records after the header are still
-read into live objects, so treat a save file from an untrusted source as
-untrusted input.
+| Size | Field |
+| --- | --- |
+| 2 | The identifier its name has in the table |
+| 4 | Stored length |
+| 4 | Unpacked length |
+| | The bytes, LZO1X-1 compressed unless the two lengths agree |
+
+A section is compressed only where that makes it smaller, and each is
+compressed on its own, which costs nothing: LZO cannot match further back than
+49,151 bytes, so there is no redundancy across a section boundary for one block
+to find that many cannot.
+
+Writing runs forward through the file. The header is left as room to fill in,
+each section is written as it is finished, and the name table goes last because
+the names are known only once everything has been written. So a save holds no
+more than the section in hand in memory, and the header is filled in when the
+rest is on disk. Reading is the other way about: the header says where the name
+table is, the table is read first, and a section is unpacked only when it is
+asked for.
+
+A load asks for each section by name. Order therefore does not matter, a
+section this build does not know is passed over, and a section it needs and
+does not find fails the load rather than leaving a subsystem at whatever it was
+built with.
 
 ### The name table
 
-The content opens with the table that names every member in it. It is written
-once the state has been written, since only then are the names known, and read
-before anything else:
+The table names every member and every section in the file:
 
 | Size | Field |
 | --- | --- |
@@ -86,8 +102,7 @@ member's payload -- 1, 2, 4 or 8 bytes -- or 0 for a payload that begins with
 its own four-byte length. That width is what lets a reader step over a member
 it has none of its own for, so a table entry it does not recognize costs it
 nothing. A file carries at most 65536 names and a name is at most 255 bytes; a
-table claiming more, or a width that is none of the above, is refused before
-the content is read.
+table claiming more, or a width that is none of the above, is refused.
 
 Two members of the same name and width share an identifier wherever they
 appear. Two of the same name and different widths are two entries, so a name
@@ -116,17 +131,21 @@ A class built on another gives the base a body of its own, named for the base,
 so a base and the class built on it may both have a member called `Timer` and
 either may gain one without disturbing the other.
 
+A character buffer travels as its text: a length and that many characters, and
+a load clears the rest of the buffer. How much room a build keeps for a string
+is its own business, so the file carries neither the capacity nor whatever the
+memory held past the terminator.
+
 Not everything is named. A container's elements have positions rather than
 names, and so do the runs a class lays out itself -- a flag and the object it
 guards, a count and the records after it. These travel as one member whose
 payload is read in the order it was written, and a class that is nothing but
-such a run says so with `SERIALIZE_POSITIONAL`. A run of that kind at the top
-level is framed by its length alone, with nothing inside it indexed.
+such a run says so with `SERIALIZE_POSITIONAL`. A section that is such a run is
+framed by its length alone, with nothing inside it indexed.
 
 ### Object records
 
-The state is a sequence of blocks and object records in the order `Put_All`
-names them. An object record is:
+A section holds values and object records. An object record is:
 
 | Size | Field |
 | --- | --- |
@@ -196,7 +215,7 @@ changes; the internal version moves with every release.
 | `RESULT_MISSING` | No file under that name |
 | `RESULT_NOT_A_SAVE` | The first bytes are not the signature |
 | `RESULT_UNSUPPORTED_VERSION` | A format version above the reader's, or a header flag it does not know |
-| `RESULT_CORRUPT` | A length, checksum or compressed block that does not add up, including a truncated file, a forged block, a field table above 1 MiB, a content offset that does not follow the table, or a content length above 256 MiB |
+| `RESULT_CORRUPT` | A length, checksum or compressed block that does not add up, including a truncated file, a field table above 1 MiB, a payload offset that does not follow the table, bytes after the payload, a name table outside it, or a section claiming more than the payload holds |
 | `RESULT_NO_MEMORY` | A file within those limits that the process cannot hold |
 
 `Read` judges the header before it reads or allocates anything else, so a file
@@ -204,27 +223,29 @@ of any size costs the reader no more than the limits above allow, and
 `Read_Fields` reads the header and the table only, so listing a folder never
 allocates for a file's content.
 
-`Load_Game` reads and checks the whole file before it tears down the running
-game, so a refused file costs nothing.
+`Load_Game` reads and checks the whole file -- both checksums, the section
+framing and the name table -- before it tears down the running game, so a
+refused file costs nothing. A section is unpacked only as it is loaded.
 
 A save written before this format is an OLE compound document, which begins
 with a signature of its own, so the reader answers `RESULT_NOT_A_SAVE` and the
-load dialog leaves the file out of its list. A save written in format version 1,
-whose members travelled by position rather than by name, is refused as an
-unsupported version. Nothing converts either.
+load dialog leaves the file out of its list. A save written in format version 1
+or 2 is refused as an unsupported version: version 1 carried its members by
+position, and version 2 carried the whole state as one block. Nothing converts
+any of them.
 
 ## Writing
 
-`SaveFileClass::Write` builds the whole image in memory, writes it to the
-target name with `.tmp` appended, flushes and closes it, and then moves it over
-the target with `Platform_Replace_File`: `MoveFileExA` with
-`MOVEFILE_REPLACE_EXISTING` on Windows, `rename` elsewhere. A save
-interrupted at any point leaves the previous file untouched under its name,
-and at most a `.tmp` beside it, which the next successful save replaces.
-The reader's limits bind the writer too: content above 256 MiB, a field above
-64 KiB or a table above 1 MiB is refused with `RESULT_TOO_LARGE` before
-anything is written, so a save this build writes is one it reads, and the
-file on disk is left as it was.
+`SaveFileClass::Begin_Write` opens the target name with `.tmp` appended and
+writes the header's room and the field table; `Write_Section` appends one
+section; `End_Write` writes the name table, fills the header in, flushes,
+closes, and moves the file over the target with `MoveFileExA` and
+`MOVEFILE_REPLACE_EXISTING`. A save interrupted at any point leaves the
+previous file untouched under its name and at most a `.tmp` beside it, which
+`Abandon_Write` removes and the next successful save replaces. The reader's
+limits bind the writer too: a section above 256 MiB, a field above 64 KiB or a
+table above 1 MiB is refused with `RESULT_TOO_LARGE`, and a limit met part way
+through abandons the temporary rather than the file on disk.
 
 ## Reading one
 
@@ -235,10 +256,11 @@ follow, `--names` prints the table alone, and `--raw` writes a section's bytes
 out. It needs nothing but Python; the LZO decompressor beside it is a port of
 the one the engine links.
 
-The name table is what makes this possible: a body can be walked, named and
-stepped over without knowing anything about the classes. The section list is
-not in the file, so the tool carries its own copy of it, and a save from a
-build whose sections differ is read wrongly rather than refused.
+The name table is what makes this possible: the sections name themselves and a
+body can be walked, named and stepped over without knowing anything about the
+classes. What the tool still carries of its own is how to read each section --
+a body, a heap of records, or a run the engine lays out itself -- and the
+identifiers in `code/classids.cpp` that put a class name on a record.
 
 ## Checks
 
@@ -250,5 +272,4 @@ table and the content, a field table above its limit, a gap before the
 content, a block that ends before or expands past its declared length, and a
 write above each limit that leaves the earlier save in place. One save written
 from fixed fields and content is compared by length and checksum with a
-recorded image of that file, and its time field byte for byte. It reads no
-game data.
+recorded image of that file, and its time field byte for byte. It reads no game data.
