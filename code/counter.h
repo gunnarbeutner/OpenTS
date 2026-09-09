@@ -9,12 +9,16 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "vector.h"
 #include "win.h"
 
 class CounterClass : protected VectorClass<int>
 {
 public:
+	SERIALIZE_POSITIONAL;
+
 	int Increment(int index);
 	int Decrement(int index);
 

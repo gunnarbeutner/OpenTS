@@ -139,7 +139,7 @@ DriveLocomotionClass::~DriveLocomotionClass(void)
 /// <param name="stream">The stream carrying the members.</param>
 void DriveLocomotionClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, CurrentRamp);
 	SERIALIZE(stream, PreviousRamp);
@@ -157,16 +157,18 @@ void DriveLocomotionClass::Serialize(SaveStreamClass & stream)
 	SERIALIZE(stream, IsRocking);
 	SERIALIZE(stream, IsLocomotorUnlocked);
 
-	bool haspiggy = (Piggybacker != NULL);
-	SERIALIZE(stream, haspiggy);
+	stream.Field("Piggybacker", [&]{
+		bool haspiggy = (Piggybacker != NULL);
+		stream.Serialize_Raw(haspiggy);
 
-	if (haspiggy) {
-		if (stream.Is_Saving()) {
-			Save_Object(stream, Piggybacker.get());
-		} else {
-			Piggybacker = Load_Locomotor(stream);
+		if (haspiggy) {
+			if (stream.Is_Saving()) {
+				Save_Object(stream, Piggybacker.get());
+			} else {
+				Piggybacker = Load_Locomotor(stream);
+			}
 		}
-	}
+	});
 	// TrackControl -- constant tables shared by every driver.
 	// RawTracks
 	// Track1 - Track13

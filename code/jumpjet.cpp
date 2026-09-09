@@ -248,7 +248,7 @@ ClassID JumpjetLocomotionClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void JumpjetLocomotionClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, HeadToCoord);
 	SERIALIZE(stream, IsMoving);

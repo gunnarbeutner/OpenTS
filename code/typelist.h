@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "random.h"
 #include "vector.h"
 #include "win.h"
@@ -26,6 +28,8 @@ class TypeList : public DynamicVectorClass<T>
 		typedef DynamicVectorClass<T> BASECLASS;
 
 	public:
+		SERIALIZE_POSITIONAL;
+
 		using BASECLASS::Count;
 		using BASECLASS::Add;
 

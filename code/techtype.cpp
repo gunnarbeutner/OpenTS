@@ -933,7 +933,7 @@ void TechnoTypeClass::Post_Load(void)
 /// <param name="stream">The stream carrying the members.</param>
 void TechnoTypeClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, CollateralDamageCoefficient);
 	SERIALIZE(stream, Unused1);
@@ -958,7 +958,7 @@ void TechnoTypeClass::Serialize(SaveStreamClass & stream)
 	 * A class identifier is a plain sixteen byte value from the Windows SDK with no member
 	 * of its own to describe, so it travels as its raw image.
 	 */
-	stream.Serialize_Bytes(&Locomotor, sizeof(Locomotor));
+	stream.Field("Locomotor", [&]{ stream.Serialize_Bytes(&Locomotor, sizeof(Locomotor)); });
 
 	SERIALIZE(stream, VoxelCenterY);
 	SERIALIZE(stream, VoxelCenterX);

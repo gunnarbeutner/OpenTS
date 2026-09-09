@@ -623,7 +623,7 @@ ClassID WalkLocomotionClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void WalkLocomotionClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, DestinationCoord);
 	SERIALIZE(stream, HeadToCoord);
@@ -631,16 +631,18 @@ void WalkLocomotionClass::Serialize(SaveStreamClass & stream)
 	SERIALIZE(stream, IsProcessingMovement);
 	SERIALIZE(stream, IsReallyMoving);
 
-	bool haspiggy = (Piggybacker != NULL);
-	SERIALIZE(stream, haspiggy);
+	stream.Field("Piggybacker", [&]{
+		bool haspiggy = (Piggybacker != NULL);
+		stream.Serialize_Raw(haspiggy);
 
-	if (haspiggy) {
-		if (stream.Is_Saving()) {
-			Save_Object(stream, Piggybacker.get());
-		} else {
-			Piggybacker = Load_Locomotor(stream);
+		if (haspiggy) {
+			if (stream.Is_Saving()) {
+				Save_Object(stream, Piggybacker.get());
+			} else {
+				Piggybacker = Load_Locomotor(stream);
+			}
 		}
-	}
+	});
 }
 
 

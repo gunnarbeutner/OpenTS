@@ -850,7 +850,7 @@ void TeamTypeClass::Write_All(CCINIClass & ini, INIScopeType scope)
 /// <param name="stream">The stream carrying the members.</param>
 void TeamTypeClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, HeapID);
 	SERIALIZE(stream, Group);

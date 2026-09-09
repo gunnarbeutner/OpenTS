@@ -28,6 +28,8 @@ template<typename T>
 class PriorityQueueClass
 {
 	public:
+		SERIALIZE_POSITIONAL;
+
 		// The size is how much room to take up front, not a limit on what the queue holds.
 		explicit PriorityQueueClass(int size = 0);
 

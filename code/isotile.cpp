@@ -176,7 +176,7 @@ IsometricTileClass::~IsometricTileClass(void)
 /// <param name="stream">The stream carrying the members.</param>
 void IsometricTileClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Class);
 }

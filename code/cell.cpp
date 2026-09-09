@@ -4361,7 +4361,7 @@ bool CellClass::Can_Tiberium_Germinate(TiberiumClass const * tiberium) const
 /// <param name="stream">The stream carrying the members.</param>
 void CellClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, CellID);
 
@@ -4376,14 +4376,16 @@ void CellClass::Serialize(SaveStreamClass & stream)
 	 * The snapshot list is built only once something standing here has been fogged over,
 	 * so whether the cell has one at all travels ahead of its contents.
 	 */
-	bool hasfogged = (FoggedObjects != NULL);
-	SERIALIZE(stream, hasfogged);
-	if (stream.Is_Loading() && hasfogged) {
-		FoggedObjects = new FOGGED_OBJECT_LIST;
-	}
-	if (hasfogged) {
-		stream.Serialize_Raw(*FoggedObjects);
-	}
+	stream.Field("FoggedObjects", [&]{
+		bool hasfogged = (FoggedObjects != NULL);
+		stream.Serialize_Raw(hasfogged);
+		if (stream.Is_Loading() && hasfogged) {
+			FoggedObjects = new FOGGED_OBJECT_LIST;
+		}
+		if (hasfogged) {
+			stream.Serialize_Raw(*FoggedObjects);
+		}
+	});
 
 	SERIALIZE(stream, BridgeDeckCell);
 	SERIALIZE(stream, UnusedCell);

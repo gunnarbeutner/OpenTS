@@ -438,7 +438,7 @@ bool MouseClass::Load(SaveStreamClass & stream)
 			Array.Clear();
 
 			stream.Set_Context("MouseClass");
-			Serialize(stream);
+			stream.Body([&]{ Serialize(stream); });
 			if (stream.Was_Error()) {
 				return(false);
 			}
@@ -482,7 +482,7 @@ bool MouseClass::Load(SaveStreamClass & stream)
 				}
 			}
 
-			SERIALIZE(stream, ZoneConnections);
+			stream.Serialize_Raw(ZoneConnections);
 			if (stream.Was_Error()) {
 				return(false);
 			}
@@ -548,7 +548,7 @@ bool MouseClass::Save(SaveStreamClass & stream)
 				return(false);
 			}
 
-			Serialize(stream);
+			stream.Body([&]{ Serialize(stream); });
 			if (stream.Was_Error()) {
 				return(false);
 			}
@@ -565,7 +565,7 @@ bool MouseClass::Save(SaveStreamClass & stream)
 				}
 			}
 
-			SERIALIZE(stream, ZoneConnections);
+			stream.Serialize_Raw(ZoneConnections);
 			if (stream.Was_Error()) {
 				return(false);
 			}
@@ -614,7 +614,7 @@ bool MouseClass::Save(SaveStreamClass & stream)
 /// <param name="stream">The stream carrying the members.</param>
 void MouseClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 	// MouseShapes -- the cursor artwork and the table that drives it, both established by
 	// One_Time.
 	// MouseControl

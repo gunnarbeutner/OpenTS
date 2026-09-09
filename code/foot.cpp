@@ -3488,7 +3488,7 @@ bool FootClass::Limbo(void)
 /// <param name="stream">The stream carrying the members.</param>
 void FootClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, CurrentPath);
 	SERIALIZE(stream, WaypointOffsetCell);
@@ -3517,11 +3517,13 @@ void FootClass::Serialize(SaveStreamClass & stream)
 	 * The locomotor is a sub-object rather than a member, so it travels as a record of
 	 * its own.
 	 */
-	if (stream.Is_Saving()) {
-		Save_Object(stream, Locomotion.get());
-	} else {
-		Locomotion = Load_Locomotor(stream);
-	}
+	stream.Field("Locomotion", [&]{
+		if (stream.Is_Saving()) {
+			Save_Object(stream, Locomotion.get());
+		} else {
+			Locomotion = Load_Locomotor(stream);
+		}
+	});
 
 	SERIALIZE(stream, HeadToCoord);
 	SERIALIZE(stream, CurrentTube);

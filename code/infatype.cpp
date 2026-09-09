@@ -476,7 +476,7 @@ void InfantryTypeClass::Post_Load(void)
 /// <param name="stream">The stream carrying the members.</param>
 void InfantryTypeClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, HeapID);
 	SERIALIZE(stream, Pip);
@@ -488,7 +488,7 @@ void InfantryTypeClass::Serialize(SaveStreamClass & stream)
 	if (stream.Is_Loading()) {
 		DoControls = new DoInfoStruct[DO_COUNT];
 	}
-	stream.Serialize_Bytes((void *)DoControls, sizeof(*DoControls) * DO_COUNT);
+	stream.Field("DoControls", [&]{ stream.Serialize_Bytes((void *)DoControls, sizeof(*DoControls) * DO_COUNT); });
 
 	SERIALIZE(stream, FireLaunch);
 	SERIALIZE(stream, ProneLaunch);

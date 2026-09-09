@@ -192,7 +192,7 @@ ClassID ParticleSystemTypeClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void ParticleSystemTypeClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, HoldsWhat);
 	SERIALIZE(stream, Spawns);

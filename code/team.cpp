@@ -2257,7 +2257,7 @@ FootClass * TeamClass::Fetch_A_Leader(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void TeamClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Class);
 	SERIALIZE(stream, Script);

@@ -904,7 +904,7 @@ ClassID LevitateLocomotionClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void LevitateLocomotionClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, State);
 	SERIALIZE(stream, Speed);

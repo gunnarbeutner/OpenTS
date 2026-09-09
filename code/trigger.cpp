@@ -511,7 +511,7 @@ ClassID TriggerClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void TriggerClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Class);
 	SERIALIZE(stream, LinkedTo);
