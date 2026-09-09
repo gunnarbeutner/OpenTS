@@ -308,15 +308,52 @@ def walk_body(save, start, end, depth, limit, out, indent):
             number = int.from_bytes(value, "little")
             out.append("%s%s = %d (%s)" % (indent, name, number, value.hex()))
         else:
+            text = as_text(value)
+            if text is not None:
+                out.append("%s%s = %s" % (indent, name, text))
+                at = payload + width
+                continue
+
             nested = looks_like_body(save, payload, width)
-            if nested and depth < limit:
+            if nested and (limit < 0 or depth < limit):
                 out.append("%s%s: body of %d bytes" % (indent, name, width))
                 walk_body(save, payload, payload + width, depth + 1, limit, out, indent + "  ")
+            elif nested:
+                out.append("%s%s: body of %d bytes, not shown (--depth %d)" %
+                           (indent, name, width, depth + 1))
             else:
-                out.append("%s%s: %d bytes%s" % (indent, name, width,
-                                                " (a body)" if nested else ""))
+                out.append("%s%s: %d bytes" % (indent, name, width))
 
         at = payload + width
+
+
+def as_text(blob):
+    """The text a member holds, when that is plainly what it is.
+
+    A character array is text up to its first NUL and NULs after it; a string is a count
+    and that many characters. Either is worth reading as what it says rather than as the
+    body its bytes could pass for.
+    """
+
+    def printable(raw):
+        return raw and all(32 <= byte < 127 or byte in (9, 10, 13) for byte in raw)
+
+    if len(blob) >= 4:
+        count = struct.unpack_from("<I", blob, 0)[0]
+        if count == len(blob) - 4 and printable(blob[4:]):
+            return repr(blob[4:].decode("latin-1"))
+
+    # A fixed buffer is written whole, so what follows the terminator is whatever the
+    # memory held; the text is what is in front of it.
+    cut = blob.find(0)
+    if cut > 0 and printable(blob[:cut]):
+        text = repr(blob[:cut].decode("latin-1"))
+        tail = blob[cut:]
+        if tail.strip(b"\x00"):
+            return "%s and %d bytes after the terminator" % (text, len(tail))
+        return text
+
+    return None
 
 
 def looks_like_body(save, at, width):
@@ -364,7 +401,7 @@ def walk_record(save, at, depth, limit, out, indent):
 
     out.append("%srecord %s, %d bytes, swizzle id %d" % (indent, format_clsid(classid), length, identity))
 
-    if depth < limit:
+    if limit < 0 or depth < limit:
         inner = struct.unpack_from("<I", save.content, body_at + 4)[0]
         walk_body(save, body_at + 8, body_at + 8 + inner, depth + 1, limit, out, indent + "  ")
 
@@ -428,8 +465,8 @@ def main():
     parser = argparse.ArgumentParser(description="Print what a saved game holds.")
     parser.add_argument("save", help="the .SAV file to read")
     parser.add_argument("--section", help="print only this top level section")
-    parser.add_argument("--depth", type=int, default=1,
-                        help="how far to follow the bodies inside a member (default 1)")
+    parser.add_argument("--depth", type=int, default=-1,
+                        help="how far to follow the bodies inside a member (all of them by default)")
     parser.add_argument("--names", action="store_true", help="print the name table and stop")
     parser.add_argument("--raw", metavar="SECTION", help="write a section's bytes out instead")
     parser.add_argument("--out", help="where --raw writes")
