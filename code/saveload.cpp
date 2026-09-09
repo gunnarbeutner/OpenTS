@@ -276,26 +276,36 @@ std::unique_ptr<IPersistent> Load_Object(SaveStreamClass & stream, bool (*accept
 template<class T>
 static bool Load_Vector(SaveStreamClass & stream)
 {
-	int count = 0;
-	stream.Serialize_Raw(count);
-	if (stream.Was_Error()) {
-		return(false);
-	}
-	if (count < 0) {
-		stream.Fail();
-		return(false);
-	}
+	bool whole = true;
 
-	for (int index = 0; index < count; index++) {
-		std::unique_ptr<T> object = Load_Object_As<T>(stream);
-		if (object == nullptr) {
-			return(false);
+	// The heap travels inside a block of its own, so a reader steps over the whole of it
+	// rather than losing its place in whatever follows.
+	stream.Block([&]{
+		int count = 0;
+		stream.Serialize_Raw(count);
+		if (stream.Was_Error()) {
+			whole = false;
+			return;
 		}
-		// The object attached itself to its own heap as it was constructed, and the heap
-		// is what deletes it from here on.
-		object.release();
-	}
-	return(true);
+		if (count < 0) {
+			stream.Fail();
+			whole = false;
+			return;
+		}
+
+		for (int index = 0; index < count; index++) {
+			std::unique_ptr<T> object = Load_Object_As<T>(stream);
+			if (object == nullptr) {
+				whole = false;
+				return;
+			}
+			// The object attached itself to its own heap as it was constructed, and the heap
+			// is what deletes it from here on.
+			object.release();
+		}
+	});
+
+	return(whole);
 }
 
 
@@ -306,16 +316,22 @@ static bool Load_Vector(SaveStreamClass & stream)
 template<class T>
 static bool Save_Vector(SaveStreamClass & stream, const DynamicVectorClass<T> &list)
 {
-	int count = list.Count();
-	stream.Serialize_Raw(count);
+	bool whole = true;
 
-	for (int index = 0; index < count; index++) {
-		bool const result = Save_Object(stream, list[index]);
-		if (!result) {
-			return(false);
+	stream.Block([&]{
+		int count = list.Count();
+		stream.Serialize_Raw(count);
+
+		for (int index = 0; index < count; index++) {
+			bool const result = Save_Object(stream, list[index]);
+			if (!result) {
+				whole = false;
+				return;
+			}
 		}
-	}
-	return(!stream.Was_Error());
+	});
+
+	return(whole && !stream.Was_Error());
 }
 
 
@@ -1210,49 +1226,51 @@ bool Load_Game(const char *file_name)
  *=========================================================================*/
 static void Serialize_Misc_Values(SaveStreamClass & stream)
 {
-	SERIALIZE(stream, GasSystem);
-	SERIALIZE(stream, PlayerPtr);
-	SERIALIZE(stream, Frame);
-	SERIALIZE(stream, CurrentObject);
-	SERIALIZE(stream, Ground);
+	stream.Block([&]{
+		SERIALIZE(stream, GasSystem);
+		SERIALIZE(stream, PlayerPtr);
+		SERIALIZE(stream, Frame);
+		SERIALIZE(stream, CurrentObject);
+		SERIALIZE(stream, Ground);
 
-	IonStormClass::Serialize(stream);
+		IonStormClass::Serialize(stream);
 
-	SERIALIZE(stream, LogicTags);
-	SERIALIZE(stream, MapTags);
-	SERIALIZE(stream, CrateShares);
-	SERIALIZE(stream, CrateAnims);
-	SERIALIZE(stream, CrateData);
-	SERIALIZE(stream, MissionControl);
-	SERIALIZE(stream, Session.ObiWan);
-	SERIALIZE(stream, Session.AIOnly);
+		SERIALIZE(stream, LogicTags);
+		SERIALIZE(stream, MapTags);
+		SERIALIZE(stream, CrateShares);
+		SERIALIZE(stream, CrateAnims);
+		SERIALIZE(stream, CrateData);
+		SERIALIZE(stream, MissionControl);
+		SERIALIZE(stream, Session.ObiWan);
+		SERIALIZE(stream, Session.AIOnly);
 
-	/*
-	 * Speech is reached through a pair of accessors rather than a variable of its own,
-	 * so it travels through a local either way.
-	 */
-	int state = Get_Speech_State();
-	SERIALIZE(stream, state);
-	if (stream.Is_Loading()) {
-		Set_Speech_State(state != 0);
-	}
+		/*
+		 * Speech is reached through a pair of accessors rather than a variable of its own,
+		 * so it travels through a local either way.
+		 */
+		int state = Get_Speech_State();
+		SERIALIZE(stream, state);
+		if (stream.Is_Loading()) {
+			Set_Speech_State(state != 0);
+		}
 
-	// The ring positions travel with every save, so a load continues where the save left off.
-	int campaign_slot = SaveManager.Autosave.Campaign_Slot();
-	int skirmish_slot = SaveManager.Autosave.Skirmish_Slot();
-	SERIALIZE(stream, campaign_slot);
-	SERIALIZE(stream, skirmish_slot);
-	if (stream.Is_Loading()) {
-		SaveManager.Autosave.Seed_Slots(campaign_slot, skirmish_slot);
-	}
+		// The ring positions travel with every save, so a load continues where the save left off.
+		int campaign_slot = SaveManager.Autosave.Campaign_Slot();
+		int skirmish_slot = SaveManager.Autosave.Skirmish_Slot();
+		SERIALIZE(stream, campaign_slot);
+		SERIALIZE(stream, skirmish_slot);
+		if (stream.Is_Loading()) {
+			SaveManager.Autosave.Seed_Slots(campaign_slot, skirmish_slot);
+		}
 
-	// The scenario's own tutorial lines travel here, since a load never re-reads the map.
-	SERIALIZE(stream, TutorialText);
+		// The scenario's own tutorial lines travel here, since a load never re-reads the map.
+		SERIALIZE(stream, TutorialText);
 
-	// Placed sounds and the sounds attached to objects come back on the next
-	// sound tick; the playing sounds themselves are not saved.
-	Static_Sounds_Serialize(stream);
-	AmbientSounds.Serialize(stream);
+		// Placed sounds and the sounds attached to objects come back on the next
+		// sound tick; the playing sounds themselves are not saved.
+		Static_Sounds_Serialize(stream);
+		AmbientSounds.Serialize(stream);
+	});
 }
 
 

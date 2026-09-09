@@ -35,6 +35,70 @@ SaveStreamClass::SaveStreamClass(std::vector<unsigned char> & buffer, ModeType m
 	OwnerType(NULL),
 	OwnerID(0)
 {
+	Limit = (mode == MODE_LOAD) ? (unsigned int)buffer.size() : 0;
+}
+
+
+/// <summary>
+/// Opens a run that carries its own length, which the stream resumes after however the
+/// reading inside it went.
+/// </summary>
+void SaveStreamClass::Begin_Block(void)
+{
+	// Pushed even where the block is refused, so the End_Block below closes this block
+	// rather than the one around it.
+	BlockFrame frame;
+	frame.End = (Mode == MODE_SAVE) ? (unsigned int)Buffer->size() : Cursor;
+	frame.Limit = Limit;
+
+	if (Mode == MODE_SAVE) {
+		Blocks.push_back(frame);
+		unsigned int length = 0;
+		Serialize_Raw(length);
+		return;
+	}
+
+	unsigned int length = 0;
+	Serialize_Raw(length);
+
+	if (Failed || length > Limit - Cursor) {
+		if (!Failed) {
+			Fail();
+		}
+		frame.End = Cursor;
+		Blocks.push_back(frame);
+		return;
+	}
+
+	frame.End = Cursor + length;
+	Blocks.push_back(frame);
+	Limit = frame.End;
+}
+
+
+/// <summary>
+/// Closes the block opened above and leaves the stream after it.
+/// </summary>
+void SaveStreamClass::End_Block(void)
+{
+	if (Blocks.empty()) {
+		Fail();
+		return;
+	}
+
+	BlockFrame const frame = Blocks.back();
+	Blocks.pop_back();
+
+	if (Mode == MODE_SAVE) {
+		if (!Failed) {
+			unsigned int const length = (unsigned int)Buffer->size() - frame.End - (unsigned int)sizeof(unsigned int);
+			Overwrite_Bytes(frame.End, &length, (int)sizeof(length));
+		}
+		return;
+	}
+
+	Cursor = frame.End;
+	Limit = frame.Limit;
 }
 
 

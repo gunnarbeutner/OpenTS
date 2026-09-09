@@ -148,6 +148,25 @@ class SaveStreamClass
 
 		void Serialize_Bytes(void * data, int length);
 
+		// A mismatch inside a block is caught at its end rather than somewhere downstream.
+		void Begin_Block(void);
+		void End_Block(void);
+
+		template<typename F>
+		auto Block(F && interior) -> decltype(interior())
+		{
+			if constexpr (std::is_void_v<decltype(interior())>) {
+				Begin_Block();
+				interior();
+				End_Block();
+			} else {
+				Begin_Block();
+				auto const answer = interior();
+				End_Block();
+				return(answer);
+			}
+		}
+
 		/*
 		 * A member of the record being carried, under the name its class knows it by.
 		 * Use the SERIALIZE macro rather than calling this with a name of one's own: the
@@ -470,6 +489,16 @@ class SaveStreamClass
 				Serialize_Raw(element);
 			}
 		}
+
+		// A count out of a damaged save is judged against the block it sits in rather than
+		// against the whole stream.
+		struct BlockFrame
+		{
+			unsigned int End;
+			unsigned int Limit;
+		};
+
+		std::vector<BlockFrame> Blocks;
 
 		std::vector<unsigned char> * Buffer;
 		unsigned int Cursor;

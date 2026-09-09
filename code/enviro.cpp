@@ -112,9 +112,11 @@ void EnvironmentClass::Restore(void)
 /// <returns>Returns with the result reported by the stream read.</returns>
 bool EnvironmentClass::Load(SaveStreamClass & stream)
 {
-	stream.Set_Context("EnvironmentClass");
-	Serialize(stream);
-	return(!stream.Was_Error());
+	return(stream.Block([&]{
+		stream.Set_Context("EnvironmentClass");
+		Serialize(stream);
+		return(!stream.Was_Error());
+	}));
 }
 
 
@@ -124,8 +126,10 @@ bool EnvironmentClass::Load(SaveStreamClass & stream)
 /// <returns>Returns with the result reported by the stream write.</returns>
 bool EnvironmentClass::Save(SaveStreamClass & stream)
 {
-	Serialize(stream);
-	return(!stream.Was_Error());
+	return(stream.Block([&]{
+		Serialize(stream);
+		return(!stream.Was_Error());
+	}));
 }
 
 

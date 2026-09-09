@@ -861,53 +861,55 @@ void VeinholeMonsterClass::Remove_Dead(void)
 /// <returns>bool; Were all the monsters read successfully?</returns>
 bool VeinholeMonsterClass::Load_All(SaveStreamClass & stream)
 {
-	Reset();
+	return(stream.Block([&]{
+		Reset();
 
-	int cell_count = Map_Cell_Count();
+		int cell_count = Map_Cell_Count();
 
-	int monster_count;
-	stream.Serialize_Raw(monster_count);
-	if (stream.Was_Error()) {
-		return(false);
-	}
-
-	GlobalGrowthState = new bool[cell_count];
-	stream.Serialize_Bytes(GlobalGrowthState, (int)(cell_count));
-	if (stream.Was_Error()) {
-		return(false);
-	}
-
-	for (int i = 0; i < monster_count; i++) {
-
-		/*
-		 * The constructor allocates this monster's vein records and adds it to the list;
-		 * the members that describe its state arrive from the stream afterwards.
-		 */
-		VeinholeMonsterClass * monster = new VeinholeMonsterClass();
-
-		SwizzleIDType id;
-		stream.Serialize_Raw(id);
+		int monster_count;
+		stream.Serialize_Raw(monster_count);
 		if (stream.Was_Error()) {
 			return(false);
 		}
 
-		Swizzler.Here_I_Am(id, monster);
-
-		stream.Set_Context(typeid(*monster).name(), id);
-		monster->Serialize(stream);
+		GlobalGrowthState = new bool[cell_count];
+		stream.Serialize_Bytes(GlobalGrowthState, (int)(cell_count));
 		if (stream.Was_Error()) {
 			return(false);
 		}
 
-		stream.Serialize_Bytes(monster->GrowthState, (int)(cell_count));
-		if (stream.Was_Error()) {
-			return(false);
+		for (int i = 0; i < monster_count; i++) {
+
+			/*
+			 * The constructor allocates this monster's vein records and adds it to the list;
+			 * the members that describe its state arrive from the stream afterwards.
+			 */
+			VeinholeMonsterClass * monster = new VeinholeMonsterClass();
+
+			SwizzleIDType id;
+			stream.Serialize_Raw(id);
+			if (stream.Was_Error()) {
+				return(false);
+			}
+
+			Swizzler.Here_I_Am(id, monster);
+
+			stream.Set_Context(typeid(*monster).name(), id);
+			monster->Serialize(stream);
+			if (stream.Was_Error()) {
+				return(false);
+			}
+
+			stream.Serialize_Bytes(monster->GrowthState, (int)(cell_count));
+			if (stream.Was_Error()) {
+				return(false);
+			}
+
+			TargetTracker.Add_Index(monster->Fetch_ID(), monster);
 		}
 
-		TargetTracker.Add_Index(monster->Fetch_ID(), monster);
-	}
-
-	return(true);
+		return(true);
+	}));
 }
 
 
@@ -943,38 +945,40 @@ void VeinholeMonsterClass::Serialize(SaveStreamClass & stream)
 /// <returns>bool; Were all the monsters written successfully?</returns>
 bool VeinholeMonsterClass::Save_All(SaveStreamClass & stream)
 {
-	int monster_count = VeinholeMonsters.Count();
-	stream.Serialize_Raw(monster_count);
-	if (stream.Was_Error()) {
-		return(false);
-	}
-
-	int cell_count = Map_Cell_Count();
-	stream.Serialize_Bytes(GlobalGrowthState, (int)(cell_count));
-	if (stream.Was_Error()) {
-		return(false);
-	}
-
-	for (int i = 0; i < monster_count; i++) {
-		SwizzleIDType id = Swizzler.ID_Of(VeinholeMonsters[i]);
-		stream.Serialize_Raw(id);
+	return(stream.Block([&]{
+		int monster_count = VeinholeMonsters.Count();
+		stream.Serialize_Raw(monster_count);
 		if (stream.Was_Error()) {
 			return(false);
 		}
 
-		VeinholeMonsters[i]->Serialize(stream);
+		int cell_count = Map_Cell_Count();
+		stream.Serialize_Bytes(GlobalGrowthState, (int)(cell_count));
 		if (stream.Was_Error()) {
 			return(false);
 		}
 
-		stream.Serialize_Bytes(VeinholeMonsters[i]->GrowthState, (int)(cell_count));
-		if (stream.Was_Error()) {
-			return(false);
+		for (int i = 0; i < monster_count; i++) {
+			SwizzleIDType id = Swizzler.ID_Of(VeinholeMonsters[i]);
+			stream.Serialize_Raw(id);
+			if (stream.Was_Error()) {
+				return(false);
+			}
+
+			VeinholeMonsters[i]->Serialize(stream);
+			if (stream.Was_Error()) {
+				return(false);
+			}
+
+			stream.Serialize_Bytes(VeinholeMonsters[i]->GrowthState, (int)(cell_count));
+			if (stream.Was_Error()) {
+				return(false);
+			}
+
 		}
 
-	}
-
-	return(true);
+		return(true);
+	}));
 }
 
 
