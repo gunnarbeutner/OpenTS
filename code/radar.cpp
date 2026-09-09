@@ -1853,7 +1853,7 @@ void RadarClass::Resolve_Radar_Point(Point2D const & point, Cell & cell, ObjectC
 /// <param name="stream">The stream carrying the members.</param>
 void RadarClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("DisplayClass", [&]{ BASECLASS::Serialize(stream); });
 
 	// RadX -- the radar pane's place on the screen, which One_Time measures from the sidebar of
 	// the display the game is running on now.

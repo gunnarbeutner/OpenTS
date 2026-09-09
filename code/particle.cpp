@@ -897,7 +897,7 @@ int Approximate_Distance(Point2D & pt)
 /// <param name="stream">The stream carrying the members.</param>
 void ParticleClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("ObjectClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Class);
 	SERIALIZE(stream, Color);

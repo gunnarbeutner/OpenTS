@@ -82,7 +82,7 @@ TubeClass::~TubeClass(void)
 /// <param name="stream">The stream carrying the members.</param>
 void TubeClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Enter);
 	SERIALIZE(stream, Exit);

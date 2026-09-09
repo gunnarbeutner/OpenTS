@@ -3488,7 +3488,7 @@ bool FootClass::Limbo(void)
 /// <param name="stream">The stream carrying the members.</param>
 void FootClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("TechnoClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, CurrentPath);
 	SERIALIZE(stream, WaypointOffsetCell);

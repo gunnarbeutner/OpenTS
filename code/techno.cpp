@@ -8237,7 +8237,7 @@ bool TechnoClass::Should_Self_Heal_Now(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void TechnoClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("RadioClass", [&]{ BASECLASS::Serialize(stream); });
 	stream.Base("FlasherClass", [&]{ FlasherClass::Serialize(stream); });
 	stream.Base("StageClass", [&]{ StageClass::Serialize(stream); });
 

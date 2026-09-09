@@ -59,7 +59,7 @@ ClassID NeuronClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void NeuronClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractClass", [&]{ BASECLASS::Serialize(stream); });
 
 	// Pointer1 -- untyped, so they carry no swizzle identity, and nothing reads them.
 	// Pointer2

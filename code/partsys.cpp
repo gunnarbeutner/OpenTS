@@ -843,7 +843,7 @@ void ParticleSystemClass::Detach(AbstractClass const * target, bool all)
 /// <param name="stream">The stream carrying the members.</param>
 void ParticleSystemClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("ObjectClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Class);
 	SERIALIZE(stream, CoordOffset);

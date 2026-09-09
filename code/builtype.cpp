@@ -1808,7 +1808,7 @@ void BuildingTypeClass::Post_Load(void)
 /// <param name="stream">The stream carrying the members.</param>
 void BuildingTypeClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("TechnoTypeClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, HeapID);
 	// OccupyList -- a shared footprint table, re-attached by size as this loads.

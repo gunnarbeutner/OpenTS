@@ -260,7 +260,7 @@ MapClass::~MapClass(void)
 /// <param name="stream">The stream carrying the members.</param>
 void MapClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("GScreenClass", [&]{ BASECLASS::Serialize(stream); });
 
 	// ZoneAdjacency -- scratch for the zone rebuild, which fills it again from the loaded terrain.
 	// Zones

@@ -400,7 +400,7 @@ void TagTypeClass::Compute_CRC(CRCEngine & crc) const
 /// <param name="stream">The stream carrying the members.</param>
 void TagTypeClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractTypeClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, HeapID);
 	SERIALIZE(stream, Persistence);

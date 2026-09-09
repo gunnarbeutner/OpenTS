@@ -243,7 +243,7 @@ void ParticleTypeClass::Post_Load(void)
 /// <param name="stream">The stream carrying the members.</param>
 void ParticleTypeClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("ObjectTypeClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, NextParticleOffset);
 	SERIALIZE(stream, XVelocity);

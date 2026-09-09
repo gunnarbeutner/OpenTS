@@ -1436,7 +1436,7 @@ void BulletClass::Detonate(Coord const & coord)
 /// <param name="stream">The stream carrying the members.</param>
 void BulletClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("ObjectClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Class);
 	SERIALIZE(stream, Payback);

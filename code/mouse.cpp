@@ -614,7 +614,7 @@ bool MouseClass::Save(SaveStreamClass & stream)
 /// <param name="stream">The stream carrying the members.</param>
 void MouseClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("ScrollClass", [&]{ BASECLASS::Serialize(stream); });
 	// MouseShapes -- the cursor artwork and the table that drives it, both established by
 	// One_Time.
 	// MouseControl

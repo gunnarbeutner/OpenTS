@@ -309,7 +309,7 @@ TaskForceClass * TaskForceClass::Find_Or_Make(char const * name)
 /// <param name="stream">The stream carrying the members.</param>
 void TaskForceClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractTypeClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Group);
 	SERIALIZE(stream, ClassCount);

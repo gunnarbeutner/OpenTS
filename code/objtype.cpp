@@ -686,7 +686,7 @@ void ObjectTypeClass::Theater_Naming_Convention(char * name, TheaterType theater
 /// <param name="stream">The stream carrying the members.</param>
 void ObjectTypeClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractTypeClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, RadialColor);
 	SERIALIZE(stream, Armor);

@@ -103,7 +103,7 @@ ClassID AITriggerTypeClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void AITriggerTypeClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractTypeClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Type);
 	SERIALIZE(stream, Scope);

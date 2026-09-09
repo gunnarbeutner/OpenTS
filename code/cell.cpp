@@ -4361,7 +4361,7 @@ bool CellClass::Can_Tiberium_Germinate(TiberiumClass const * tiberium) const
 /// <param name="stream">The stream carrying the members.</param>
 void CellClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, CellID);
 

@@ -644,7 +644,7 @@ ClassID TunnelLocomotionClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void TunnelLocomotionClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("LocomotionClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, State);
 	SERIALIZE(stream, DestinationCoord);

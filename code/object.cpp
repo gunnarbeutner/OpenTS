@@ -2053,7 +2053,7 @@ void ObjectClass::Set_Health_Ratio(double health)
 /// <param name="stream">The stream carrying the members.</param>
 void ObjectClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Riser);
 	SERIALIZE(stream, Next);

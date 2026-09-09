@@ -88,7 +88,7 @@ TabClass::TabClass(void) :
 /// <param name="stream">The stream carrying the members.</param>
 void TabClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("SidebarClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Credits);
 	SERIALIZE(stream, FlasherTimer);

@@ -131,7 +131,7 @@ void AbstractTypeClass::Compute_CRC(CRCEngine & crc) const
 /// <param name="stream">The stream carrying the members.</param>
 void AbstractTypeClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, IniName);
 	SERIALIZE(stream, GivenName);

@@ -103,6 +103,82 @@ SECTIONS = [
     ("Session.Options", "body"),
 ]
 
+# The classes a record can name, from code/classids.cpp. kept in step with it by hand; a class it does not list is printed as its identifier.
+CLASS_IDS = {
+    "03C4CE76-4CF5-11D2-BC26-00104B8FB04D": "AITriggerClass",
+    "BA093524-4CF4-11D2-BC26-00104B8FB04D": "AITriggerTypeClass",
+    "4F0EC392-0A55-11D2-ACA7-006008055BB5": "ActionClass",
+    "0E272DC2-9C0F-11D1-B709-00A024DDAFD1": "AircraftClass",
+    "AE8B33D9-061C-11D2-ACA4-006008055BB5": "AircraftTypeClass",
+    "623C7584-74E7-11D2-B8F5-006008C809ED": "AlphaShapeClass",
+    "0E272DC3-9C0F-11D1-B709-00A024DDAFD1": "AnimClass",
+    "AE8B33DA-061C-11D2-ACA4-006008055BB5": "AnimTypeClass",
+    "4A582745-9839-11D1-B709-00A024DDAFD1": "BallisticLocomotion",
+    "0E272DC6-9C0F-11D1-B709-00A024DDAFD1": "BuildingClass",
+    "54822258-D8A8-11D1-B462-006097C6A979": "BuildingLightClass",
+    "AE8B33DB-061C-11D2-ACA4-006008055BB5": "BuildingTypeClass",
+    "0E272DC9-9C0F-11D1-B709-00A024DDAFD1": "BulletClass",
+    "5AF2CE77-0634-11D2-ACA4-006008055BB5": "BulletTypeClass",
+    "FFDAC848-1517-11D2-8175-006008055BB5": "CampaignClass",
+    "C1BF99CE-1A8C-11D2-8175-006008055BB5": "CellClass",
+    "4A582741-9839-11D1-B709-00A024DDAFD1": "DriveLocomotion",
+    "B825CB22-200E-11D2-9FA9-0060089AD458": "EMPulseClass",
+    "4F0EC393-0A55-11D2-ACA7-006008055BB5": "EventClass",
+    "34ECD9A8-0AB0-11D2-ACA7-006008055BB5": "FactoryClass",
+    "4A582746-9839-11D1-B709-00A024DDAFD1": "FlyerLocomotion",
+    "1C470B0E-69D7-11D2-B8F2-006008C809ED": "FoggedObjectClass",
+    "D9D4A910-87C6-11D1-B707-00A024DDAFD1": "HouseClass",
+    "1DD43928-046B-11D2-ACA4-006008055BB5": "HouseTypeClass",
+    "4A582742-9839-11D1-B709-00A024DDAFD1": "HoverLocomotion",
+    "0E272DC4-9C0F-11D1-B709-00A024DDAFD1": "InfantryClass",
+    "AE8B33D8-061C-11D2-ACA4-006008055BB5": "InfantryTypeClass",
+    "0E272DC0-9C0F-11D1-B709-00A024DDAFD1": "IsometricTileClass",
+    "5AF2CE7A-0634-11D2-ACA4-006008055BB5": "IsometricTileTypeClass",
+    "92612C46-F71F-11D1-AC9F-006008055BB5": "JumpjetLocomotion",
+    "3DC0B295-6546-11D3-80B0-00902792494C": "LevitateLocomotion",
+    "6F9C48F0-1207-11D2-8174-006008055BB5": "LightSource",
+    "55D141B8-DB94-11D1-AC98-006008055BB5": "MechLocomotion",
+    "241AB316-4CF5-11D2-BC26-00104B8FB04D": "NeuronClass",
+    "0E272DC7-9C0F-11D1-B709-00A024DDAFD1": "OverlayClass",
+    "5AF2CE79-0634-11D2-ACA4-006008055BB5": "OverlayTypeClass",
+    "0E272DCC-9C0F-11D1-B709-00A024DDAFD1": "ParticleClass",
+    "0E272DC8-9C0F-11D1-B709-00A024DDAFD1": "ParticleSystemClass",
+    "703E044A-0FB1-11D2-8172-006008055BB5": "ParticleSystemTypeClass",
+    "703E044B-0FB1-11D2-8172-006008055BB5": "ParticleTypeClass",
+    "42F3A646-0789-11D2-ACA5-006008055BB5": "ScriptClass",
+    "42F3A647-0789-11D2-ACA5-006008055BB5": "ScriptTypeClass",
+    "C53DD372-151E-11D2-8175-006008055BB5": "SideClass",
+    "0E272DC5-9C0F-11D1-B709-00A024DDAFD1": "SmudgeClass",
+    "5AF2CE78-0634-11D2-ACA4-006008055BB5": "SmudgeTypeClass",
+    "D7F754C6-391C-11D2-9B64-00104B972FE8": "SuperWeaponClass",
+    "0CF2BCE7-36E4-11D2-B8D8-006008C809ED": "SuperWeaponTypeClass",
+    "CF56B38A-240D-11D2-817C-006008055BB5": "TacticalMapClass",
+    "54F6E432-09ED-11D2-ACA5-006008055BB5": "TagClass",
+    "54F6E433-09ED-11D2-ACA5-006008055BB5": "TagTypeClass",
+    "61DE341E-0774-11D2-ACA5-006008055BB5": "TaskForceClass",
+    "0E272DCF-9C0F-11D1-B709-00A024DDAFD1": "TeamClass",
+    "D1DBA64E-0778-11D2-ACA5-006008055BB5": "TeamTypeClass",
+    "4A582747-9839-11D1-B709-00A024DDAFD1": "TeleportLocomotion",
+    "0E272DCE-9C0F-11D1-B709-00A024DDAFD1": "TerrainClass",
+    "5AF2CE7B-0634-11D2-ACA4-006008055BB5": "TerrainTypeClass",
+    "C53DD373-151E-11D2-8175-006008055BB5": "TiberiumClass",
+    "C02D1590-0A2A-11D2-ACA7-006008055BB5": "TriggerClass",
+    "C02D1591-0A2A-11D2-ACA7-006008055BB5": "TriggerTypeClass",
+    "0B4CA41C-B3A7-11D1-B457-006097C6A979": "TubeClass",
+    "4A582743-9839-11D1-B709-00A024DDAFD1": "TunnelLocomotion",
+    "0E272DCA-9C0F-11D1-B709-00A024DDAFD1": "UnitClass",
+    "DCBD42EA-0546-11D2-ACA4-006008055BB5": "UnitTypeClass",
+    "5192D06A-C632-11D2-B90B-006008C809ED": "VeinholeMonsterClass",
+    "0E272DC1-9C0F-11D1-B709-00A024DDAFD1": "VoxelAnimClass",
+    "2EBB6D66-0D4D-11D2-8172-006008055BB5": "VoxelAnimTypeClass",
+    "4A582744-9839-11D1-B709-00A024DDAFD1": "WalkLocomotion",
+    "A8C54DA4-0F7B-11D2-8172-006008055BB5": "WarheadTypeClass",
+    "0E272DCD-9C0F-11D1-B709-00A024DDAFD1": "WaveClass",
+    "F73125BA-1054-11D2-8172-006008055BB5": "WaypointPath",
+    "9FD219CA-0F7B-11D2-8172-006008055BB5": "WeaponTypeClass",
+}
+
+
 # The identifiers the header's own field table uses, from code/savever.h.
 LISTING_FIELDS = {
     2: "ScenarioDescription", 3: "PlayerHouse", 4: "PlayerName1", 8: "PlayerName2",
@@ -299,7 +375,9 @@ def format_clsid(raw):
     if len(raw) != 16:
         return raw.hex()
     first, second, third = struct.unpack_from("<IHH", raw, 0)
-    return "{%08X-%04X-%04X-%s-%s}" % (first, second, third, raw[8:10].hex().upper(), raw[10:16].hex().upper())
+    key = "%08X-%04X-%04X-%s-%s" % (first, second, third, raw[8:10].hex().upper(), raw[10:16].hex().upper())
+    name = CLASS_IDS.get(key)
+    return "%s {%s}" % (name, key) if name else "{%s}" % key
 
 
 def dump(save, wanted, limit, out):
@@ -334,13 +412,8 @@ def dump(save, wanted, limit, out):
             count = struct.unpack_from("<I", save.content, start)[0]
             out.append("  %d records" % count)
             cursor = start + 4
-            for index in range(count):
-                if limit == 0:
-                    break
+            for _ in range(count):
                 cursor = walk_record(save, cursor, 0, limit, out, "  ")
-                if index >= 2 and count > 3:
-                    out.append("  ... %d more" % (count - index - 1))
-                    break
         elif show and kind == "block":
             out.append("  a layout only the engine knows; %d bytes" % length)
 
