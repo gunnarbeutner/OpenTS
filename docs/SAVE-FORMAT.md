@@ -226,6 +226,20 @@ The reader's limits bind the writer too: content above 256 MiB, a field above
 anything is written, so a save this build writes is one it reads, and the
 file on disk is left as it was.
 
+## Reading one
+
+`python3 tools/savedump/savedump.py SAVE0000.SAV` prints what a save holds: the
+header, the listing fields, the name table, and every section with the members
+inside it. `--section` picks one, `--depth` says how far into the bodies to
+follow, `--names` prints the table alone, and `--raw` writes a section's bytes
+out. It needs nothing but Python; the LZO decompressor beside it is a port of
+the one the engine links.
+
+The name table is what makes this possible: a body can be walked, named and
+stepped over without knowing anything about the classes. The section list is
+not in the file, so the tool carries its own copy of it, and a save from a
+build whose sections differ is read wrongly rather than refused.
+
 ## Checks
 
 `tests/save` builds `code/savefile.cpp` against the vendored LZO library and
