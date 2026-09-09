@@ -26,7 +26,9 @@ unsigned int LoadedSaveVersion = 0;
 /// </summary>
 /// <param name="buffer">The bytes of the saved game, which must outlive this stream.</param>
 /// <param name="mode">Is this stream saving or loading?</param>
-SaveStreamClass::SaveStreamClass(std::vector<unsigned char> & buffer, ModeType mode) :
+SaveStreamClass::SaveStreamClass(std::vector<unsigned char> & buffer, ModeType mode, SaveNamesClass & names,
+	unsigned int start) :
+	Names(&names),
 	Buffer(&buffer),
 	Cursor(mode == MODE_SAVE ? (unsigned int)buffer.size() : 0),
 	Limit((unsigned int)buffer.size()),
@@ -36,6 +38,7 @@ SaveStreamClass::SaveStreamClass(std::vector<unsigned char> & buffer, ModeType m
 	OwnerType(NULL),
 	OwnerID(0)
 {
+	Cursor = (mode == MODE_LOAD) ? start : (unsigned int)buffer.size();
 	Limit = (mode == MODE_LOAD) ? (unsigned int)buffer.size() : 0;
 }
 
@@ -98,36 +101,67 @@ void SaveStreamClass::Overwrite_Bytes(unsigned int offset, void const * data, in
 }
 
 
+std::size_t SaveNamesClass::Byte_Size(void) const
+{
+	std::size_t total = sizeof(unsigned short);
+	for (NameEntry const & entry : Names) {
+		total += 2 + entry.Name.size();
+	}
+	return(total);
+}
+
+
+void SaveNamesClass::Clear(void)
+{
+	Names.clear();
+	Identifiers.clear();
+}
+
+
 /*
  * The identifier a name and width are known by in this file, minting one the first time
  * the name is met. Two members of different widths that share a name are two entries, so
  * a name means the same shape wherever it is read.
  */
-unsigned short SaveStreamClass::Intern(char const * name, unsigned char kind)
+bool SaveNamesClass::Intern(char const * name, unsigned char kind, unsigned short & id)
 {
 	std::string key = std::to_string((unsigned)kind) + ":" + (name != nullptr ? name : "");
 
 	auto const found = Identifiers.find(key);
 	if (found != Identifiers.end()) {
-		return(found->second);
+		id = found->second;
+		return(true);
 	}
 
-	if (Names.size() >= MAX_NAMES || Identifiers.size() >= MAX_NAMES) {
-		Fail();
-		return(0);
+	if (Names.size() >= MAX_NAMES || std::strlen(name != nullptr ? name : "") > MAX_NAME_LENGTH) {
+		return(false);
 	}
 
-	unsigned short const id = (unsigned short)Names.size();
+	id = (unsigned short)Names.size();
 	Names.push_back(NameEntry{name != nullptr ? name : "", kind});
 	Identifiers.emplace(std::move(key), id);
-	return(id);
+	return(true);
+}
+
+
+bool SaveNamesClass::Find(char const * name, unsigned char kind, unsigned short & id) const
+{
+	std::string const key = std::to_string((unsigned)kind) + ":" + (name != nullptr ? name : "");
+
+	auto const found = Identifiers.find(key);
+	if (found == Identifiers.end()) {
+		return(false);
+	}
+
+	id = found->second;
+	return(true);
 }
 
 
 /// <summary>
-/// Writes the field table that the content is read through.
+/// Writes the table the file's members are named through.
 /// </summary>
-void SaveStreamClass::Write_Table(std::vector<unsigned char> & out) const
+void SaveNamesClass::Write(std::vector<unsigned char> & out) const
 {
 	unsigned short const count = (unsigned short)Names.size();
 	out.push_back((unsigned char)(count & 0xFF));
@@ -142,50 +176,54 @@ void SaveStreamClass::Write_Table(std::vector<unsigned char> & out) const
 
 
 /// <summary>
-/// Reads the field table back and leaves the cursor at the content it describes.
+/// Reads a table back.
 /// </summary>
 /// <returns>bool; Was a table of the shape this build writes found?</returns>
-bool SaveStreamClass::Read_Table(void)
+bool SaveNamesClass::Read(unsigned char const * data, std::size_t length)
 {
-	unsigned short count = 0;
-	Serialize_Raw(count);
-	if (Failed) {
+	Clear();
+
+	if (data == nullptr || length < sizeof(unsigned short)) {
 		return(false);
 	}
 
-	Names.clear();
-	Identifiers.clear();
+	std::size_t at = 0;
+	unsigned short const count = (unsigned short)(data[0] | (data[1] << 8));
+	at += sizeof(unsigned short);
+
 	Names.reserve(count);
 
 	for (unsigned short index = 0; index < count; index++) {
-		unsigned char kind = 0;
-		unsigned char length = 0;
-		Serialize_Raw(kind);
-		Serialize_Raw(length);
-		if (Failed) {
-			return(false);
-		}
-		if (kind != KIND_VARIABLE && kind != 1 && kind != 2 && kind != 4 && kind != 8) {
-			Fail();
-			return(false);
-		}
-		if ((unsigned int)length > Limit - Cursor) {
-			Fail();
+		if (length - at < 2) {
+			Clear();
 			return(false);
 		}
 
-		std::string name((char const *)Buffer->data() + Cursor, length);
-		Cursor += length;
+		unsigned char const kind = data[at];
+		unsigned char const size = data[at + 1];
+		at += 2;
+
+		if (kind != KIND_VARIABLE && kind != 1 && kind != 2 && kind != 4 && kind != 8) {
+			Clear();
+			return(false);
+		}
+		if (length - at < size) {
+			Clear();
+			return(false);
+		}
+
+		std::string name((char const *)data + at, size);
+		at += size;
 
 		std::string key = std::to_string((unsigned)kind) + ":" + name;
 		if (!Identifiers.emplace(std::move(key), index).second) {
-			Fail();
+			Clear();
 			return(false);
 		}
 		Names.push_back(NameEntry{std::move(name), kind});
 	}
 
-	return(!Failed);
+	return(true);
 }
 
 
@@ -207,7 +245,7 @@ bool SaveStreamClass::Index_Body(BodyFrame & frame, unsigned int end)
 		unsigned short id = (unsigned short)(Buffer->at(cursor) | (Buffer->at(cursor + 1) << 8));
 		cursor += sizeof(unsigned short);
 
-		if (id >= Names.size()) {
+		if (!Names->Is_Known(id)) {
 			Fail();
 			return(false);
 		}
@@ -215,9 +253,9 @@ bool SaveStreamClass::Index_Body(BodyFrame & frame, unsigned int end)
 		// A field is recorded where its payload begins, which for one the table gives no
 		// width to is the length itself, since that is what the reader takes it from.
 		unsigned int const start = cursor;
-		unsigned int width = Names[id].Kind;
+		unsigned int width = Names->Kind_Of(id);
 
-		if (Names[id].Kind == KIND_VARIABLE) {
+		if (Names->Kind_Of(id) == KIND_VARIABLE) {
 			if (end - cursor < sizeof(unsigned int)) {
 				Fail();
 				return(false);
@@ -328,8 +366,15 @@ bool SaveStreamClass::Open_Field(char const * name, unsigned char kind, unsigned
 		return(false);
 	}
 
-	unsigned short const id = Intern(name, kind);
-	if (Failed) {
+	unsigned short id = 0;
+
+	if (Mode == MODE_SAVE) {
+		if (!Names->Intern(name, kind, id)) {
+			Fail();
+			return(false);
+		}
+	} else if (!Names->Find(name, kind, id)) {
+		// A member this file was written without; its owner keeps what it was built with.
 		return(false);
 	}
 

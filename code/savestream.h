@@ -76,7 +76,12 @@ concept SerializesPositionally = requires { typename T::SerializePositional; };
  * copyable and free of pointers. One that gains a pointer has to be serialized arm by
  * arm, switched on whatever discriminates it.
  */
-class SaveStreamClass
+/*
+ * The names every member in one save file is known by. One of these is shared by every
+ * stream a save is written through or read back with, since a name means the same thing
+ * wherever in the file it appears and the table is carried once.
+ */
+class SaveNamesClass
 {
 	public:
 		/*
@@ -89,13 +94,51 @@ class SaveStreamClass
 		// A name is at most this long and a file carries at most this many, so a damaged
 		// table is refused rather than sized from.
 		static std::size_t const MAX_NAMES = 65536;
+		static std::size_t const MAX_NAME_LENGTH = 255;
+
+		struct NameEntry
+		{
+			std::string Name;
+			unsigned char Kind;
+		};
+
+		void Clear(void);
+
+		// The identifier a name and width are known by, minting one the first time the
+		// name is met. Answers false when the table is full.
+		bool Intern(char const * name, unsigned char kind, unsigned short & id);
+
+		// The identifier a name and width already have, for a load.
+		bool Find(char const * name, unsigned char kind, unsigned short & id) const;
+
+		std::size_t Count(void) const {return(Names.size());}
+		unsigned char Kind_Of(unsigned short id) const {return(Names[id].Kind);}
+		bool Is_Known(unsigned short id) const {return((std::size_t)id < Names.size());}
+
+		void Write(std::vector<unsigned char> & out) const;
+		bool Read(unsigned char const * data, std::size_t length);
+
+		// How many bytes the table occupies when written.
+		std::size_t Byte_Size(void) const;
+
+	private:
+		std::vector<NameEntry> Names;
+		std::unordered_map<std::string, unsigned short> Identifiers;
+};
+
+
+class SaveStreamClass
+{
+	public:
+		static unsigned char const KIND_VARIABLE = SaveNamesClass::KIND_VARIABLE;
 
 		enum ModeType {
 			MODE_SAVE,
 			MODE_LOAD
 		};
 
-		SaveStreamClass(std::vector<unsigned char> & buffer, ModeType mode);
+		SaveStreamClass(std::vector<unsigned char> & buffer, ModeType mode, SaveNamesClass & names,
+			unsigned int start = 0);
 
 		bool Is_Saving(void) const {return(Mode == MODE_SAVE);}
 		bool Is_Loading(void) const {return(Mode == MODE_LOAD);}
@@ -314,9 +357,6 @@ class SaveStreamClass
 			}
 		}
 
-		// The field table, written ahead of the content and read back before it.
-		void Write_Table(std::vector<unsigned char> & out) const;
-		bool Read_Table(void);
 
 
 		/*
@@ -642,11 +682,11 @@ class SaveStreamClass
 		bool Open_Field(char const * name, unsigned char kind, unsigned int & mark, bool body = false);
 		// Only a field the table gives no width to carries a length to fill in.
 		void Close_Field(unsigned int mark, bool patch);
-		unsigned short Intern(char const * name, unsigned char kind);
 		bool Index_Body(BodyFrame & frame, unsigned int end);
 		void Begin_Frame(bool indexed);
 		void End_Frame(void);
 
+		SaveNamesClass * Names;
 		std::vector<unsigned char> * Buffer;
 		unsigned int Cursor;
 
@@ -657,16 +697,6 @@ class SaveStreamClass
 		bool Failed;
 		unsigned int FormatVersion;
 
-		struct NameEntry
-		{
-			std::string Name;
-			unsigned char Kind;
-		};
-
-		// Written: the names met so far, in the order they were met. Read: what the file
-		// carried, which a member finds its own identifier through.
-		std::vector<NameEntry> Names;
-		std::unordered_map<std::string, unsigned short> Identifiers;
 
 		/*
 		 * One open body: where its fields are, and where it ends. A member reads from the
