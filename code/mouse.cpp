@@ -397,131 +397,133 @@ void MouseClass::Init_Clear(void)
 /// <returns>bool; Was the record read whole?</returns>
 bool MouseClass::Load(SaveStreamClass & stream)
 {
-	int i;
+	return(stream.Block([&]{
+		int i;
 
-	bool result = BASECLASS::Load(stream);
-	if (result) {
-		int theater;
-		stream.Serialize_Raw(theater);
-		if (stream.Was_Error()) {
-			return(false);
-		}
-
-		LastTheater = THEATER_NONE;
-
-		/*
-		**	Free the cell array, because we're about to overwrite its pointers
-		*/
-		Free_Cells();
-
-		delete [] CellSubzones;
-		CellSubzones = NULL;
-		delete [] CellZones;
-		CellZones = NULL;
-		ZoneAdjacency.clear();
-
-		for (i = 0; i < SUBZONE_COUNT; i++) {
-			SubzoneTracking[i].Clear();
-			SubzoneTrackingEntryCount[i] = 0;
-		}
-
-		for (i = 0; i < MZONE_COUNT; i++) {
-			delete [] Zones[i];
-			Zones[i] = NULL;
-		}
-
-		for (i = 0; i < SUBZONE_COUNT; i++) {
-			SubzoneConnectionStaging[i].clear();
-		}
-
-		Array.Clear();
-
-		stream.Set_Context("MouseClass");
-		Serialize(stream);
-		if (stream.Was_Error()) {
-			return(false);
-		}
-
-		/*
-		**	Reallocate the cell array
-		*/
-		Alloc_Cells();
-
-		/*
-		**	Init all cells to empty
-		*/
-		Init_Cells();
-
-		Set_Map_Dimensions(PlayRect, 1, 0, false);
-
-		CellSubzones = new CellSubzoneStruct[CellZoneCount];
-		CellZones = new CellZoneStruct[CellZoneCount];
-
-		for (i = 0; i < SUBZONE_COUNT; i++) {
-			int v = (1 << (i + 1));
-			SubzoneTracking[i].Clear();
-			SubzoneTrackingEntryCount[i] = 0;
-			SubzoneTracking[i].Set_Growth_Step((4 * PlayRect.Width * PlayRect.Height) / (v * v));
-		}
-
-		/*
-		 * These blocks are read raw, so a file whose records are a different size would drag
-		 * the rest of the stream out of step.
-		 */
-		stream.Serialize_Bytes(CellZones, (int)(sizeof(*CellZones) * CellZoneCount));
-		if (stream.Was_Error()) {
-			return(false);
-		}
-
-		for (i = 0; i < MZONE_COUNT; i++) {
-			Zones[i] = new int[ZoneCount];
-			stream.Serialize_Bytes(Zones[i], (int)(sizeof(*Zones[i]) * ZoneCount));
+		bool result = BASECLASS::Load(stream);
+		if (result) {
+			int theater;
+			stream.Serialize_Raw(theater);
 			if (stream.Was_Error()) {
 				return(false);
 			}
-		}
 
-		SERIALIZE(stream, ZoneConnections);
-		if (stream.Was_Error()) {
-			return(false);
-		}
+			LastTheater = THEATER_NONE;
 
-		for (i = 0; i < Array.Length(); i++) {
-			delete Array[i];
-			Array[i] = NULL;
-		}
-		int count;
-		stream.Serialize_Raw(count);
-		if (stream.Was_Error()) {
-			return(false);
-		}
-		for (i = 0; i < count; i++) {
-			std::unique_ptr<CellClass> cell = Load_Object_As<CellClass>(stream);
-			if (cell == nullptr) {
+			/*
+			**	Free the cell array, because we're about to overwrite its pointers
+			*/
+			Free_Cells();
+
+			delete [] CellSubzones;
+			CellSubzones = NULL;
+			delete [] CellZones;
+			CellZones = NULL;
+			ZoneAdjacency.clear();
+
+			for (i = 0; i < SUBZONE_COUNT; i++) {
+				SubzoneTracking[i].Clear();
+				SubzoneTrackingEntryCount[i] = 0;
+			}
+
+			for (i = 0; i < MZONE_COUNT; i++) {
+				delete [] Zones[i];
+				Zones[i] = NULL;
+			}
+
+			for (i = 0; i < SUBZONE_COUNT; i++) {
+				SubzoneConnectionStaging[i].clear();
+			}
+
+			Array.Clear();
+
+			stream.Set_Context("MouseClass");
+			Serialize(stream);
+			if (stream.Was_Error()) {
 				return(false);
 			}
-			// The cell put itself into the map's array as it finished loading, and the map
-			// is what deletes it from here on.
-			cell.release();
-		}
 
-		TerrainTypeClass::Init(Scen->Theater);
-		if (Scen->Theater != LastTheater) {
-			IsometricTileTypeClass::Read_Control_File(Scen->Theater, true);
-		} else {
-			IsometricTileTypeClass::Clear_Use_Counts();
-		}
-		IsometricTileTypeClass::Load_Tiles(false, false);
-		OverlayTypeClass::Init(Scen->Theater);
-		BuildingTypeClass::Init(Scen->Theater);
-		AnimTypeClass::Init(Scen->Theater);
-		SmudgeTypeClass::Init(Scen->Theater);
-		DraggedWaypoint = NULL;
-		LastTheater = Scen->Theater;
+			/*
+			**	Reallocate the cell array
+			*/
+			Alloc_Cells();
 
-		result = true;
-	}
-	return(result);
+			/*
+			**	Init all cells to empty
+			*/
+			Init_Cells();
+
+			Set_Map_Dimensions(PlayRect, 1, 0, false);
+
+			CellSubzones = new CellSubzoneStruct[CellZoneCount];
+			CellZones = new CellZoneStruct[CellZoneCount];
+
+			for (i = 0; i < SUBZONE_COUNT; i++) {
+				int v = (1 << (i + 1));
+				SubzoneTracking[i].Clear();
+				SubzoneTrackingEntryCount[i] = 0;
+				SubzoneTracking[i].Set_Growth_Step((4 * PlayRect.Width * PlayRect.Height) / (v * v));
+			}
+
+			/*
+			 * These blocks are read raw, so a file whose records are a different size would drag
+			 * the rest of the stream out of step.
+			 */
+			stream.Serialize_Bytes(CellZones, (int)(sizeof(*CellZones) * CellZoneCount));
+			if (stream.Was_Error()) {
+				return(false);
+			}
+
+			for (i = 0; i < MZONE_COUNT; i++) {
+				Zones[i] = new int[ZoneCount];
+				stream.Serialize_Bytes(Zones[i], (int)(sizeof(*Zones[i]) * ZoneCount));
+				if (stream.Was_Error()) {
+					return(false);
+				}
+			}
+
+			SERIALIZE(stream, ZoneConnections);
+			if (stream.Was_Error()) {
+				return(false);
+			}
+
+			for (i = 0; i < Array.Length(); i++) {
+				delete Array[i];
+				Array[i] = NULL;
+			}
+			int count;
+			stream.Serialize_Raw(count);
+			if (stream.Was_Error()) {
+				return(false);
+			}
+			for (i = 0; i < count; i++) {
+				std::unique_ptr<CellClass> cell = Load_Object_As<CellClass>(stream);
+				if (cell == nullptr) {
+					return(false);
+				}
+				// The cell put itself into the map's array as it finished loading, and the map
+				// is what deletes it from here on.
+				cell.release();
+			}
+
+			TerrainTypeClass::Init(Scen->Theater);
+			if (Scen->Theater != LastTheater) {
+				IsometricTileTypeClass::Read_Control_File(Scen->Theater, true);
+			} else {
+				IsometricTileTypeClass::Clear_Use_Counts();
+			}
+			IsometricTileTypeClass::Load_Tiles(false, false);
+			OverlayTypeClass::Init(Scen->Theater);
+			BuildingTypeClass::Init(Scen->Theater);
+			AnimTypeClass::Init(Scen->Theater);
+			SmudgeTypeClass::Init(Scen->Theater);
+			DraggedWaypoint = NULL;
+			LastTheater = Scen->Theater;
+
+			result = true;
+		}
+		return(result);
+	}));
 }
 
 
@@ -534,73 +536,75 @@ bool MouseClass::Load(SaveStreamClass & stream)
 /// <returns>bool; Was the record written whole?</returns>
 bool MouseClass::Save(SaveStreamClass & stream)
 {
-	int i;
-	int count;
+	return(stream.Block([&]{
+		int i;
+		int count;
 
-	bool result = BASECLASS::Save(stream);
-	if (result) {
-		int theater = Scen->Theater;
-		stream.Serialize_Raw(theater);
-		if (stream.Was_Error()) {
-			return(false);
-		}
-
-		Serialize(stream);
-		if (stream.Was_Error()) {
-			return(false);
-		}
-
-		stream.Serialize_Bytes(CellZones, (int)(sizeof(*CellZones) * CellZoneCount));
-		if (stream.Was_Error()) {
-			return(false);
-		}
-
-		for (i = 0; i < MZONE_COUNT; i++) {
-			stream.Serialize_Bytes(Zones[i], (int)(sizeof(*Zones[i]) * ZoneCount));
+		bool result = BASECLASS::Save(stream);
+		if (result) {
+			int theater = Scen->Theater;
+			stream.Serialize_Raw(theater);
 			if (stream.Was_Error()) {
 				return(false);
 			}
-		}
 
-		SERIALIZE(stream, ZoneConnections);
-		if (stream.Was_Error()) {
-			return(false);
-		}
-
-		count = 0;
-		Reset_Iterator();
-		CellClass *cptr = Iterate();
-		while (cptr != NULL) {
-			Cell cell = cptr->CellID;
-			if (Is_Valid(cell)) {
-				count++;
+			Serialize(stream);
+			if (stream.Was_Error()) {
+				return(false);
 			}
-			cptr = Iterate();
-		}
-		stream.Serialize_Raw(count);
-		if (stream.Was_Error()) {
-			return(false);
-		}
-		Reset_Iterator();
-		cptr = Iterate();
-		while (cptr != NULL) {
-			Cell cell = cptr->CellID;
-			if (Is_Valid(cell)) {
-				Save_Object(stream, cptr);
-				count--;
-			}
-			cptr = Iterate();
-		}
-		// The count was written before the cells, so a second pass that disagrees with it
-		// has already written a map no load can read back.
-		if (count != 0) {
-			stream.Fail();
-			return(false);
-		}
 
-		result = true;
-	}
-	return(result);
+			stream.Serialize_Bytes(CellZones, (int)(sizeof(*CellZones) * CellZoneCount));
+			if (stream.Was_Error()) {
+				return(false);
+			}
+
+			for (i = 0; i < MZONE_COUNT; i++) {
+				stream.Serialize_Bytes(Zones[i], (int)(sizeof(*Zones[i]) * ZoneCount));
+				if (stream.Was_Error()) {
+					return(false);
+				}
+			}
+
+			SERIALIZE(stream, ZoneConnections);
+			if (stream.Was_Error()) {
+				return(false);
+			}
+
+			count = 0;
+			Reset_Iterator();
+			CellClass *cptr = Iterate();
+			while (cptr != NULL) {
+				Cell cell = cptr->CellID;
+				if (Is_Valid(cell)) {
+					count++;
+				}
+				cptr = Iterate();
+			}
+			stream.Serialize_Raw(count);
+			if (stream.Was_Error()) {
+				return(false);
+			}
+			Reset_Iterator();
+			cptr = Iterate();
+			while (cptr != NULL) {
+				Cell cell = cptr->CellID;
+				if (Is_Valid(cell)) {
+					Save_Object(stream, cptr);
+					count--;
+				}
+				cptr = Iterate();
+			}
+			// The count was written before the cells, so a second pass that disagrees with it
+			// has already written a map no load can read back.
+			if (count != 0) {
+				stream.Fail();
+				return(false);
+			}
+
+			result = true;
+		}
+		return(result);
+	}));
 }
 
 
