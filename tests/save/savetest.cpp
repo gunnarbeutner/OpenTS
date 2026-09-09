@@ -113,6 +113,37 @@ enum {
 };
 
 
+// The content of a save is a section now, so the checks below put one in and take it out.
+enum { SECTION_ONE = 1 };
+
+
+static SaveFileClass::ResultType Write_One(SaveFileClass & save, char const * path,
+	std::vector<unsigned char> const & content)
+{
+	SaveFileClass::ResultType result = save.Begin_Write(path);
+	if (result != SaveFileClass::RESULT_OK) return(result);
+
+	if (!content.empty()) {
+		result = save.Write_Section(SECTION_ONE, content.data(), (std::uint32_t)content.size());
+		if (result != SaveFileClass::RESULT_OK) {
+			save.Abandon_Write();
+			return(result);
+		}
+	}
+
+	unsigned char const names[2] = {0, 0};
+	return(save.End_Write(names, sizeof(names)));
+}
+
+
+static std::vector<unsigned char> Read_One(SaveFileClass const & save)
+{
+	std::vector<unsigned char> out;
+	save.Get_Section(SECTION_ONE, out);
+	return(out);
+}
+
+
 static void Fill(SaveFileClass & save, std::vector<unsigned char> const & content)
 {
 	FileTimeType const when = FileTimeType::From_Parts(0x12345678u, 0x01D2C3B4u);
@@ -121,7 +152,7 @@ static void Fill(SaveFileClass & save, std::vector<unsigned char> const & conten
 	save.Set_String(FIELD_HOUSE, "GDI");
 	save.Set_Int(FIELD_VERSION, 0x00010203);
 	save.Set_Time(FIELD_WHEN, when);
-	save.Content = content;
+	(void)content;
 }
 
 
@@ -155,7 +186,7 @@ static void Test_Round_Trip(void)
 
 	SaveFileClass written;
 	Fill(written, content);
-	Check_Result("round trip: write", written.Write(path.c_str()), SaveFileClass::RESULT_OK);
+	Check_Result("round trip: write", Write_One(written, path.c_str(), content), SaveFileClass::RESULT_OK);
 	Check("round trip: no temporary file is left behind", !File_Exists((path + ".tmp").c_str()));
 
 	std::vector<unsigned char> const image = Read_Whole_File(path.c_str());
@@ -164,12 +195,12 @@ static void Test_Round_Trip(void)
 	SaveFileClass read;
 	Check_Result("round trip: read", read.Read(path.c_str()), SaveFileClass::RESULT_OK);
 	Check_Fields("round trip", read);
-	Check("round trip: content reads back whole", read.Content == content);
+	Check("round trip: content reads back whole", Read_One(read) == content);
 
 	SaveFileClass listed;
 	Check_Result("round trip: fields alone", listed.Read_Fields(path.c_str()), SaveFileClass::RESULT_OK);
 	Check_Fields("fields alone", listed);
-	Check("fields alone: no content is read", listed.Content.empty());
+	Check("fields alone: no content is read", Read_One(listed).empty());
 }
 
 
@@ -192,14 +223,14 @@ static void Test_Incompressible(void)
 
 	SaveFileClass written;
 	Fill(written, content);
-	Check_Result("noise: write", written.Write(path.c_str()), SaveFileClass::RESULT_OK);
+	Check_Result("noise: write", Write_One(written, path.c_str(), content), SaveFileClass::RESULT_OK);
 
 	std::vector<unsigned char> const image = Read_Whole_File(path.c_str());
 	Check("noise: stored as it is when compression does not pay", image.size() >= content.size() + SaveFileClass::HEADER_SIZE);
 
 	SaveFileClass read;
 	Check_Result("noise: read", read.Read(path.c_str()), SaveFileClass::RESULT_OK);
-	Check("noise: content reads back whole", read.Content == content);
+	Check("noise: content reads back whole", Read_One(read) == content);
 }
 
 
@@ -208,14 +239,15 @@ static void Test_Empty(void)
 	std::string const path = Scratch_Path("EMPTY.SAV");
 
 	SaveFileClass written;
-	Check_Result("empty: write", written.Write(path.c_str()), SaveFileClass::RESULT_OK);
+	Check_Result("empty: write", Write_One(written, path.c_str(), {}), SaveFileClass::RESULT_OK);
 
 	std::vector<unsigned char> const image = Read_Whole_File(path.c_str());
-	Check("empty: a header alone", image.size() == SaveFileClass::HEADER_SIZE);
+	Check("empty: a header and the shortest name table",
+		image.size() == SaveFileClass::HEADER_SIZE + 2);
 
 	SaveFileClass read;
 	Check_Result("empty: read", read.Read(path.c_str()), SaveFileClass::RESULT_OK);
-	Check("empty: no content", read.Content.empty());
+	Check("empty: no content", Read_One(read).empty());
 	char text[8];
 	Check("empty: no fields", !read.Get_String(FIELD_TITLE, text, sizeof(text)));
 }
@@ -225,17 +257,20 @@ static void Test_Overwrite(void)
 {
 	std::string const path = Scratch_Path("REPLACE.SAV");
 
+	std::vector<unsigned char> const earlier = Prose(5000);
+	std::vector<unsigned char> const later = Noise(20000, 11);
+
 	SaveFileClass first;
-	Fill(first, Prose(5000));
+	Fill(first, earlier);
 	first.Set_String(FIELD_TITLE, "the earlier save");
-	Check_Result("replace: first write", first.Write(path.c_str()), SaveFileClass::RESULT_OK);
+	Check_Result("replace: first write", Write_One(first, path.c_str(), earlier), SaveFileClass::RESULT_OK);
 
 	Check("replace: a stale temporary is planted", Write_Whole_File((path + ".tmp").c_str(), Noise(100, 3)));
 
 	SaveFileClass second;
-	Fill(second, Noise(20000, 11));
+	Fill(second, later);
 	second.Set_String(FIELD_TITLE, "the later save");
-	Check_Result("replace: second write", second.Write(path.c_str()), SaveFileClass::RESULT_OK);
+	Check_Result("replace: second write", Write_One(second, path.c_str(), later), SaveFileClass::RESULT_OK);
 	Check("replace: the stale temporary is gone", !File_Exists((path + ".tmp").c_str()));
 
 	SaveFileClass read;
@@ -243,12 +278,12 @@ static void Test_Overwrite(void)
 	char text[64];
 	Check("replace: the later save is the one on disk",
 		read.Get_String(FIELD_TITLE, text, sizeof(text)) && strcmp(text, "the later save") == 0);
-	Check("replace: the later content is the one on disk", read.Content == second.Content);
+	Check("replace: the later content is the one on disk", Read_One(read) == later);
 
 	SaveFileClass rewritten;
 	rewritten.Set_String(FIELD_TITLE, "overwritten field");
 	rewritten.Set_String(FIELD_TITLE, "final field");
-	Check_Result("replace: field rewrite", rewritten.Write(path.c_str()), SaveFileClass::RESULT_OK);
+	Check_Result("replace: field rewrite", Write_One(rewritten, path.c_str(), {}), SaveFileClass::RESULT_OK);
 	Check_Result("replace: field rewrite read", read.Read_Fields(path.c_str()), SaveFileClass::RESULT_OK);
 	Check("replace: a field set twice keeps the last value",
 		read.Get_String(FIELD_TITLE, text, sizeof(text)) && strcmp(text, "final field") == 0);
@@ -276,13 +311,17 @@ static void Test_Fixed_Image(void)
 	written.Set_Int(FIELD_VERSION, 0x00010203);
 	written.Set_Time(FIELD_WHEN, FileTimeType::From_Parts(0x12345678u, 0x01D2C3B4u));
 	written.Set_Time(12, FileTimeType{0x01DC2F0A9B8C7D6Eull});
-	written.Content = content;
-	Check_Result("fixed image: write", written.Write(path.c_str()), SaveFileClass::RESULT_OK);
+
+	unsigned char const names[4] = {1, 0, 4, 0};
+	Check_Result("fixed image: begin", written.Begin_Write(path.c_str()), SaveFileClass::RESULT_OK);
+	Check_Result("fixed image: section",
+		written.Write_Section(SECTION_ONE, content.data(), (std::uint32_t)content.size()), SaveFileClass::RESULT_OK);
+	Check_Result("fixed image: end", written.End_Write(names, sizeof(names)), SaveFileClass::RESULT_OK);
 
 	std::vector<unsigned char> const image = Read_Whole_File(path.c_str());
-	Check("fixed image: the length it has always had", image.size() == 900);
+	Check("fixed image: the length it has always had", image.size() == 922);
 	Check("fixed image: the bytes it has always had",
-		SaveFileClass::Checksum(image.data(), (std::uint32_t)image.size()) == 0x9F0B64A9u);
+		SaveFileClass::Checksum(image.data(), (std::uint32_t)image.size()) == 0x8FF1F0CCu);
 
 	unsigned char const field[16] = {
 		0x0D, 0x00, 0x03, 0x00, 0x08, 0x00, 0x00, 0x00,
@@ -314,26 +353,30 @@ static void Test_Limits(void)
 {
 	std::string const path = Scratch_Path("LIMITS.SAV");
 
+	std::vector<unsigned char> const small = Prose(3000);
+
 	SaveFileClass kept;
-	Fill(kept, Prose(3000));
+	Fill(kept, small);
 	kept.Set_String(FIELD_TITLE, "the save that stays");
-	Check_Result("limits: the save that stays", kept.Write(path.c_str()), SaveFileClass::RESULT_OK);
+	Check_Result("limits: the save that stays", Write_One(kept, path.c_str(), small), SaveFileClass::RESULT_OK);
 
 	SaveFileClass wide;
-	Fill(wide, Prose(3000));
+	Fill(wide, small);
 	wide.Set_String(FIELD_TITLE, std::string(0x10001, 'x').c_str());
-	Check_Result("limits: a field beyond its limit is refused", wide.Write(path.c_str()), SaveFileClass::RESULT_TOO_LARGE);
+	Check_Result("limits: a field beyond its limit is refused",
+		wide.Begin_Write(path.c_str()), SaveFileClass::RESULT_TOO_LARGE);
 
 	SaveFileClass many;
-	Fill(many, Prose(3000));
+	Fill(many, small);
 	for (int id = 100; id < 117; id++) {
 		many.Set_String(id, std::string(0x10000, 'y').c_str());
 	}
-	Check_Result("limits: a table beyond its limit is refused", many.Write(path.c_str()), SaveFileClass::RESULT_TOO_LARGE);
+	Check_Result("limits: a table beyond its limit is refused",
+		many.Begin_Write(path.c_str()), SaveFileClass::RESULT_TOO_LARGE);
 
 	SaveFileClass huge;
-	huge.Content.resize(0x10000001);
-	Check_Result("limits: content beyond its limit is refused", huge.Write(path.c_str()), SaveFileClass::RESULT_TOO_LARGE);
+	Check_Result("limits: a section beyond its limit is refused",
+		Write_One(huge, path.c_str(), std::vector<unsigned char>(0x10000001)), SaveFileClass::RESULT_TOO_LARGE);
 
 	Check("limits: no temporary is left behind", !File_Exists((path + ".tmp").c_str()));
 	SaveFileClass read;
@@ -344,12 +387,30 @@ static void Test_Limits(void)
 }
 
 
+// Recomputes the payload checksum after a test has changed a byte inside it on purpose,
+// so that the check under test is the one that answers rather than the checksum.
+static void Reseal_Payload(std::vector<unsigned char> & image)
+{
+	unsigned int const payload = (unsigned int)image[12] | ((unsigned int)image[13] << 8)
+		| ((unsigned int)image[14] << 16) | ((unsigned int)image[15] << 24);
+	unsigned int const length = (unsigned int)image[16] | ((unsigned int)image[17] << 8)
+		| ((unsigned int)image[18] << 16) | ((unsigned int)image[19] << 24);
+
+	image[32] = 0; image[33] = 0; image[34] = 0; image[35] = 0;
+	unsigned int const crc = SaveFileClass::Checksum(image.data() + payload, length);
+	image[32] = (unsigned char)(crc & 0xFF);
+	image[33] = (unsigned char)((crc >> 8) & 0xFF);
+	image[34] = (unsigned char)((crc >> 16) & 0xFF);
+	image[35] = (unsigned char)((crc >> 24) & 0xFF);
+}
+
+
 // Recomputes the header checksum after a test has changed a header byte on purpose.
 static void Reseal_Header(std::vector<unsigned char> & image, unsigned int table)
 {
 	unsigned int crc = SaveFileClass::Checksum(image.data(), SaveFileClass::HEADER_SIZE - 4);
 	crc = SaveFileClass::Checksum(image.data() + SaveFileClass::HEADER_SIZE, table, crc);
-	Put_U32(image, 28, crc);
+	Put_U32(image, 36, crc);
 }
 
 
@@ -402,7 +463,7 @@ static void Test_Refusals(void)
 	std::string const good = Scratch_Path("GOOD.SAV");
 	SaveFileClass written;
 	Fill(written, Prose(40000));
-	Check_Result("refuse: the reference save", written.Write(good.c_str()), SaveFileClass::RESULT_OK);
+	Check_Result("refuse: the reference save", Write_One(written, good.c_str(), Prose(40000)), SaveFileClass::RESULT_OK);
 	std::vector<unsigned char> const image = Read_Whole_File(good.c_str());
 	Check("refuse: the reference save is readable", !image.empty());
 
@@ -426,24 +487,53 @@ static void Test_Refusals(void)
 	Check_Result("refuse: a header flag this build does not know", read.Read(damaged.c_str()), SaveFileClass::RESULT_UNSUPPORTED_VERSION);
 	Check_Result("refuse: its fields", read.Read_Fields(damaged.c_str()), SaveFileClass::RESULT_UNSUPPORTED_VERSION);
 
-	unsigned int const content_offset = (unsigned int)image[12] | ((unsigned int)image[13] << 8)
+	unsigned int const payload = (unsigned int)image[12] | ((unsigned int)image[13] << 8)
 		| ((unsigned int)image[14] << 16) | ((unsigned int)image[15] << 24);
-	unsigned int const content_length = (unsigned int)image[20] | ((unsigned int)image[21] << 8)
+	unsigned int const names_at = (unsigned int)image[20] | ((unsigned int)image[21] << 8)
 		| ((unsigned int)image[22] << 16) | ((unsigned int)image[23] << 24);
-	Check("refuse: the reference save is compressed", (image[6] & 0x01) != 0);
-	std::vector<unsigned char> const stored(image.begin() + content_offset, image.end());
 
-	Write_Whole_File(damaged.c_str(), Forge_Content(image, table, stored, content_length + 1));
-	Check_Result("refuse: a block that ends before its declared length", read.Read(damaged.c_str()), SaveFileClass::RESULT_CORRUPT);
+	// The one section this save carries, and the length it says it unpacks to.
+	unsigned int const unpacked = (unsigned int)image[payload + 6] | ((unsigned int)image[payload + 7] << 8)
+		| ((unsigned int)image[payload + 8] << 16) | ((unsigned int)image[payload + 9] << 24);
+	Check("refuse: the reference save has one section", payload + 10 < names_at);
+
+	std::vector<unsigned char> short_block = image;
+	Put_U32(short_block, payload + 6, unpacked + 1);
+	Reseal_Payload(short_block);
+	Reseal_Header(short_block, table);
+	Write_Whole_File(damaged.c_str(), short_block);
+	SaveFileClass damaged_read;
+	Check_Result("refuse: a section that ends before its declared length",
+		damaged_read.Read(damaged.c_str()), SaveFileClass::RESULT_OK);
+	std::vector<unsigned char> out;
+	Check("refuse: and its section will not unpack", !damaged_read.Get_Section(SECTION_ONE, out));
 
 	// The reader sizes the output buffer from the declared length, so this block runs past
 	// the end of it. The bounds-checked decompressor stops there rather than writing on.
-	Write_Whole_File(damaged.c_str(), Forge_Content(image, table, stored, content_length - 1));
-	Check_Result("refuse: a block that expands past its declared length", read.Read(damaged.c_str()), SaveFileClass::RESULT_CORRUPT);
+	std::vector<unsigned char> long_block = image;
+	Put_U32(long_block, payload + 6, unpacked - 1);
+	Reseal_Payload(long_block);
+	Reseal_Header(long_block, table);
+	Write_Whole_File(damaged.c_str(), long_block);
+	Check_Result("refuse: a section that expands past its declared length",
+		damaged_read.Read(damaged.c_str()), SaveFileClass::RESULT_OK);
+	Check("refuse: and that section will not unpack either", !damaged_read.Get_Section(SECTION_ONE, out));
 
-	Write_Whole_File(damaged.c_str(), Forge_Content(image, table, stored, 0x10000001));
-	Check_Result("refuse: a block declared larger than any save", read.Read(damaged.c_str()), SaveFileClass::RESULT_CORRUPT);
-	Check_Result("refuse: its fields", read.Read_Fields(damaged.c_str()), SaveFileClass::RESULT_CORRUPT);
+	std::vector<unsigned char> vast = image;
+	Put_U32(vast, payload + 6, 0x10000001);
+	Reseal_Payload(vast);
+	Reseal_Header(vast, table);
+	Write_Whole_File(damaged.c_str(), vast);
+	Check_Result("refuse: a section declared larger than any save",
+		damaged_read.Read(damaged.c_str()), SaveFileClass::RESULT_CORRUPT);
+
+	std::vector<unsigned char> stretched = image;
+	Put_U32(stretched, payload + 2, (unsigned int)image.size());
+	Reseal_Payload(stretched);
+	Reseal_Header(stretched, table);
+	Write_Whole_File(damaged.c_str(), stretched);
+	Check_Result("refuse: a section claiming more than the payload holds",
+		damaged_read.Read(damaged.c_str()), SaveFileClass::RESULT_CORRUPT);
 
 	std::vector<unsigned char> const oversized(0x100001, 0);
 	Write_Whole_File(damaged.c_str(), Forge_Table(image, table, oversized));
@@ -451,8 +541,8 @@ static void Test_Refusals(void)
 	Check_Result("refuse: its fields", read.Read_Fields(damaged.c_str()), SaveFileClass::RESULT_CORRUPT);
 
 	std::vector<unsigned char> gapped = image;
-	gapped.insert(gapped.begin() + content_offset, 8, 0);
-	Put_U32(gapped, 12, content_offset + 8);
+	gapped.insert(gapped.begin() + payload, 8, 0);
+	Put_U32(gapped, 12, payload + 8);
 	Reseal_Header(gapped, table);
 	Check("refuse: the gapped image is longer", gapped.size() == image.size() + 8);
 	Write_Whole_File(damaged.c_str(), gapped);
