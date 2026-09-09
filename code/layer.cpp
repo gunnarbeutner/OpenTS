@@ -154,9 +154,11 @@ int LayerClass::Sorted_Add(ObjectClass const * const object)
 /// <returns>bool; Was the record written whole?</returns>
 bool LayerClass::Save(SaveStreamClass & stream)
 {
+	return(stream.Block([&]{
 
-	DynamicVectorClass<ObjectClass *>::Serialize(stream);
-	return(!stream.Was_Error());
+		DynamicVectorClass<ObjectClass *>::Serialize(stream);
+		return(!stream.Was_Error());
+	}));
 }
 
 
@@ -169,8 +171,10 @@ bool LayerClass::Save(SaveStreamClass & stream)
 /// <returns>bool; Was the record read whole?</returns>
 bool LayerClass::Load(SaveStreamClass & stream)
 {
+	return(stream.Block([&]{
 
-	stream.Set_Context("LayerClass");
-	DynamicVectorClass<ObjectClass *>::Serialize(stream);
-	return(!stream.Was_Error());
+		stream.Set_Context("LayerClass");
+		DynamicVectorClass<ObjectClass *>::Serialize(stream);
+		return(!stream.Was_Error());
+	}));
 }

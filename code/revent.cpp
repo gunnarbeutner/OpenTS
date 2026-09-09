@@ -368,17 +368,19 @@ void RadarEventClass::Get_Event_Rect(Point2D (& event_rect)[4]) const
 /// <returns>bool; Were the events written successfully?</returns>
 bool RadarEventClass::Save(SaveStreamClass & stream)
 {
+	return(stream.Block([&]{
 
-	int count = RadarEvents.Count();
-	stream.Serialize_Raw(count);
+		int count = RadarEvents.Count();
+		stream.Serialize_Raw(count);
 
-	for (int index = 0; index < count; index++) {
-		RadarEvents[index]->Serialize(stream);
-	}
+		for (int index = 0; index < count; index++) {
+			RadarEvents[index]->Serialize(stream);
+		}
 
-	SERIALIZE(stream, LastRadarEventCell);
+		SERIALIZE(stream, LastRadarEventCell);
 
-	return(!stream.Was_Error());
+		return(!stream.Was_Error());
+	}));
 }
 
 
@@ -391,27 +393,29 @@ bool RadarEventClass::Save(SaveStreamClass & stream)
 /// <returns>bool; Were the events read successfully?</returns>
 bool RadarEventClass::Load(SaveStreamClass & stream)
 {
-	// The destructor takes the event off the list, so the list drains as they are deleted.
-	for (int i = RadarEvents.Count() - 1; i >= 0; i--) {
-		delete RadarEvents[i];
-	}
+	return(stream.Block([&]{
+		// The destructor takes the event off the list, so the list drains as they are deleted.
+		for (int i = RadarEvents.Count() - 1; i >= 0; i--) {
+			delete RadarEvents[i];
+		}
 
-	stream.Set_Context("RadarEventClass");
+		stream.Set_Context("RadarEventClass");
 
-	int count = 0;
-	stream.Serialize_Raw(count);
-	if (!stream.Fits(count, 1)) {
-		return(false);
-	}
+		int count = 0;
+		stream.Serialize_Raw(count);
+		if (!stream.Fits(count, 1)) {
+			return(false);
+		}
 
-	for (int index = 0; index < count && !stream.Was_Error(); index++) {
-		RadarEventClass * event = new RadarEventClass(RADAREVENT_NONE, Cell(0, 0));
-		event->Serialize(stream);
-	}
+		for (int index = 0; index < count && !stream.Was_Error(); index++) {
+			RadarEventClass * event = new RadarEventClass(RADAREVENT_NONE, Cell(0, 0));
+			event->Serialize(stream);
+		}
 
-	SERIALIZE(stream, LastRadarEventCell);
+		SERIALIZE(stream, LastRadarEventCell);
 
-	return(!stream.Was_Error());
+		return(!stream.Was_Error());
+	}));
 }
 
 
