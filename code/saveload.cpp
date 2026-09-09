@@ -1065,7 +1065,8 @@ bool Save_Game(const char *file_name, char const * descr)
 	info.Save(file);
 
 	DebugString("Calling Put_All()\n");
-	SaveStreamClass stream(file.Content, SaveStreamClass::MODE_SAVE);
+	SaveNamesClass names;
+	SaveStreamClass stream(file.Content, SaveStreamClass::MODE_SAVE, names);
 	bool res = Put_All(stream, 0);
 	if (!res) {
 		DebugString("\t***** FAILED!\n");
@@ -1075,7 +1076,7 @@ bool Save_Game(const char *file_name, char const * descr)
 	// they are read before it, so they go in front of what they describe.
 	if (res) {
 		std::vector<unsigned char> image;
-		stream.Write_Table(image);
+		names.Write(image);
 		image.insert(image.end(), file.Content.begin(), file.Content.end());
 		file.Content.swap(image);
 	}
@@ -1165,11 +1166,13 @@ bool Load_Game(const char *file_name)
 
 	Swizzler.Discard();
 
-	SaveStreamClass stream(file.Content, SaveStreamClass::MODE_LOAD);
-	if (!stream.Read_Table()) {
-		DebugString("\t***** FAILED! (the field table is not one this build reads)\n");
+	SaveNamesClass names;
+	if (!names.Read(file.Content.data(), file.Content.size())) {
+		DebugString("\t***** FAILED! (the name table is not one this build reads)\n");
 		return(false);
 	}
+
+	SaveStreamClass stream(file.Content, SaveStreamClass::MODE_LOAD, names, (unsigned int)names.Byte_Size());
 	bool res = false;
 	// The catch sits here rather than around the whole routine because what was already
 	// loaded still has to be abandoned below. Both of the ways a count read from the file
