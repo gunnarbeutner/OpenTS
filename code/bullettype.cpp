@@ -318,7 +318,7 @@ void BulletTypeClass::Post_Load(void)
 /// <param name="stream">The stream carrying the members.</param>
 void BulletTypeClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("ObjectTypeClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, IsAirburst);
 	SERIALIZE(stream, IsFloater);

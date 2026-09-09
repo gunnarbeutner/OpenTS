@@ -532,7 +532,7 @@ void Update_Fogged_Objects(void)
 /// <param name="stream">The stream carrying the members.</param>
 void FoggedObjectClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractClass", [&]{ BASECLASS::Serialize(stream); });
 
 	// FoggyObjects -- the master list, which each record joins as it is constructed.
 	// FoggedObjectIndex -- the cell keyed index, re-registered by Post_Load.

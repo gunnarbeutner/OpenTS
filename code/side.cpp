@@ -143,7 +143,7 @@ ClassID SideClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void SideClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractTypeClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Houses);
 	SERIALIZE(stream, RegularPowerPlant);

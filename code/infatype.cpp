@@ -476,7 +476,7 @@ void InfantryTypeClass::Post_Load(void)
 /// <param name="stream">The stream carrying the members.</param>
 void InfantryTypeClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("TechnoTypeClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, HeapID);
 	SERIALIZE(stream, Pip);

@@ -409,7 +409,7 @@ void TerrainTypeClass::Post_Load(void)
 /// <param name="stream">The stream carrying the members.</param>
 void TerrainTypeClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("ObjectTypeClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, HeapID);
 	SERIALIZE(stream, Foundation);

@@ -2982,7 +2982,7 @@ ClassID TActionClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void TActionClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, HeapID);
 	SERIALIZE(stream, Next);

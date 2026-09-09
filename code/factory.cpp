@@ -643,7 +643,7 @@ ClassID FactoryClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void FactoryClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractClass", [&]{ BASECLASS::Serialize(stream); });
 	stream.Base("StageClass", [&]{ StageClass::Serialize(stream); });
 
 	SERIALIZE(stream, QueuedObjects);
