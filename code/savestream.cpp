@@ -118,11 +118,8 @@ void SaveNamesClass::Clear(void)
 }
 
 
-/*
- * The identifier a name and width are known by in this file, minting one the first time
- * the name is met. Two members of different widths that share a name are two entries, so
- * a name means the same shape wherever it is read.
- */
+// Two members that share a name but not a width are two entries, so a name means one
+// shape throughout a file.
 bool SaveNamesClass::Intern(char const * name, unsigned char kind, unsigned short & id)
 {
 	std::string key = std::to_string((unsigned)kind) + ":" + (name != nullptr ? name : "");
@@ -227,11 +224,7 @@ bool SaveNamesClass::Read(unsigned char const * data, std::size_t length)
 }
 
 
-/*
- * Records where every field of the body reaching to the position given begins. A field
- * named twice in one body is a save no honest writer produced, and stops the pass rather
- * than letting one of the two silently win.
- */
+// A field named twice in one body stops the pass rather than letting one of the two win.
 bool SaveStreamClass::Index_Body(BodyFrame & frame, unsigned int end)
 {
 	unsigned int cursor = Cursor;
@@ -285,9 +278,8 @@ bool SaveStreamClass::Index_Body(BodyFrame & frame, unsigned int end)
 
 
 /// <summary>
-/// Opens the run of named fields one object occupies.
-/// A save writes the length once the body is closed; a load reads it, indexes the fields
-/// inside and reads them by name from there on.
+/// Opens the run of named fields one object occupies, which the stream resumes after
+/// however the reading inside it went.
 /// </summary>
 void SaveStreamClass::Begin_Frame(bool indexed)
 {
@@ -355,11 +347,8 @@ void SaveStreamClass::End_Frame(void)
 }
 
 
-/*
- * Places the stream on one field of the open body. Saving writes the identifier and, for
- * a payload the table does not give a width, room for the length. Loading answers false
- * for a name the file does not carry, which leaves the member as its owner built it.
- */
+// Answers false for a name the file does not carry, which leaves the member as its owner
+// built it.
 bool SaveStreamClass::Open_Field(char const * name, unsigned char kind, unsigned int & mark, bool body)
 {
 	if (Failed) {
@@ -425,10 +414,6 @@ bool SaveStreamClass::Open_Field(char const * name, unsigned char kind, unsigned
 }
 
 
-/*
- * Leaves the field opened above, and on a save fills in the length that could not be
- * known until its payload had been written.
- */
 void SaveStreamClass::Close_Field(unsigned int mark, bool patch)
 {
 	if (Mode == MODE_SAVE) {
