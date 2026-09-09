@@ -3893,7 +3893,7 @@ bool DisplayClass::Save(SaveStreamClass & stream)
 /// <param name="stream">The stream carrying the members.</param>
 void DisplayClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("MapClass", [&]{ BASECLASS::Serialize(stream); });
 
 	// Layer -- the display layers are shared, and Load and Save carry them through their own
 	// persistence.

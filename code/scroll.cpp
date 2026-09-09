@@ -123,7 +123,7 @@ ScrollClass::ScrollClass(void) :
 /// <param name="stream">The stream carrying the members.</param>
 void ScrollClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("TabClass", [&]{ BASECLASS::Serialize(stream); });
 
 	// Counter -- it paces the inertia ramp off the system clock, so a saved value would carry the
 	// time of the save into the loaded game.

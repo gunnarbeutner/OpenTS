@@ -162,7 +162,7 @@ ClassID ScriptClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void ScriptClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Class);
 	SERIALIZE(stream, Unused1);
@@ -370,7 +370,7 @@ ClassID ScriptTypeClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void ScriptTypeClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractTypeClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, HeapID);
 	SERIALIZE(stream, Scope);

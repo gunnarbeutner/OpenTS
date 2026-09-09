@@ -3951,7 +3951,7 @@ bool InfantryClass::Load(SaveStreamClass & stream)
 /// <param name="stream">The stream carrying the members.</param>
 void InfantryClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("FootClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Class);
 	SERIALIZE(stream, Doing);

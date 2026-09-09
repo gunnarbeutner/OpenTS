@@ -1318,7 +1318,7 @@ void AnimClass::Enable(void)
 /// <param name="stream">The stream carrying the members.</param>
 void AnimClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("ObjectClass", [&]{ BASECLASS::Serialize(stream); });
 	stream.Base("StageClass", [&]{ StageClass::Serialize(stream); });
 
 	SERIALIZE(stream, Class);

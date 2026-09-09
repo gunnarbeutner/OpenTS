@@ -919,7 +919,7 @@ bool VeinholeMonsterClass::Load_All(SaveStreamClass & stream)
 /// <param name="stream">The stream carrying the members.</param>
 void VeinholeMonsterClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("ObjectClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, GrowthCount);
 	SERIALIZE(stream, GrowthQueue);

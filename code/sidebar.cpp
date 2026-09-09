@@ -2995,7 +2995,7 @@ void Print_Cameo_Text(char const * string, Point2D const & point, Rect const & c
 /// <param name="stream">The stream carrying the members.</param>
 void SidebarClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("PowerClass", [&]{ BASECLASS::Serialize(stream); });
 
 	// SidebarShape -- backdrop artwork, fetched for the player's house by Init_For_House.
 	// SidebarMiddleShape

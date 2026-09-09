@@ -259,7 +259,7 @@ ClassID WarheadTypeClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void WarheadTypeClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractTypeClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Deform);
 	SERIALIZE(stream, Modifier);

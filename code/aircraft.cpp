@@ -3904,7 +3904,7 @@ bool AircraftClass::Load(SaveStreamClass & stream)
 /// <param name="stream">The stream carrying the members.</param>
 void AircraftClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("FootClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Class);
 	SERIALIZE(stream, IsToSpendAmmo);

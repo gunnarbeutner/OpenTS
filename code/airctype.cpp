@@ -316,7 +316,7 @@ void AircraftTypeClass::Post_Load(void)
 /// <param name="stream">The stream carrying the members.</param>
 void AircraftTypeClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("TechnoTypeClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, HeapID);
 	SERIALIZE(stream, IsCarryall);

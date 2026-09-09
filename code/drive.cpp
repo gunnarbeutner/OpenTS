@@ -139,7 +139,7 @@ DriveLocomotionClass::~DriveLocomotionClass(void)
 /// <param name="stream">The stream carrying the members.</param>
 void DriveLocomotionClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("LocomotionClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, CurrentRamp);
 	SERIALIZE(stream, PreviousRamp);

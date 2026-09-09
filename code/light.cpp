@@ -289,7 +289,7 @@ ClassID LightSourceClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void LightSourceClass::Serialize(SaveStreamClass & stream)
 {
-	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("AbstractClass", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Intensity);
 	SERIALIZE(stream, RedTint);
