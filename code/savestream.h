@@ -54,7 +54,7 @@ concept HasSerializeMemberWhere = requires(T & object, SaveStreamClass & stream,
 
 /*
  * A class that lays its contents out in order rather than as named members says so, and
- * travels as one field rather than as a body with fields of its own.
+ * travels as one field rather than as a body of its own.
  */
 template<typename T>
 concept SerializesPositionally = requires { typename T::SerializePositional; };
@@ -77,9 +77,8 @@ concept SerializesPositionally = requires { typename T::SerializePositional; };
  * arm, switched on whatever discriminates it.
  */
 /*
- * The names every member in one save file is known by. One of these is shared by every
- * stream a save is written through or read back with, since a name means the same thing
- * wherever in the file it appears and the table is carried once.
+ * The names every member and section of one save file is known by, shared by every stream
+ * of that file since a name means the same thing throughout it.
  */
 class SaveNamesClass
 {
@@ -211,12 +210,9 @@ class SaveStreamClass
 		void Serialize_Bytes(void * data, int length);
 
 		/*
-		 * A member of the record being carried, under the name its class knows it by.
-		 * Use the SERIALIZE macro rather than calling this with a name of one's own: the
-		 * name is the member's identity in the file, and a save written under one name is
-		 * not read back under another. A load takes the members it recognizes in whatever
-		 * order the file holds them and leaves a member the file does not name as it
-		 * found it.
+		 * Use the SERIALIZE macro rather than a name of one's own: the name is the member's
+		 * identity in the file. A member the file does not name keeps what its owner built
+		 * it with.
 		 */
 		template<typename T>
 		void Serialize(char const * name, T & value, std::source_location const & where = std::source_location::current())
@@ -247,11 +243,8 @@ class SaveStreamClass
 			}
 		}
 
-		/*
-		 * A member whose interior the class lays out itself: a hand-rolled container, or a
-		 * flag and the value it guards. Everything the callable serializes belongs to this
-		 * one member and travels in the order the callable writes it.
-		 */
+		// A member whose interior the class lays out itself: a hand-rolled container, or a
+		// flag and the value it guards.
 		template<typename F>
 		void Field(char const * name, F && interior)
 		{
@@ -263,10 +256,8 @@ class SaveStreamClass
 			Close_Field(mark, true);
 		}
 
-		/*
-		 * A value of a size the field table can record, so that a reader which does not
-		 * know the name can step over it without knowing what it holds.
-		 */
+		// A width the table can record, so that a reader which does not know the name can
+		// step over the field anyway.
 		template<typename F>
 		void Fixed_Field(char const * name, unsigned char width, F && interior)
 		{
@@ -278,10 +269,7 @@ class SaveStreamClass
 			Close_Field(mark, false);
 		}
 
-		/*
-		 * A field whose payload is a body: the length the field is measured by is the
-		 * body's own, so the two are not written twice.
-		 */
+		// A field measured by the body inside it, so the length is not written twice.
 		template<typename F>
 		void Body_Field(char const * name, F && interior)
 		{
@@ -293,11 +281,8 @@ class SaveStreamClass
 			Close_Field(mark, false);
 		}
 
-		/*
-		 * The members a base class contributes, in a body of its own. A base and the class
-		 * built on it are free to give two members the same name that way, and either can
-		 * gain a member without disturbing the other.
-		 */
+		// A base and the class built on it may name two members alike, and either may gain
+		// one, because the base keeps a body of its own.
 		template<typename F>
 		void Base(char const * name, F && interior)
 		{
@@ -308,18 +293,11 @@ class SaveStreamClass
 			});
 		}
 
-		/*
-		 * Opens the run of named fields one object occupies. Everything a class describes
-		 * between these belongs to it, and a reader steps over the whole of it by its
-		 * length whether or not it knows the class.
-		 */
+		// A reader steps over a body by its length whether or not it knows the class.
 		void Begin_Body(void);
 		void End_Body(void);
 
-		/*
-		 * The same framing for a run that has no names in it: the length is written and
-		 * read, but nothing inside is indexed, because positions are what it is read by.
-		 */
+		// The same framing for a run with no names in it, so nothing inside is indexed.
 		void Begin_Block(void);
 		void End_Block(void);
 
@@ -338,10 +316,8 @@ class SaveStreamClass
 			}
 		}
 
-		/*
-		 * Runs a callable inside a body of its own, for a class whose named members are
-		 * reached through a Save or Load of its own rather than through this stream.
-		 */
+		// For a class whose named members are reached through a Save or Load of its own
+		// rather than through this stream.
 		template<typename F>
 		auto Body(F && interior) -> decltype(interior())
 		{
@@ -664,12 +640,7 @@ class SaveStreamClass
 			}
 		}
 
-		/*
-		 * A field is its name's identifier followed by its payload. The table gives every
-		 * identifier a width, so a reader steps over a field it has no member for without
-		 * knowing anything else about it; KIND_VARIABLE means the payload begins with its
-		 * own length.
-		 */
+		// A field is its identifier followed by its payload, which the table gives a width.
 		struct BodyFrame
 		{
 			std::unordered_map<unsigned short, unsigned int> Fields;
@@ -698,11 +669,8 @@ class SaveStreamClass
 		unsigned int FormatVersion;
 
 
-		/*
-		 * One open body: where its fields are, and where it ends. A member reads from the
-		 * position its identifier is recorded at rather than from wherever the last member
-		 * finished, which is what makes the order the file holds them in immaterial.
-		 */
+		// A member reads from the position its identifier is recorded at, which is what
+		// makes the order the file holds them in immaterial.
 
 
 		/*
