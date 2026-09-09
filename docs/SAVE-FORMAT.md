@@ -12,7 +12,7 @@ Every integer is little-endian. Offsets are from the start of the file.
 | Offset | Size | Field |
 | --- | --- | --- |
 | 0 | 4 | Signature, the bytes `OTSV` |
-| 4 | 2 | Format version, currently 1 |
+| 4 | 2 | Format version, currently 2 |
 | 6 | 2 | Flags; bit 0 set when the content is LZO-compressed |
 | 8 | 4 | Length of the field table |
 | 12 | 4 | Offset of the content |
@@ -70,16 +70,69 @@ is refused rather than written past it. The records after the header are still
 read into live objects, so treat a save file from an untrusted source as
 untrusted input.
 
+### The name table
+
+The content opens with the table that names every member in it. It is written
+once the state has been written, since only then are the names known, and read
+before anything else:
+
+| Size | Field |
+| --- | --- |
+| 2 | How many names follow |
+| | Per name: 1 byte of kind, 1 byte of length, and that many bytes of name |
+
+A name's identifier is its position in the table. The kind is the width of the
+member's payload -- 1, 2, 4 or 8 bytes -- or 0 for a payload that begins with
+its own four-byte length. That width is what lets a reader step over a member
+it has none of its own for, so a table entry it does not recognize costs it
+nothing. A file carries at most 65536 names and a name is at most 255 bytes; a
+table claiming more, or a width that is none of the above, is refused before
+the content is read.
+
+Two members of the same name and width share an identifier wherever they
+appear. Two of the same name and different widths are two entries, so a name
+means one shape throughout a file.
+
+### Members and bodies
+
+A member is its identifier, two bytes, followed by its payload. A body is a
+four-byte length followed by the members inside it, and a class that lists
+named members travels as one. Loading indexes a body's members before reading
+any of them and then takes each by name, so:
+
+- the order the members are written in does not matter,
+- a member the reader has no field for is skipped,
+- a member the file does not carry keeps the value its object was built with,
+- and a name appearing twice in one body fails the load rather than letting
+  one of the two win.
+
+That is what lets a member be added to a class without invalidating the saves
+written before it. What it does not cover is a member that keeps its name and
+changes its meaning or width: the width is part of the name's identity, so a
+changed width reads as a different member, but a changed meaning is carried
+into the new build as if nothing had happened.
+
+A class built on another gives the base a body of its own, named for the base,
+so a base and the class built on it may both have a member called `Timer` and
+either may gain one without disturbing the other.
+
+Not everything is named. A container's elements have positions rather than
+names, and so do the runs a class lays out itself -- a flag and the object it
+guards, a count and the records after it. These travel as one member whose
+payload is read in the order it was written, and a class that is nothing but
+such a run says so with `SERIALIZE_POSITIONAL`. A run of that kind at the top
+level is framed by its length alone, with nothing inside it indexed.
+
 ### Object records
 
-The state is a sequence of values and object records in the order `Put_All`
+The state is a sequence of blocks and object records in the order `Put_All`
 names them. An object record is:
 
 | Size | Field |
 | --- | --- |
 | 16 | The class identifier of the object |
-| 4 | Length of the record body |
-| | The body: the swizzle identity, then the members the class's `Serialize` names |
+| 4 | Length of the record |
+| | The swizzle identity, then a body of the members the class's `Serialize` names |
 
 The class identifier is the `ClassID` the object's `Class_ID` reports, the
 same one registered in `code/startup.cpp` and, for a locomotor, named by the
@@ -156,7 +209,9 @@ game, so a refused file costs nothing.
 
 A save written before this format is an OLE compound document, which begins
 with a signature of its own, so the reader answers `RESULT_NOT_A_SAVE` and the
-load dialog leaves the file out of its list. Nothing converts those files.
+load dialog leaves the file out of its list. A save written in format version 1,
+whose members travelled by position rather than by name, is refused as an
+unsupported version. Nothing converts either.
 
 ## Writing
 

@@ -25,6 +25,7 @@
 #include <type_traits>
 #include <typeinfo>
 #include <utility>
+#include <unordered_map>
 #include <vector>
 
 class SaveStreamClass;
@@ -51,6 +52,13 @@ concept HasSerializeMemberWhere = requires(T & object, SaveStreamClass & stream,
 	object.Serialize(stream, where);
 };
 
+/*
+ * A class that lays its contents out in order rather than as named members says so, and
+ * travels as one field rather than as a body with fields of its own.
+ */
+template<typename T>
+concept SerializesPositionally = requires { typename T::SerializePositional; };
+
 
 /*
  * This carries one object's members to and from a save game. The same Serialize call
@@ -71,6 +79,17 @@ concept HasSerializeMemberWhere = requires(T & object, SaveStreamClass & stream,
 class SaveStreamClass
 {
 	public:
+		/*
+		 * What the table records a field's payload as: its width in bytes, which is 1, 2,
+		 * 4 or 8, or KIND_VARIABLE for a payload that begins with its own length. A width
+		 * is what lets a reader step over a field it has no member for.
+		 */
+		static unsigned char const KIND_VARIABLE = 0;
+
+		// A name is at most this long and a file carries at most this many, so a damaged
+		// table is refused rather than sized from.
+		static std::size_t const MAX_NAMES = 65536;
+
 		enum ModeType {
 			MODE_SAVE,
 			MODE_LOAD
@@ -148,7 +167,116 @@ class SaveStreamClass
 
 		void Serialize_Bytes(void * data, int length);
 
-		// A mismatch inside a block is caught at its end rather than somewhere downstream.
+		/*
+		 * A member of the record being carried, under the name its class knows it by.
+		 * Use the SERIALIZE macro rather than calling this with a name of one's own: the
+		 * name is the member's identity in the file, and a save written under one name is
+		 * not read back under another. A load takes the members it recognizes in whatever
+		 * order the file holds them and leaves a member the file does not name as it
+		 * found it.
+		 */
+		template<typename T>
+		void Serialize(char const * name, T & value, std::source_location const & where = std::source_location::current())
+		{
+			if constexpr (std::is_pointer_v<T>) {
+				Fixed_Field(name, (unsigned char)sizeof(SwizzleIDType), [&]{ Serialize_Raw(value, where); });
+			} else if constexpr ((std::is_arithmetic_v<T> || std::is_enum_v<T>)
+					&& (sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4 || sizeof(T) == 8)) {
+				Fixed_Field(name, (unsigned char)sizeof(T), [&]{ Serialize_Raw(value); });
+			} else if constexpr ((HasSerializeMember<T> || HasSerializeMemberWhere<T>) && !SerializesPositionally<T>) {
+				// An object is a body of its own, so its members are named inside it and
+				// the body's length is what the field is measured by.
+				Body_Field(name, [&]{
+					if constexpr (requires { Serialize_Raw(value, where); }) {
+						Serialize_Raw(value, where);
+					} else {
+						Serialize_Raw(value);
+					}
+				});
+			} else {
+				Field(name, [&]{
+					if constexpr (requires { Serialize_Raw(value, where); }) {
+						Serialize_Raw(value, where);
+					} else {
+						Serialize_Raw(value);
+					}
+				});
+			}
+		}
+
+		/*
+		 * A member whose interior the class lays out itself: a hand-rolled container, or a
+		 * flag and the value it guards. Everything the callable serializes belongs to this
+		 * one member and travels in the order the callable writes it.
+		 */
+		template<typename F>
+		void Field(char const * name, F && interior)
+		{
+			unsigned int mark = 0;
+			if (!Open_Field(name, KIND_VARIABLE, mark)) {
+				return;
+			}
+			interior();
+			Close_Field(mark, true);
+		}
+
+		/*
+		 * A value of a size the field table can record, so that a reader which does not
+		 * know the name can step over it without knowing what it holds.
+		 */
+		template<typename F>
+		void Fixed_Field(char const * name, unsigned char width, F && interior)
+		{
+			unsigned int mark = 0;
+			if (!Open_Field(name, width, mark)) {
+				return;
+			}
+			interior();
+			Close_Field(mark, false);
+		}
+
+		/*
+		 * A field whose payload is a body: the length the field is measured by is the
+		 * body's own, so the two are not written twice.
+		 */
+		template<typename F>
+		void Body_Field(char const * name, F && interior)
+		{
+			unsigned int mark = 0;
+			if (!Open_Field(name, KIND_VARIABLE, mark, true)) {
+				return;
+			}
+			interior();
+			Close_Field(mark, false);
+		}
+
+		/*
+		 * The members a base class contributes, in a body of its own. A base and the class
+		 * built on it are free to give two members the same name that way, and either can
+		 * gain a member without disturbing the other.
+		 */
+		template<typename F>
+		void Base(char const * name, F && interior)
+		{
+			Body_Field(name, [&]{
+				Begin_Body();
+				interior();
+				End_Body();
+			});
+		}
+
+		/*
+		 * Opens the run of named fields one object occupies. Everything a class describes
+		 * between these belongs to it, and a reader steps over the whole of it by its
+		 * length whether or not it knows the class.
+		 */
+		void Begin_Body(void);
+		void End_Body(void);
+
+		/*
+		 * The same framing for a run that has no names in it: the length is written and
+		 * read, but nothing inside is indexed, because positions are what it is read by.
+		 */
 		void Begin_Block(void);
 		void End_Block(void);
 
@@ -168,33 +296,27 @@ class SaveStreamClass
 		}
 
 		/*
-		 * A member of the record being carried, under the name its class knows it by.
-		 * Use the SERIALIZE macro rather than calling this with a name of one's own: the
-		 * name is the member's identity in the file, and a save written under one name is
-		 * not read back under another.
+		 * Runs a callable inside a body of its own, for a class whose named members are
+		 * reached through a Save or Load of its own rather than through this stream.
 		 */
-		template<typename T>
-		void Serialize(char const * name, T & value, std::source_location const & where = std::source_location::current())
+		template<typename F>
+		auto Body(F && interior) -> decltype(interior())
 		{
-			(void)name;
-			if constexpr (requires { Serialize_Raw(value, where); }) {
-				Serialize_Raw(value, where);
+			if constexpr (std::is_void_v<decltype(interior())>) {
+				Begin_Body();
+				interior();
+				End_Body();
 			} else {
-				Serialize_Raw(value);
+				Begin_Body();
+				auto const answer = interior();
+				End_Body();
+				return(answer);
 			}
 		}
 
-		/*
-		 * A member whose interior the class lays out itself: a hand-rolled container, or a
-		 * flag and the value it guards. Everything the callable serializes belongs to this
-		 * one member and travels in the order the callable writes it.
-		 */
-		template<typename F>
-		void Field(char const * name, F && interior)
-		{
-			(void)name;
-			interior();
-		}
+		// The field table, written ahead of the content and read back before it.
+		void Write_Table(std::vector<unsigned char> & out) const;
+		bool Read_Table(void);
 
 
 		/*
@@ -270,7 +392,13 @@ class SaveStreamClass
 		template<typename T> requires (HasSerializeMember<T> && !HasSerializeMemberWhere<T>)
 		void Serialize_Raw(T & object)
 		{
-			object.Serialize(*this);
+			if constexpr (SerializesPositionally<T>) {
+				object.Serialize(*this);
+			} else {
+				Begin_Body();
+				object.Serialize(*this);
+				End_Body();
+			}
 		}
 
 		/*
@@ -279,7 +407,13 @@ class SaveStreamClass
 		template<typename T> requires HasSerializeMemberWhere<T>
 		void Serialize_Raw(T & object, std::source_location const & where = std::source_location::current())
 		{
-			object.Serialize(*this, where);
+			if constexpr (SerializesPositionally<T>) {
+				object.Serialize(*this, where);
+			} else {
+				Begin_Body();
+				object.Serialize(*this, where);
+				End_Body();
+			}
 		}
 
 		/*
@@ -490,24 +624,56 @@ class SaveStreamClass
 			}
 		}
 
-		// A count out of a damaged save is judged against the block it sits in rather than
-		// against the whole stream.
-		struct BlockFrame
+		/*
+		 * A field is its name's identifier followed by its payload. The table gives every
+		 * identifier a width, so a reader steps over a field it has no member for without
+		 * knowing anything else about it; KIND_VARIABLE means the payload begins with its
+		 * own length.
+		 */
+		struct BodyFrame
 		{
+			std::unordered_map<unsigned short, unsigned int> Fields;
 			unsigned int End;
 			unsigned int Limit;
 		};
 
-		std::vector<BlockFrame> Blocks;
+		std::vector<BodyFrame> Bodies;
+
+		bool Open_Field(char const * name, unsigned char kind, unsigned int & mark, bool body = false);
+		// Only a field the table gives no width to carries a length to fill in.
+		void Close_Field(unsigned int mark, bool patch);
+		unsigned short Intern(char const * name, unsigned char kind);
+		bool Index_Body(BodyFrame & frame, unsigned int end);
+		void Begin_Frame(bool indexed);
+		void End_Frame(void);
 
 		std::vector<unsigned char> * Buffer;
 		unsigned int Cursor;
 
-		// A read is judged against the record being loaded rather than the whole stream.
+		// A read is judged against the innermost field or body rather than the whole
+		// stream, so a field cannot spend the bytes of the one after it.
 		unsigned int Limit;
 		ModeType Mode;
 		bool Failed;
 		unsigned int FormatVersion;
+
+		struct NameEntry
+		{
+			std::string Name;
+			unsigned char Kind;
+		};
+
+		// Written: the names met so far, in the order they were met. Read: what the file
+		// carried, which a member finds its own identifier through.
+		std::vector<NameEntry> Names;
+		std::unordered_map<std::string, unsigned short> Identifiers;
+
+		/*
+		 * One open body: where its fields are, and where it ends. A member reads from the
+		 * position its identifier is recorded at rather than from wherever the last member
+		 * finished, which is what makes the order the file holds them in immaterial.
+		 */
+
 
 		/*
 		 * The record this stream is carrying, named for the swizzle manager's report.

@@ -141,7 +141,7 @@ bool AbstractClass::Save_Members(SaveStreamClass & stream, bool cleardirty)
 {
 	SwizzleIDType id = Swizzler.ID_Of(this);
 	stream.Serialize_Raw(id);
-	Serialize(stream);
+	stream.Body([&]{ Serialize(stream); });
 	if (!stream.Was_Error() && cleardirty) {
 		Dirty = false;
 	}
@@ -169,7 +169,7 @@ bool AbstractClass::Load_Members(SaveStreamClass & stream)
 	char const * const outertype = stream.Context_Type();
 	SwizzleIDType const outerid = stream.Context_ID();
 	stream.Set_Context(typeid(*this).name(), id);
-	Serialize(stream);
+	stream.Body([&]{ Serialize(stream); });
 	stream.Set_Context(outertype, outerid);
 
 	return(!stream.Was_Error());

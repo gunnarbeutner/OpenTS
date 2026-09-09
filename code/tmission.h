@@ -49,7 +49,7 @@ class TeamMissionClass
 		void Serialize(S & stream)
 		{
 			SERIALIZE(stream, Mission);
-			stream.Serialize_Bytes(&Data, sizeof(Data));
+			stream.Field("Data", [&]{ stream.Serialize_Bytes(&Data, sizeof(Data)); });
 		}
 
 		TeamMissionType Mission;		// Mission type.

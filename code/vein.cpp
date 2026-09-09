@@ -899,7 +899,7 @@ bool VeinholeMonsterClass::Load_All(SaveStreamClass & stream)
 			Swizzler.Here_I_Am(id, monster);
 
 			stream.Set_Context(typeid(*monster).name(), id);
-			monster->Serialize(stream);
+			stream.Serialize_Raw(*monster);
 			if (stream.Was_Error()) {
 				return(false);
 			}
@@ -969,7 +969,7 @@ bool VeinholeMonsterClass::Save_All(SaveStreamClass & stream)
 				return(false);
 			}
 
-			VeinholeMonsters[i]->Serialize(stream);
+			stream.Serialize_Raw(*VeinholeMonsters[i]);
 			if (stream.Was_Error()) {
 				return(false);
 			}

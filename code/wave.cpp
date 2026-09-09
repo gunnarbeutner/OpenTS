@@ -408,7 +408,7 @@ void WaveClass::Detach(AbstractClass const * target, bool all)
 /// <param name="stream">The stream carrying the members.</param>
 void WaveClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Target);
 	SERIALIZE(stream, Type);

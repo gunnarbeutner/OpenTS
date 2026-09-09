@@ -32,3 +32,12 @@
 		(stream).Serialize(#field, serialize_bit); \
 		(field) = serialize_bit; \
 	} while (false)
+
+
+/*
+ * A class whose Serialize writes its contents in order rather than as named members
+ * declares this, and the stream carries it as one member of whatever holds it instead of
+ * as a body with fields of its own. Containers are what these are: their elements have
+ * positions, not names.
+ */
+#define SERIALIZE_POSITIONAL	using SerializePositional = void

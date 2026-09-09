@@ -80,6 +80,8 @@ template<class T>
 class VectorClass
 {
 	public:
+		SERIALIZE_POSITIONAL;
+
 		using value_type = T;
 		using size_type = std::size_t;
 		using difference_type = std::ptrdiff_t;
@@ -122,7 +124,7 @@ class VectorClass
 		void Serialize(S & stream, std::source_location const & where = std::source_location::current())
 		{
 			int count = VectorMax;
-			SERIALIZE(stream, count);
+			stream.Serialize_Raw(count);
 
 			if (stream.Is_Loading()) {
 				if (!stream.Fits(count, (std::is_arithmetic_v<T> || std::is_enum_v<T>) ? sizeof(T) : 1)) {
@@ -489,6 +491,8 @@ class DynamicVectorClass : public VectorClass<T>
 {
 		typedef VectorClass<T> BASECLASS;
 	public:
+		SERIALIZE_POSITIONAL;
+
 		using BASECLASS::Length;
 
 		DynamicVectorClass(int size=0);
@@ -516,7 +520,7 @@ class DynamicVectorClass : public VectorClass<T>
 		void Serialize(S & stream, std::source_location const & where = std::source_location::current())
 		{
 			int count = ActiveCount;
-			SERIALIZE(stream, count);
+			stream.Serialize_Raw(count);
 
 			if (stream.Is_Loading()) {
 				if (!stream.Fits(count, (std::is_arithmetic_v<T> || std::is_enum_v<T>) ? sizeof(T) : 1)) {

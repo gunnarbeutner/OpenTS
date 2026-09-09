@@ -556,7 +556,7 @@ char const * MissionClass::Mission_Name(MissionType mission)
 /// <param name="stream">The stream carrying the members.</param>
 void MissionClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, CurrentMission);
 	SERIALIZE(stream, SuspendedMission);

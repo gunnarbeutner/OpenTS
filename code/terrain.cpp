@@ -940,8 +940,8 @@ void TerrainClass::Post_Load(void)
 /// <param name="stream">The stream carrying the members.</param>
 void TerrainClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
-	StageClass::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("StageClass", [&]{ StageClass::Serialize(stream); });
 
 	SERIALIZE(stream, Class);
 	SERIALIZE(stream, IsOnFire);

@@ -220,7 +220,7 @@ bool TiberiumClass::Load(SaveStreamClass & stream)
 /// <param name="stream">The stream carrying the members.</param>
 void TiberiumClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, HeapID);
 	SERIALIZE(stream, SpreadDelay);

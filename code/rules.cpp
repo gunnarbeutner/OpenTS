@@ -2141,7 +2141,7 @@ bool RulesClass::Do_Movies(CCINIClass const & ini)
 /// </summary>
 void RulesClass::Save(SaveStreamClass & stream)
 {
-	stream.Block([&]{
+	stream.Body([&]{
 		Serialize(stream);
 	});
 }
@@ -2154,7 +2154,7 @@ void RulesClass::Save(SaveStreamClass & stream)
 /// the pointer swizzle needs them.</remarks>
 void RulesClass::Load(SaveStreamClass & stream)
 {
-	stream.Block([&]{
+	stream.Body([&]{
 		stream.Set_Context("RulesClass");
 		Serialize(stream);
 	});

@@ -511,8 +511,8 @@ LayerType VoxelAnimClass::In_Which_Layer(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void VoxelAnimClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
-	BounceClass::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
+	stream.Base("BounceClass", [&]{ BounceClass::Serialize(stream); });
 
 	SERIALIZE(stream, Unused1);
 	SERIALIZE(stream, Class);

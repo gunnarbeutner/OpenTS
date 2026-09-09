@@ -2982,7 +2982,7 @@ ClassID TActionClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void TActionClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, HeapID);
 	SERIALIZE(stream, Next);
@@ -2997,7 +2997,7 @@ void TActionClass::Serialize(SaveStreamClass & stream)
 	 * Which alternative of the data is live depends on the action, but every one of them
 	 * is a plain scalar and none holds a pointer, so the union travels as its raw image.
 	 */
-	stream.Serialize_Bytes(&Data, sizeof(Data));
+	stream.Field("Data", [&]{ stream.Serialize_Bytes(&Data, sizeof(Data)); });
 }
 
 
