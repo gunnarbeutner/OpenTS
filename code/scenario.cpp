@@ -3341,19 +3341,17 @@ static Cell const Clip_Move(Cell const & cell, FacingType facing, int dist)
 /// </summary>
 void ScenarioClass::Save(SaveStreamClass & stream) const
 {
-	stream.Block([&]{
-		DebugString("Scenario Save: ElapsedTimer = %d\n", (int)ElapsedTimer);
-		ElapsedTimer.Stop();
+	DebugString("Scenario Save: ElapsedTimer = %d\n", (int)ElapsedTimer);
+	ElapsedTimer.Stop();
 
 
-		/*
-		 * One member list serves both directions, so it cannot be declared const even though
-		 * writing changes nothing.
-		 */
-		const_cast<ScenarioClass *>(this)->Serialize(stream);
+	/*
+	 * One member list serves both directions, so it cannot be declared const even though
+	 * writing changes nothing.
+	 */
+	stream.Body([&]{ const_cast<ScenarioClass *>(this)->Serialize(stream); });
 
-		ElapsedTimer.Start();
-	});
+	ElapsedTimer.Start();
 }
 
 
@@ -3364,15 +3362,13 @@ void ScenarioClass::Save(SaveStreamClass & stream) const
 /// </summary>
 void ScenarioClass::Load(SaveStreamClass & stream)
 {
-	stream.Block([&]{
-		ElapsedTimer.Stop();
+	ElapsedTimer.Stop();
 
-		stream.Set_Context("ScenarioClass");
-		Serialize(stream);
+	stream.Set_Context("ScenarioClass");
+	stream.Body([&]{ Serialize(stream); });
 
-		ElapsedTimer.Start();
-		DebugString("Scenario Load: ElapsedTimer = %d\n", (int)ElapsedTimer);
-	});
+	ElapsedTimer.Start();
+	DebugString("Scenario Load: ElapsedTimer = %d\n", (int)ElapsedTimer);
 }
 
 

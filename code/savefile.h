@@ -31,7 +31,7 @@ class SaveFileClass
 		};
 
 		enum {
-			FORMAT_VERSION = 1,
+			FORMAT_VERSION = 2,
 			HEADER_SIZE = 32,
 		};
 

@@ -236,21 +236,23 @@ ClassID DropPodLocomotionClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void DropPodLocomotionClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Direction);
 	SERIALIZE(stream, DestinationCoord);
 
-	bool haspiggy = (Piggybacker != NULL);
-	SERIALIZE(stream, haspiggy);
+	stream.Field("Piggybacker", [&]{
+		bool haspiggy = (Piggybacker != NULL);
+		stream.Serialize_Raw(haspiggy);
 
-	if (haspiggy) {
-		if (stream.Is_Saving()) {
-			Save_Object(stream, Piggybacker.get());
-		} else {
-			Piggybacker = Load_Locomotor(stream);
+		if (haspiggy) {
+			if (stream.Is_Saving()) {
+				Save_Object(stream, Piggybacker.get());
+			} else {
+				Piggybacker = Load_Locomotor(stream);
+			}
 		}
-	}
+	});
 }
 
 

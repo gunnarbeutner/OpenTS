@@ -3719,7 +3719,7 @@ ClassID Tactical::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void Tactical::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, ScreenText);
 	SERIALIZE(stream, LastAIFrame);

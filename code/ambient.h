@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include "serialize.h"
+
 #include "audio/audiohandle.h"
 #include "voc.hh"
 
@@ -24,6 +26,8 @@ class SaveStreamClass;
 class AmbientSoundTable
 {
 	public:
+		SERIALIZE_POSITIONAL;
+
 		AmbientSoundTable(void) = default;
 
 		// Replaces any sound the object already has; VOC_NONE detaches.

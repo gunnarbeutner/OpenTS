@@ -8856,7 +8856,7 @@ bool BuildingClass::Load(SaveStreamClass & stream)
 /// <param name="stream">The stream carrying the members.</param>
 void BuildingClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Class);
 	SERIALIZE(stream, Factory);

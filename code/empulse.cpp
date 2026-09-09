@@ -294,7 +294,7 @@ ClassID EMPulseClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void EMPulseClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	// EMPulses -- the master list, which each pulse joins as it is constructed.
 	SERIALIZE(stream, CellID);

@@ -103,7 +103,7 @@ ClassID AITriggerTypeClass::Class_ID(void) const
 /// <param name="stream">The stream carrying the members.</param>
 void AITriggerTypeClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Type);
 	SERIALIZE(stream, Scope);
@@ -128,7 +128,7 @@ void AITriggerTypeClass::Serialize(SaveStreamClass & stream)
 	 * Which alternative of the parameters is live depends on the condition, but both are
 	 * plain scalars and neither holds a pointer, so the union travels as its raw image.
 	 */
-	stream.Serialize_Bytes(&Params, sizeof(Params));
+	stream.Field("Params", [&]{ stream.Serialize_Bytes(&Params, sizeof(Params)); });
 
 	SERIALIZE(stream, TimesSucceded);
 	SERIALIZE(stream, TimesExecuted);

@@ -278,7 +278,7 @@ static bool Load_Vector(SaveStreamClass & stream)
 {
 	bool whole = true;
 
-	// The heap travels inside a block of its own, so a reader steps over the whole of it
+	// The heap travels inside a body of its own, so a reader steps over the whole of it
 	// rather than losing its place in whatever follows.
 	stream.Block([&]{
 		int count = 0;
@@ -1071,6 +1071,15 @@ bool Save_Game(const char *file_name, char const * descr)
 		DebugString("\t***** FAILED!\n");
 	}
 
+	// The names the content is read through are known only once it has been written, and
+	// they are read before it, so they go in front of what they describe.
+	if (res) {
+		std::vector<unsigned char> image;
+		stream.Write_Table(image);
+		image.insert(image.end(), file.Content.begin(), file.Content.end());
+		file.Content.swap(image);
+	}
+
 	if (res) {
 		DebugString("Writing %s\n", file_name);
 		SaveFileClass::ResultType const result = file.Write(Saved_Game_Name(file_name).c_str());
@@ -1157,6 +1166,10 @@ bool Load_Game(const char *file_name)
 	Swizzler.Discard();
 
 	SaveStreamClass stream(file.Content, SaveStreamClass::MODE_LOAD);
+	if (!stream.Read_Table()) {
+		DebugString("\t***** FAILED! (the field table is not one this build reads)\n");
+		return(false);
+	}
 	bool res = false;
 	// The catch sits here rather than around the whole routine because what was already
 	// loaded still has to be abandoned below. Both of the ways a count read from the file
@@ -1226,7 +1239,7 @@ bool Load_Game(const char *file_name)
  *=========================================================================*/
 static void Serialize_Misc_Values(SaveStreamClass & stream)
 {
-	stream.Block([&]{
+	stream.Body([&]{
 		SERIALIZE(stream, GasSystem);
 		SERIALIZE(stream, PlayerPtr);
 		SERIALIZE(stream, Frame);
@@ -1268,8 +1281,8 @@ static void Serialize_Misc_Values(SaveStreamClass & stream)
 
 		// Placed sounds and the sounds attached to objects come back on the next
 		// sound tick; the playing sounds themselves are not saved.
-		Static_Sounds_Serialize(stream);
-		AmbientSounds.Serialize(stream);
+		stream.Field("StaticSounds", [&]{ Static_Sounds_Serialize(stream); });
+		SERIALIZE(stream, AmbientSounds);
 	});
 }
 

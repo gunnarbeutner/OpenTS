@@ -6456,7 +6456,7 @@ bool HouseClass::Load(SaveStreamClass & stream)
 /// <param name="stream">The stream carrying the members.</param>
 void HouseClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, HeapID);
 	SERIALIZE(stream, Class);

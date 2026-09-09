@@ -274,7 +274,7 @@ void SmudgeClass::Write_INI(CCINIClass & ini)
 /// <param name="stream">The stream carrying the members.</param>
 void SmudgeClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, Class);
 }

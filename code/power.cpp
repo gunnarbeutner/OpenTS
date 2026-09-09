@@ -108,7 +108,7 @@ PowerClass::PowerClass(void) :
 /// <param name="stream">The stream carrying the members.</param>
 void PowerClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	// IsToRedraw -- a redraw flag; the load asks for a complete draw anyway.
 	// FlashTimer -- both run off the system clock, so a saved value would carry the time of the

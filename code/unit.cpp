@@ -6051,7 +6051,7 @@ bool UnitClass::Load(SaveStreamClass & stream)
 /// <param name="stream">The stream carrying the members.</param>
 void UnitClass::Serialize(SaveStreamClass & stream)
 {
-	BASECLASS::Serialize(stream);
+	stream.Base("BASECLASS", [&]{ BASECLASS::Serialize(stream); });
 
 	SERIALIZE(stream, FiringSyncDelay);
 	SERIALIZE(stream, Reload);
