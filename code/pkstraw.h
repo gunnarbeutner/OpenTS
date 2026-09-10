@@ -46,6 +46,7 @@ class PKStraw : public Straw
 		};
 
 		PKStraw(CryptControl control, RandomStraw & rnd);
+		virtual ~PKStraw(void);
 
 		virtual void Get_From(Straw * straw) override;
 		virtual void Get_From(Straw & straw) {Get_From(&straw);}
