@@ -3390,8 +3390,8 @@ int CellClass::Tiberium_Adjust(bool pregame)
 			**	value per step of that ore type.
 			*/
 			int value = tiberium->CreditValue;
-			if (pregame) {
-				int first = tiberium->Overlay->HeapID;
+			if (pregame && tiberium->Overlay != NULL) {
+				int const first = (int)tiberium->Overlay->HeapID;
 				Overlay = (OverlayType)Random_Pick(first, first + tiberium->Variety - 1);
 			}
 
