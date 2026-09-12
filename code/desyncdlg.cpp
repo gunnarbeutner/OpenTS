@@ -132,13 +132,15 @@ DesyncDialogClass::OutcomeType DesyncDialogClass::Run(void)
 
 	OutcomeType outcome = OutcomeType::Continue;
 
-	if (Window == NULL) {
+	if (!Open) {
 		DebugString("The out-of-sync dialog could not be created; continuing\n");
 	} else {
-		while (true) {
+		// A promotion whose box cannot be reopened ends the dialog as a Continue.
+		while (Is_Active()) {
 			Call_Back();
+			UI_Desync_Service(execute);
 
-			if (Decision == IDC_DESYNC_QUIT) {
+			if (Decision == UI_DESYNC_QUIT) {
 				outcome = OutcomeType::Quit;
 				break;
 			}
@@ -146,7 +148,7 @@ DesyncDialogClass::OutcomeType DesyncDialogClass::Run(void)
 			std::int64_t now = Monotonic_Milliseconds();
 			if (!IsHostDialog && !QuitEnabled && now - OpenedAt >= DesyncClass::QUIT_DELAY_MS) {
 				QuitEnabled = true;
-				EnableWindow(GetDlgItem(Window, IDC_DESYNC_QUIT), TRUE);
+				UI_Desync_Enable(UI_DESYNC_QUIT, true);
 			}
 
 			if (!CountdownActive && SaveManager.MultiplayerLoad.Is_Pending()) {
@@ -155,26 +157,27 @@ DesyncDialogClass::OutcomeType DesyncDialogClass::Run(void)
 
 			if (CountdownActive) {
 				Update_Countdown_Text();
-				InvalidateRect(Window, NULL, FALSE);
+				Show_Countdown_Bar();
 				if (SaveManager.MultiplayerLoad.Is_Due(now)) {
 					outcome = OutcomeType::Load;
 					break;
 				}
-			} else if (ContinueReceived || Decision == IDC_DESYNC_CONTINUE) {
-				if (Decision == IDC_DESYNC_CONTINUE) {
+			} else if (ContinueReceived || Decision == UI_DESYNC_CONTINUE) {
+				if (Decision == UI_DESYNC_CONTINUE) {
 					Send_Continue();
 				}
 				outcome = OutcomeType::Continue;
 				break;
-			} else if (Decision == IDC_DESYNC_LOAD) {
-				EnableWindow(Window, FALSE);
+			} else if (Decision == UI_DESYNC_LOAD) {
+				UI_Desync_Suspend(true);
 				SaveManager.Multiplayer_Load_Prompt();
-				EnableWindow(Window, TRUE);
-				SetFocus(GetDlgItem(Window, IDC_DESYNC_PLAYER_LIST));
+				UI_Desync_Service(execute);
+				UI_Desync_Suspend(false);
+				UI_Desync_Focus_Box();
 			}
 
 			Decision = 0;
-			Sleep(10);
+			Platform_Sleep(10);
 		}
 	}
 
@@ -272,30 +275,12 @@ void DesyncDialogClass::Notify_Master_Changed(void)
 void DesyncDialogClass::Create_Dialog(void)
 {
 	IsHostDialog = Session.Am_I_Master();
-	int const id = IsHostDialog ? IDD_DESYNC_HOST : IDD_DESYNC_WAIT;
 
-	Window = WS_Create_Dialog(ProgramInstance, id, MainWindow, Dialog_Proc, FALSE);
-	if (Window == NULL) {
+	Open = UI_Desync_Open(IsHostDialog);
+	if (!Open) {
 		return;
 	}
 
-	Fit_To_Screen();
-	Center_Window_Within_Window(Window);
-
-	RECT placed;
-	GetWindowRect(Window, &placed);
-	MapWindowPoints(HWND_DESKTOP, MainWindow, (POINT *)&placed, 2);
-	DebugString("Out-of-sync dialog placed at %d,%d size %dx%d in a %dx%d view\n",
-		placed.left, placed.top, placed.right - placed.left, placed.bottom - placed.top, VideoModeWidth, VideoModeHeight);
-
-	// The name column goes first: the list draws each row's own string in the first column added.
-	HWND list = GetDlgItem(Window, IDC_DESYNC_PLAYER_LIST);
-	if (list != NULL) {
-		int const status_x = Status_Column_X(list);
-		SendMessage(list, OD_ADDCOLUMN, status_x - NAME_COLUMN_X - 6, NAME_COLUMN_X);
-		SendMessage(list, OD_ADDCOLUMN, 0, HOST_COLUMN_X);
-		SendMessage(list, OD_ADDCOLUMN, 0, status_x);
-	}
 	Update_Player_List();
 
 	if (IsHostDialog) {

@@ -38,14 +38,16 @@
 #include "netshare.h"
 #include "nettiming.h"
 #include "newmenu.h"
-#include "ownrdraw.h"
 #include "rules.h"
 #include "scenario.h"
 #include "sendfile.h"
 #include "platform/registry.h"
+#include "platform/wait.h"
 #include "srfcache.h"
 #include "stimer.h"
 #include "timer.h"
+#include "ui/uilobby.h"
+#include "ui/uiwsstack.h"
 #include "utf8.h"
 #include "windlg.h"
 #include "winstub.h"
@@ -78,55 +80,212 @@ int RulesID;
 int ArtID;
 int AIID;
 
-int Net2_g_Col_Accept;
-int Net2_g_Col_Name;
-int Net2_g_Col_House;
 
-
-/// <summary>
-/// Fills a side box with the multiplayable countries, each entry carrying its country index.
-/// </summary>
-void Fill_Country_Box(HWND combo)
+// The side box of a lobby screen: fills it with the multiplayable countries, each entry
+// carrying its country index.
+static void Fill_Side_Box(WSScreenHandle dialog)
 {
-	SendMessage(combo, CB_RESETCONTENT, 0, 0);
+	Lobby_Send(dialog, IDC_YOURSIDE, LOBBY_MSG_COMBO_RESET, 0, 0);
 	for (int index = 0; index < HouseTypes.Count(); index++) {
 		HouseTypeClass * house = HouseTypes[index];
 		if (house->IsMultiplay) {
-			LRESULT item = SendMessage(combo, CB_INSERTSTRING, (WPARAM)-1, (LPARAM)(char const *)house->GivenName);
-			SendMessage(combo, CB_SETITEMDATA, item, index);
+			LobbyResult item = Lobby_Send(dialog, IDC_YOURSIDE, LOBBY_MSG_COMBO_INSERT, (LobbyWParam)-1, (LobbyLParam)(char const *)house->GivenName);
+			Lobby_Send(dialog, IDC_YOURSIDE, LOBBY_MSG_COMBO_SET_ITEM_DATA, item, index);
 		}
 	}
 }
 
 
-/// <summary>
-/// Fetches the country behind a side box's selection.
-/// </summary>
-/// <returns>Returns with the country index, or the first country with nothing selected.</returns>
-int Country_From_Box(HWND combo)
+// The country behind the side box's selection, or the first country with nothing selected.
+static int Side_From_Box(WSScreenHandle dialog)
 {
-	LRESULT item = SendMessage(combo, CB_GETCURSEL, 0, 0);
-	if (item == CB_ERR) {
+	LobbyResult item = Lobby_Send(dialog, IDC_YOURSIDE, LOBBY_MSG_COMBO_GET_CUR_SEL, 0, 0);
+	if (item == LOBBY_ERR) {
 		return(HOUSE_FIRST);
 	}
-	LRESULT country = SendMessage(combo, CB_GETITEMDATA, item, 0);
-	return(country == CB_ERR ? HOUSE_FIRST : (int)country);
+	LobbyResult country = Lobby_Send(dialog, IDC_YOURSIDE, LOBBY_MSG_COMBO_GET_ITEM_DATA, item, 0);
+	return(country == LOBBY_ERR ? HOUSE_FIRST : (int)country);
 }
 
 
-/// <summary>
-/// Selects the entry of a side box carrying the given country, or the first entry when none does.
-/// </summary>
-void Select_Country_In_Box(HWND combo, int country)
+// Selects the side box's entry for the country, or the first entry when none carries it.
+static void Select_Side_In_Box(WSScreenHandle dialog, int country)
 {
-	LRESULT count = SendMessage(combo, CB_GETCOUNT, 0, 0);
-	for (LRESULT item = 0; item < count; item++) {
-		if (SendMessage(combo, CB_GETITEMDATA, item, 0) == country) {
-			SendMessage(combo, CB_SETCURSEL, item, 0);
+	LobbyResult count = Lobby_Send(dialog, IDC_YOURSIDE, LOBBY_MSG_COMBO_GET_COUNT, 0, 0);
+	for (LobbyResult item = 0; item < count; item++) {
+		if (Lobby_Send(dialog, IDC_YOURSIDE, LOBBY_MSG_COMBO_GET_ITEM_DATA, item, 0) == country) {
+			Lobby_Send(dialog, IDC_YOURSIDE, LOBBY_MSG_COMBO_SET_CUR_SEL, item, 0);
 			return;
 		}
 	}
-	SendMessage(combo, CB_SETCURSEL, count > 0 ? 0 : (WPARAM)-1, 0);
+	Lobby_Send(dialog, IDC_YOURSIDE, LOBBY_MSG_COMBO_SET_CUR_SEL, count > 0 ? 0 : (LobbyWParam)-1, 0);
+}
+
+
+// Records the selected rows of a list so they can be put back once it has been refilled.
+static void Save_Selections(WSScreenHandle dialog, int id, Dictionary<Wstring,bool> & lbdict)
+{
+	int count = UI_Lobby_Get_Count(dialog, id);
+	Wstring key;
+
+	if (count) {
+		if (UI_Lobby_Is_Multiple(dialog, id)) {
+			for (int i = 0; i < count; i++) {
+				if (UI_Lobby_Get_Sel(dialog, id, i)) {
+					key = UI_Lobby_Get_Item_Text(dialog, id, i).c_str();
+					bool value = true;
+					lbdict.add(key, value);
+				}
+			}
+		} else {
+			int index = UI_Lobby_Get_Cur_Sel(dialog, id);
+			if (index >= 0) {
+				key = UI_Lobby_Get_Item_Text(dialog, id, index).c_str();
+				bool value = true;
+				lbdict.add(key, value);
+			}
+		}
+	}
+}
+
+
+static void Restore_Selections(WSScreenHandle dialog, int id, Dictionary<Wstring,bool> & lbdict)
+{
+	int count = UI_Lobby_Get_Count(dialog, id);
+	Wstring key;
+
+	if (count) {
+		if (UI_Lobby_Is_Multiple(dialog, id)) {
+			for (int i = 0; i < count; i++) {
+				key = UI_Lobby_Get_Item_Text(dialog, id, i).c_str();
+				if (lbdict.contains(key)) {
+					UI_Lobby_Set_Sel(dialog, id, true, i);
+				}
+			}
+		} else {
+			bool value;
+			if (lbdict.removeAny(key, value)) {
+				// LB_FINDSTRINGEXACT matched without regard to case.
+				for (int i = 0; i < count; i++) {
+					if (stricmp(UI_Lobby_Get_Item_Text(dialog, id, i).c_str(), key.get()) == 0) {
+						UI_Lobby_Set_Cur_Sel(dialog, id, i);
+						break;
+					}
+				}
+			}
+		}
+	}
+}
+
+
+// The lobby dialogs that are screens, and the dialog procedure each answers to.
+struct LobbyScreenType
+{
+	WSScreenHandle Screen;
+	LobbyProc Proc;
+};
+
+static LobbyScreenType _LobbyScreens[8];
+
+
+static LobbyProc Lobby_Proc(void const * screen)
+{
+	for (LobbyScreenType const & entry : _LobbyScreens) {
+		if (entry.Screen != nullptr && entry.Screen == screen) {
+			return(entry.Proc);
+		}
+	}
+	return(nullptr);
+}
+
+
+static void Forget_Lobby_Screen(WSScreenHandle screen)
+{
+	for (LobbyScreenType & entry : _LobbyScreens) {
+		if (entry.Screen == screen) {
+			entry.Screen = nullptr;
+			entry.Proc = nullptr;
+		}
+	}
+}
+
+
+// What a screen's control reported, handed to its dialog procedure as the owner-draw
+// control sent it.
+static void Lobby_Screen_Command(void const * screen, UILobbyCommand const & command)
+{
+	WSScreenHandle const window = (WSScreenHandle)screen;
+	LobbyProc const proc = Lobby_Proc(screen);
+	if (proc == nullptr) {
+		return;
+	}
+
+	int notify = 0;
+
+	switch (command.Notify) {
+		case UI_LOBBY_SCROLLED:
+			proc(window, LOBBY_MSG_HSCROLL, Lobby_Make_Param(LOBBY_SCROLL_THUMB_TRACK, (unsigned short)command.Value), command.Control);
+			return;
+
+		// An owner-draw check box sent its new state where BN_CLICKED would have been.
+		case UI_LOBBY_CLICKED:		notify = command.Value; break;
+		case UI_LOBBY_SELCHANGE:	notify = LOBBY_NOTIFY_SELCHANGE; break;
+		case UI_LOBBY_DBLCLK:		notify = LOBBY_NOTIFY_DBLCLK; break;
+		case UI_LOBBY_TEXT_CHANGED:	notify = LOBBY_NOTIFY_CHANGE; break;
+		case UI_LOBBY_TEXT_ENTERED:	notify = LOBBY_NOTIFY_MAX_TEXT; break;
+	}
+
+	proc(window, LOBBY_MSG_COMMAND, Lobby_Make_Param(command.Control, notify), 0);
+}
+
+
+static void Lobby_Screen_Proc(WSScreenHandle screen, WSScreenEventType event)
+{
+	if (event != WS_SCREEN_DESTROYED) {
+		return;
+	}
+
+	LobbyProc const proc = Lobby_Proc(screen);
+	if (proc != nullptr) {
+		proc(screen, LOBBY_MSG_DESTROY, 0, 0);
+	}
+
+	Forget_Lobby_Screen(screen);
+	UI_Lobby_Close(screen);
+}
+
+
+/// <summary>
+/// Opens a lobby screen on top of the WS_ stack and shows it. Its dialog procedure sees
+/// WM_INITDIALOG before the screen is on the stack and UI_LOBBY_MSG_SUBCLASSED after, as the
+/// dialog's did.
+/// </summary>
+/// <returns>Returns with the screen's handle, or null if the screen could not be prepared;
+/// the stack is left as it was then.</returns>
+static WSScreenHandle Open_Lobby_Dialog(int id, LobbyProc proc, UILobbyKind kind)
+{
+	WSScreenHandle const screen = WS_Screen_Handle();
+
+	for (LobbyScreenType & entry : _LobbyScreens) {
+		if (entry.Screen == nullptr) {
+			entry.Screen = screen;
+			entry.Proc = proc;
+			break;
+		}
+	}
+
+	if (Lobby_Proc(screen) == nullptr || !UI_Lobby_Open(screen, kind, Lobby_Screen_Command)) {
+		DebugString("Lobby screen %d could not be prepared\n", id);
+		Forget_Lobby_Screen(screen);
+		return(nullptr);
+	}
+
+	proc(screen, LOBBY_MSG_INIT, 0, 0);
+	WS_Push_Screen(screen, id, Lobby_Screen_Proc);
+	UI_Lobby_Subclass(screen);
+	proc(screen, LOBBY_MSG_SUBCLASSED, 0, 0);
+	UI_Lobby_Show(screen, true);
+	return(screen);
 }
 
 
@@ -199,41 +358,31 @@ void Net2DisplayUsers(void)
 /// </summary>
 void _Net2DisplayUsers(void)
 {
-	int i;
-	int color;
-	char hname[128];
-	char info[128];
-	Surface * surf = NULL;
-
-	HWND win=WS_Top_Window();
-
-	HWND userwin=GetDlgItem(win,IDC_USERS);
-
-	if (win==NULL || userwin==NULL) {
+	WSScreenHandle win = WS_Top_Window();
+	if (!UI_Lobby_Has_Control(win, IDC_USERS)) {
 		return;
 	}
 
-	OwnerDraw::CellData thecell;
-
-	int topindex=SendDlgItemMessage(win, IDC_USERS, LB_GETTOPINDEX, 0, 0);
-
-	SendDlgItemMessage(win, IDC_USERS, OD_DISABLEPAINT, 0, TRUE);
+	// The host's and the guest's lists had their cells; the game list, having no columns,
+	// showed a player's name alone.
+	bool const columns = (WS_Top_Window_ID() == IDD_MPLAYER_HOST || WS_Top_Window_ID() == IDD_MPLAYER_GUEST);
 
 	Dictionary<Wstring,bool> lbdict(Wstring_Hash);
-	LBSaveSelections(userwin, lbdict);
+	Save_Selections(win, IDC_USERS, lbdict);
 
-	SendDlgItemMessage(win, IDC_USERS, LB_RESETCONTENT, NULL, NULL);
+	Lobby_Send(win, IDC_USERS, LOBBY_MSG_LIST_RESET, 0, 0);
 
 	if (CurGame == 0) {
-		SendDlgItemMessage(win, IDC_USERS, LB_INSERTSTRING, (WPARAM)0, (LPARAM)Session.Handle);
+		UILobbyItem item;
+		item.Text = Session.Handle;
+		UI_Lobby_Add(win, IDC_USERS, item);
 
-		for (i = 1; i < Session.Chat.Count(); i++) {
-			SendDlgItemMessage(win, IDC_USERS, LB_INSERTSTRING, (WPARAM)i, (LPARAM)Session.Chat[i]->Name);
+		for (int i = 1; i < Session.Chat.Count(); i++) {
+			item.Text = Session.Chat[i]->Name;
+			UI_Lobby_Add(win, IDC_USERS, item);
 		}
-
 	} else {
-
-		for (i = 0; i < Session.Players.Count(); i++) {
+		for (int i = 0; i < Session.Players.Count(); i++) {
 			int type = 0;
 
 			if (!strcmp(Session.Players[i]->Name, Session.GameName)) {
@@ -243,55 +392,27 @@ void _Net2DisplayUsers(void)
 				type = 1;
 			}
 
-			sprintf(info, "%s", Session.Players[i]->Name);
+			UILobbyItem item;
+			item.Text = Session.Players[i]->Name;
 
-			// Only two icons ship, so every side past the first borrows the second's.
-			int country = Session.Players[i]->Player.House;
-			SideType side = country >= HOUSE_FIRST && country < HouseTypes.Count() ? HouseTypes[country]->Side : SIDE_NONE;
-			if (side == SIDE_GDI) {
-				sprintf(hname, "%s", Fetch_String(TXT_GDI));
-				surf = SurfaceCache.GetSurface("gdii.pcx");
-			} else if (side == SIDE_NOD || side == SIDE_NONE) {
-				sprintf(hname, "%s", Fetch_String(TXT_NOD));
-				surf = SurfaceCache.GetSurface("nodi.pcx");
-			} else {
-				sprintf(hname, "%s", (char const *)HouseTypes[country]->GivenName);
-				surf = SurfaceCache.GetSurface("nodi.pcx");
+			if (columns) {
+				// Only two emblems ship, so every side past the first borrows the second's.
+				int country = Session.Players[i]->Player.House;
+				SideType side = country >= HOUSE_FIRST && country < HouseTypes.Count() ? HouseTypes[country]->Side : SIDE_NONE;
+				item.Emblem = (side == SIDE_GDI) ? "gdii.pcx" : "nodi.pcx";
+				item.Color = PlayerColorTable[Session.Players[i]->Player.Color];
+				if (type == 2) {
+					item.Mark = "wolhost.pcx";
+				} else if (type != 0) {
+					item.Mark = "wolacpt.pcx";
+				}
 			}
 
-			SendDlgItemMessage(win, IDC_USERS, LB_INSERTSTRING, (WPARAM) -1, (LPARAM)info);
-
-			color = PlayerColorTable[Session.Players[i]->Player.Color];
-
-			thecell.type = OwnerDraw::CellData::PRIMARY;
-			thecell.color = color;
-			thecell.hint.set("");
-			SendDlgItemMessage(win, IDC_USERS, OD_SETCELL, MAKEWPARAM(Net2_g_Col_Name,i),(LPARAM)&thecell);
-
-			thecell.type = OwnerDraw::CellData::SURFACE;
-			thecell.hint.set(hname);
-			thecell.surf = surf;
-			SendDlgItemMessage(win, IDC_USERS, OD_SETCELL, MAKEWPARAM(Net2_g_Col_House,i),(LPARAM)&thecell);
-
-			thecell.hint.set("");
-			thecell.type = OwnerDraw::CellData::SURFACE;
-			if (type == 2) {
-				thecell.surf=SurfaceCache.GetSurface("wolhost.pcx");
-			} else if (type != 0) {
-				thecell.surf=SurfaceCache.GetSurface("wolacpt.pcx");
-			} else {
-				thecell.type = OwnerDraw::CellData::INVALID;
-			}
-			SendDlgItemMessage(win, IDC_USERS, OD_SETCELL, MAKEWPARAM(Net2_g_Col_Accept,i),(LPARAM)&thecell);
+			UI_Lobby_Add(win, IDC_USERS, item);
 		}
-
 	}
 
-	LBRestoreSelections(userwin, lbdict);
-	SendDlgItemMessage(win, IDC_USERS, LB_SETTOPINDEX, (WPARAM)topindex, 0);
-	SendDlgItemMessage(win, IDC_USERS, OD_DISABLEPAINT, 0, 0);
-	InvalidateRect(userwin, NULL, 0);
-	UpdateWindow(userwin);
+	Restore_Selections(win, IDC_USERS, lbdict);
 }
 
 
@@ -381,7 +502,7 @@ void Net2DisplayGameList(void)
 {
 	char buffer[80];
 
-	HWND window = WS_Top_Window();
+	WSScreenHandle window = WS_Top_Window();
 
 	int count = Session.Games.Count();
 	if (CurGame >= count) {
@@ -393,30 +514,21 @@ void Net2DisplayGameList(void)
 		CurGame = 0;
 	}
 
-	int top = SendDlgItemMessage(window, IDC_GAMELIST, LB_GETTOPINDEX, 0, 0);
-
-	SendDlgItemMessage(window, IDC_GAMELIST, OD_DISABLEPAINT, 0, 1);
-	SendDlgItemMessage(window, IDC_GAMELIST, LB_RESETCONTENT, 0, 0);
-	SendDlgItemMessage(window, IDC_GAMELIST, LB_INSERTSTRING, -1, (LPARAM)Fetch_String(TXT_LOBBY));
+	Lobby_Send(window, IDC_GAMELIST, LOBBY_MSG_LIST_RESET, 0, 0);
+	Lobby_Send(window, IDC_GAMELIST, LOBBY_MSG_LIST_INSERT, -1, (LobbyLParam)Fetch_String(TXT_LOBBY));
 
 	for (int i = 1; i < Session.Games.Count(); i++) {
 		NodeNameType *node = Session.Games[i];
 		if (node->Game.IsOpen) {
-			sprintf(buffer, Fetch_String(TXT_THATGUYS_GAME), node);
+			snprintf(buffer, sizeof(buffer), Fetch_String(TXT_THATGUYS_GAME), node);
 		} else {
-			sprintf(buffer, Fetch_String(TXT_THATGUYS_GAME_BRACKET), node);
+			snprintf(buffer, sizeof(buffer), Fetch_String(TXT_THATGUYS_GAME_BRACKET), node);
 		}
-		SendDlgItemMessage(window, IDC_GAMELIST, LB_INSERTSTRING, -1, (LPARAM)buffer);
+		Lobby_Send(window, IDC_GAMELIST, LOBBY_MSG_LIST_INSERT, -1, (LobbyLParam)buffer);
 	}
 
 	int idx = CurGame;
-	SendDlgItemMessage(window, IDC_GAMELIST, LB_SETCURSEL, idx, 0);
-	SendDlgItemMessage(window, IDC_GAMELIST, LB_SETTOPINDEX, top, 0);
-	SendDlgItemMessage(window, IDC_GAMELIST, OD_DISABLEPAINT, 0, 0);
-
-	HWND handle = GetDlgItem(window, IDC_GAMELIST);
-	InvalidateRect(handle, NULL, FALSE);
-	UpdateWindow(handle);
+	Lobby_Send(window, IDC_GAMELIST, LOBBY_MSG_LIST_SET_CUR_SEL, idx, 0);
 }
 
 
@@ -551,7 +663,7 @@ int Net2SetHouseAndColor(char *who, int house, int color)
 
 	if (offset != -1) {
 		if (Session.Players[offset]->Player.House != house) {
-			retval = TRUE;
+			retval = true;
 		}
 
 		Session.Players[offset]->Player.House = house;
@@ -560,14 +672,14 @@ int Net2SetHouseAndColor(char *who, int house, int color)
 	}
 
 	if (offset == 0) {
-		HWND win=WS_Find_Dialog(IDD_MPLAYER_HOST);
+		WSScreenHandle win=WS_Find_Dialog(IDD_MPLAYER_HOST);
 		Session.PrefColor = color;
 		if (win == NULL) {
 			win = WS_Find_Dialog(IDD_MPLAYER_GUEST);
 		}
-		if ((SendDlgItemMessage(win,IDC_YOURCOLOR,CB_GETCURSEL,0,0) != color) &&
-			(SendDlgItemMessage(win,IDC_YOURCOLOR,CB_GETDROPPEDSTATE,0,0) == FALSE)) {
-			SendDlgItemMessage(win,IDC_YOURCOLOR,CB_SETCURSEL,color,0);
+		if ((Lobby_Send(win,IDC_YOURCOLOR,LOBBY_MSG_COMBO_GET_CUR_SEL,0,0) != color) &&
+			(Lobby_Send(win,IDC_YOURCOLOR,LOBBY_MSG_COMBO_GET_DROPPED,0,0) == 0)) {
+			Lobby_Send(win,IDC_YOURCOLOR,LOBBY_MSG_COMBO_SET_CUR_SEL,color,0);
 		}
 	}
 
@@ -591,7 +703,6 @@ int Net2SetHouseAndColor(char *who, int house, int color)
 static void Get_Serial_From_Registry(char * serial, char const * reg_key)
 {
 	if (reg_key && strlen(reg_key) != 0) {
-		HKEY rKey;
 		char keyname[256];
 		UTF8::Copy(keyname, reg_key);
 		Platform_Read_Machine_Registry(keyname, "Serial", serial, ENCRYPTION_STRING_LENGTH);
@@ -712,12 +823,11 @@ bool Net2Remote_Connect(void)
 
 	Net2GameStarted = false;
 
-	OwnerDraw::Register_Control_Classes();
-
-	HWND game_list_dialog = WS_Create_Dialog(ProgramInstance, IDD_MPLAYER_GAME_LIST, MainWindow, MPlayer_Game_List_Dialog_Proc, FALSE);
-	Center_Window_Within_Window(game_list_dialog);
-	OwnerDraw::Subclass_Dialog(game_list_dialog, 0);
-	ShowWindow(game_list_dialog, SW_SHOWNORMAL);
+	WSScreenHandle game_list_dialog = Open_Lobby_Dialog(IDD_MPLAYER_GAME_LIST, MPlayer_Game_List_Dialog_Proc, UI_LOBBY_GAME_LIST);
+	if (game_list_dialog == nullptr) {
+		Session.NetOpen = false;
+		return(false);
+	}
 	Net2DisplayUsers();
 
 	_netresponse = 0;
@@ -733,8 +843,14 @@ bool Net2Remote_Connect(void)
 		// Pop up the network Join/New dialog
 		//.....................................................................
 		while (_netresponse == 0) {
+			// With no lobby screen up, one could not be prepared and nothing can answer.
+			if (WS_Top_Window() == 0) {
+				_netresponse = DIALOG_CANCEL;
+				break;
+			}
+
 			Ipx.Service();
-			Sleep(0);
+			Platform_Sleep(0);
 			Call_Back();
 			Ipx.Service();
 			Title_Screen_Restore();
@@ -745,7 +861,9 @@ bool Net2Remote_Connect(void)
 				DispatchMessage(&msg);
 			}
 
-			Call_Back();
+			// A screen acts on what the pump brought it, as a dialog acted on it inside the
+			// pump.
+			UI_Lobby_Service_All();
 			if (_netresponse != 0) {
 				break;
 			}
@@ -763,9 +881,9 @@ bool Net2Remote_Connect(void)
 		//.....................................................................
 		//	-1 = user selected Cancel
 		//.....................................................................
-		if (_netresponse == IDCANCEL) {
+		if (_netresponse == DIALOG_CANCEL) {
 			Session.Write_MultiPlayer_Settings();
-			if (WS_Top_Window_ID() == IDD_MPLAYER_GAME_LIST) {
+			if (WS_Top_Window_ID() == IDD_MPLAYER_GAME_LIST || WS_Top_Window() == 0) {
 				if (JoinState > JOIN_NOTHING) {
 					Unjoin_Game(CurGame);
 					Ipx.Service();
@@ -783,10 +901,7 @@ bool Net2Remote_Connect(void)
 				Unjoin_Game(CurGame);
 				JoinState = JOIN_NOTHING;
 				WS_Destroy_Dialog(WS_Top_Window(), 0);
-				game_list_dialog = WS_Create_Dialog(ProgramInstance, IDD_MPLAYER_GAME_LIST, MainWindow, MPlayer_Game_List_Dialog_Proc, 0);
-				Center_Window_Within_Window(game_list_dialog);
-				OwnerDraw::Subclass_Dialog(game_list_dialog, 0);
-				ShowWindow(game_list_dialog, SW_SHOWNORMAL);
+				game_list_dialog = Open_Lobby_Dialog(IDD_MPLAYER_GAME_LIST, MPlayer_Game_List_Dialog_Proc, UI_LOBBY_GAME_LIST);
 				Send_Join_Queries(false, false, true, false);
 			}
 
@@ -839,10 +954,7 @@ bool Net2Remote_Connect(void)
 				_netresponse = 0;
 				CurGame = 0;
 				Clear_Vector(&Session.Players);
-				game_list_dialog = WS_Create_Dialog(ProgramInstance, IDD_MPLAYER_GAME_LIST, MainWindow, MPlayer_Game_List_Dialog_Proc, 0);
-				Center_Window_Within_Window(game_list_dialog);
-				OwnerDraw::Subclass_Dialog(game_list_dialog, 0);
-				ShowWindow(game_list_dialog, SW_SHOWNORMAL);
+				game_list_dialog = Open_Lobby_Dialog(IDD_MPLAYER_GAME_LIST, MPlayer_Game_List_Dialog_Proc, UI_LOBBY_GAME_LIST);
 			}
 		}
 
@@ -930,11 +1042,7 @@ bool Net2Remote_Connect(void)
 				//	Pop up the New Network Game dialog; if user selects OK, return
 				//	'true'; otherwise, return to the Join Dialog.
 				//..................................................................
-				HWND host_dialog = WS_Create_Dialog(ProgramInstance, IDD_MPLAYER_HOST, MainWindow, MPlayer_Host_Dialog_Proc, 0);
-				Center_Window_Within_Window(host_dialog);
-				OwnerDraw::Subclass_Dialog(host_dialog, 0);
-				SendMessage(host_dialog, OD_SETTOP, 0, 1);
-				ShowWindow(host_dialog, SW_SHOWNORMAL);
+				Open_Lobby_Dialog(IDD_MPLAYER_HOST, MPlayer_Host_Dialog_Proc, UI_LOBBY_HOST);
 			}
 		}
 
@@ -950,7 +1058,7 @@ bool Net2Remote_Connect(void)
 					if (Session.Players.Count() == 1) {
 						PMessagePrintf(-1, Fetch_String(TXT_ONLY_ONE));
 						_netresponse = 0;
-						EnableWindow(GetDlgItem(WS_Top_Window(), IDC_GO), TRUE);
+						Lobby_Enable_Item(WS_Top_Window(), IDC_GO, true);
 					}
 
 					if (_netresponse == IDC_GO) {
@@ -958,7 +1066,7 @@ bool Net2Remote_Connect(void)
 							if (Session.Players[i]->Player.Status == 0) {
 								PMessagePrintf(-1, Fetch_String(TXT_ACCEPTFIRST));
 								_netresponse = 0;
-								EnableWindow(GetDlgItem(WS_Top_Window(), IDC_GO), TRUE);
+								Lobby_Enable_Item(WS_Top_Window(), IDC_GO, true);
 								break;
 							}
 						}
@@ -990,9 +1098,10 @@ bool Net2Remote_Connect(void)
 		}
 
 		int waypoints = RandomMapWaypointCount(Session.Options.ScenarioIndex);
-		if (waypoints < SendDlgItemMessage(game_list_dialog, IDC_AIPLAYERS, TBM_GETPOS, 0, 0) + Session.Players.Count()) {
+		// The game list has no such slider, so this reads zero.
+		if (waypoints < Lobby_Send(game_list_dialog, IDC_AIPLAYERS, LOBBY_MSG_TRACK_GET_POS, 0, 0) + Session.Players.Count()) {
 			PMessagePrintf(-1, Fetch_String(TXT_SCENARIO_TOO_SMALL));
-			EnableWindow(GetDlgItem(WS_Top_Window(), IDC_GO), TRUE);
+			Lobby_Enable_Item(WS_Top_Window(), IDC_GO, true);
 			_netresponse = 0;
 		} else {
 			if (_netresponse != IDC_GO) {
@@ -1129,16 +1238,16 @@ bool Net2Remote_Connect(void)
 /// pressed so that the driver loop knows whether to move on to the host or guest dialog.
 /// </summary>
 /// <returns>Returns with TRUE if the message was consumed by this dialog.</returns>
-INT_PTR CALLBACK MPlayer_Game_List_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
+LobbyResult MPlayer_Game_List_Dialog_Proc(WSScreenHandle window, unsigned int message, LobbyWParam wparam, LobbyLParam lparam)
 {
 	switch (message) {
 
-	case WM_INITDIALOG: {
+	case LOBBY_MSG_INIT: {
 		CurGame = 0;
 		Net2IsGameListActive = 1;
 
-		SendDlgItemMessage(window, IDC_YOURNAME, EM_SETLIMITTEXT, 16, 0);
-		SetWindowText(GetDlgItem(window, IDC_YOURNAME), Session.Handle);
+		Lobby_Send(window, IDC_YOURNAME, LOBBY_MSG_SET_TEXT_LIMIT, 16, 0);
+		Lobby_Send(window, IDC_YOURNAME, LOBBY_MSG_SET_TEXT, 0, (LobbyLParam)Session.Handle);
 
 		Session.Options.ScenarioDescription[0] = '\0';
 		Session.ColorIdx = Session.PrefColor;
@@ -1164,17 +1273,17 @@ INT_PTR CALLBACK MPlayer_Game_List_Dialog_Proc(HWND window, UINT message, WPARAM
 		return(0);
 	}
 
-	case WM_COMMAND: {
-		switch (LOWORD(wparam)) {
+	case LOBBY_MSG_COMMAND: {
+		switch (Lobby_Low_Word(wparam)) {
 
 		case IDC_YOURNAME: {
 			char name_buf[64];
 
-			SendDlgItemMessage(window, IDC_YOURNAME, WM_GETTEXT, 63, (LPARAM)name_buf);
+			Lobby_Send(window, IDC_YOURNAME, LOBBY_MSG_GET_TEXT, 63, (LobbyLParam)name_buf);
 
 			if (strcmp(name_buf, Session.Handle)) {
 				if (UTF8::Copy(Session.Handle, sizeof(Session.Handle), name_buf) < strlen(name_buf)) {
-					SetDlgItemText(window, IDC_YOURNAME, Session.Handle);
+					Lobby_Send(window, IDC_YOURNAME, LOBBY_MSG_SET_TEXT, 0, (LobbyLParam)Session.Handle);
 				}
 				Send_Join_Queries(0, 0, 1, 0);
 				_Net2DisplayUsers();
@@ -1183,8 +1292,8 @@ INT_PTR CALLBACK MPlayer_Game_List_Dialog_Proc(HWND window, UINT message, WPARAM
 			return(0);
 		}
 
-		case IDCANCEL: {
-			_netresponse = IDCANCEL;
+		case DIALOG_CANCEL: {
+			_netresponse = DIALOG_CANCEL;
 			return(0);
 		}
 
@@ -1196,12 +1305,12 @@ INT_PTR CALLBACK MPlayer_Game_List_Dialog_Proc(HWND window, UINT message, WPARAM
 		case IDC_INPUT: {
 			char text[260];
 
-			SendDlgItemMessage(window, IDC_INPUT, WM_GETTEXT, 256, (LPARAM)text);
+			Lobby_Send(window, IDC_INPUT, LOBBY_MSG_GET_TEXT, 256, (LobbyLParam)text);
 
 			int len = strlen(text);
 
-			if (HIWORD(wparam) == EN_MAXTEXT) {
-				SendDlgItemMessage(window, IDC_INPUT, WM_SETTEXT, 0, (LPARAM) "");
+			if (Lobby_High_Word(wparam) == LOBBY_NOTIFY_MAX_TEXT) {
+				Lobby_Send(window, IDC_INPUT, LOBBY_MSG_SET_TEXT, 0, (LobbyLParam) "");
 
 				if (len > 2) {
 
@@ -1234,8 +1343,8 @@ INT_PTR CALLBACK MPlayer_Game_List_Dialog_Proc(HWND window, UINT message, WPARAM
 		}
 
 		case IDC_YOURCOLOR: {
-			if (HIWORD(wparam) == LBN_SELCHANGE) {
-				Session.ColorIdx = SendDlgItemMessage(window, IDC_YOURCOLOR, LB_GETCURSEL, 0, 0);
+			if (Lobby_High_Word(wparam) == LOBBY_NOTIFY_SELCHANGE) {
+				Session.ColorIdx = Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_LIST_GET_CUR_SEL, 0, 0);
 			}
 			return(0);
 		}
@@ -1247,14 +1356,14 @@ INT_PTR CALLBACK MPlayer_Game_List_Dialog_Proc(HWND window, UINT message, WPARAM
 			}
 
 			int old_game = CurGame;
-			LRESULT sel = SendDlgItemMessage(window, IDC_GAMELIST, LB_GETCURSEL, 0, 0);
+			LobbyResult sel = Lobby_Send(window, IDC_GAMELIST, LOBBY_MSG_LIST_GET_CUR_SEL, 0, 0);
 
 			if (sel >= 0 && Net2IsGameListActive) {
 				CurGame = sel;
 				strcpy(Session.GameName, Session.Games[sel]->Name);
 			}
 
-			if (HIWORD(wparam) == LBN_SELCHANGE) {
+			if (Lobby_High_Word(wparam) == LOBBY_NOTIFY_SELCHANGE) {
 				Clear_Vector(&Session.Players);
 
 				if (old_game != CurGame) {
@@ -1265,7 +1374,7 @@ INT_PTR CALLBACK MPlayer_Game_List_Dialog_Proc(HWND window, UINT message, WPARAM
 				return(0);
 			}
 
-			if (HIWORD(wparam) == LBN_DBLCLK) {
+			if (Lobby_High_Word(wparam) == LOBBY_NOTIFY_DBLCLK) {
 				_netresponse = IDC_GAMELIST_JOIN;
 				return(0);
 			}
@@ -1282,24 +1391,11 @@ INT_PTR CALLBACK MPlayer_Game_List_Dialog_Proc(HWND window, UINT message, WPARAM
 		return(0);
 	}
 
-	case OD_SUBCLASSED: {
+	case LOBBY_MSG_SUBCLASSED: {
 		Net2DisplayGameList();
 		_Net2DisplayUsers();
-		OwnerDraw::Draw_Dialog_Back(window);
 		return(0);
 	}
-
-	case WM_DRAWITEM:
-		OwnerDraw::Draw_Item((DRAWITEMSTRUCT *)lparam);
-		return(1);
-
-	case WM_PAINT:
-		OwnerDraw::Draw_Dialog_Back(window);
-		ValidateRect(window, NULL);
-		return(0);
-
-	case WM_ERASEBKGND:
-		return(1);
 	}
 
 	return(0);
@@ -1329,7 +1425,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 
 		case LOBBY_MSG_COMMAND:
 
-			switch (LOWORD(wparam)) {
+			switch (Lobby_Low_Word(wparam)) {
 
 			/*
 			 * ................................................................
@@ -1338,11 +1434,11 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 			 */
 			case IDC_BASES:
 				Session.Options.Bases = false;
-				if (SendDlgItemMessage(window, IDC_BASES, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+				if (Lobby_Send(window, IDC_BASES, LOBBY_MSG_GET_CHECK, 0, 0) == LOBBY_CHECKED) {
 					Session.Options.Bases = true;
 				} else if (!Session.Options.Bases) {
 					Session.Options.ShortGame = false;
-					SendDlgItemMessage(window, IDC_SHORT_GAME, BM_SETCHECK, 0, 0);
+					Lobby_Send(window, IDC_SHORT_GAME, LOBBY_MSG_SET_CHECK, 0, 0);
 				}
 				break;
 
@@ -1353,7 +1449,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 			 */
 			case IDC_REDEPLOY_MCV:
 				Session.Options.MCVRedeploy = false;
-				if (SendDlgItemMessage(window, IDC_REDEPLOY_MCV, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+				if (Lobby_Send(window, IDC_REDEPLOY_MCV, LOBBY_MSG_GET_CHECK, 0, 0) == LOBBY_CHECKED) {
 					Session.Options.MCVRedeploy = true;
 				}
 				break;
@@ -1365,7 +1461,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 			 */
 			case IDC_CRATES:
 				Session.Options.Goodies = false;
-				if (SendDlgItemMessage(window, IDC_CRATES, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+				if (Lobby_Send(window, IDC_CRATES, LOBBY_MSG_GET_CHECK, 0, 0) == LOBBY_CHECKED) {
 					Session.Options.Goodies = true;
 				}
 				break;
@@ -1377,11 +1473,11 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 			 */
 			case IDC_SHORT_GAME:
 				Session.Options.ShortGame = false;
-				if (SendDlgItemMessage(window, IDC_SHORT_GAME, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+				if (Lobby_Send(window, IDC_SHORT_GAME, LOBBY_MSG_GET_CHECK, 0, 0) == LOBBY_CHECKED) {
 					Session.Options.ShortGame = true;
 					if (!Session.Options.Bases) {
 						Session.Options.Bases = true;
-						SendDlgItemMessage(window, IDC_BASES, BM_SETCHECK, 1, 0);
+						Lobby_Send(window, IDC_BASES, LOBBY_MSG_SET_CHECK, 1, 0);
 					}
 				}
 				break;
@@ -1393,7 +1489,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 			 */
 			case IDC_MULTI_ENGINEER:
 				Session.Options.CrapEngineers = false;
-				if (SendDlgItemMessage(window, IDC_MULTI_ENGINEER, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+				if (Lobby_Send(window, IDC_MULTI_ENGINEER, LOBBY_MSG_GET_CHECK, 0, 0) == LOBBY_CHECKED) {
 					Session.Options.CrapEngineers = true;
 				}
 				break;
@@ -1405,7 +1501,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 			 */
 			case IDC_BRIDGE_DESTROY:
 				Session.Options.BridgeDestruction = false;
-				if (SendDlgItemMessage(window, IDC_BRIDGE_DESTROY, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+				if (Lobby_Send(window, IDC_BRIDGE_DESTROY, LOBBY_MSG_GET_CHECK, 0, 0) == LOBBY_CHECKED) {
 					Session.Options.BridgeDestruction = true;
 				}
 				break;
@@ -1417,7 +1513,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 			 */
 			case IDC_ALLIES:
 				Session.Options.AlliesAllowed = false;
-				if (SendDlgItemMessage(window, IDC_ALLIES, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+				if (Lobby_Send(window, IDC_ALLIES, LOBBY_MSG_GET_CHECK, 0, 0) == LOBBY_CHECKED) {
 					Session.Options.AlliesAllowed = true;
 				}
 				break;
@@ -1429,7 +1525,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 			 */
 			case IDC_HARVTRUCE:
 				Session.Options.HarvTruce = false;
-				if (SendDlgItemMessage(window, IDC_HARVTRUCE, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+				if (Lobby_Send(window, IDC_HARVTRUCE, LOBBY_MSG_GET_CHECK, 0, 0) == LOBBY_CHECKED) {
 					Session.Options.HarvTruce = true;
 				}
 				break;
@@ -1441,7 +1537,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 			 */
 			case IDC_FOG_OF_WAR:
 				Session.Options.FogOfWar = false;
-				if (SendDlgItemMessage(window, IDC_FOG_OF_WAR, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+				if (Lobby_Send(window, IDC_FOG_OF_WAR, LOBBY_MSG_GET_CHECK, 0, 0) == LOBBY_CHECKED) {
 					Session.Options.FogOfWar = true;
 				}
 				break;
@@ -1452,27 +1548,28 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 		 * ....................................................................
 		 * The option sliders are read back per-control here; the values are
 		 * all unconditionally re-read by the main WM_HSCROLL/WM_VSCROLL
-		 * handler below.
+		 * handler below. The screen names the track bar by its identifier in
+		 * lparam.
 		 * ....................................................................
 		 */
-		case WM_HSCROLL:
-			if (GetDlgItem(window, IDC_AILEVEL_SLIDER) == (HWND)lparam) {
-				Session.Options.AIDifficulty = (DiffType)SendDlgItemMessage(window, IDC_AILEVEL_SLIDER, TBM_GETPOS, 0, 0);
+		case LOBBY_MSG_HSCROLL:
+			if (lparam == IDC_AILEVEL_SLIDER) {
+				Session.Options.AIDifficulty = (DiffType)Lobby_Send(window, IDC_AILEVEL_SLIDER, LOBBY_MSG_TRACK_GET_POS, 0, 0);
 			}
-			if (GetDlgItem(window, IDC_AIPLAYERS) == (HWND)lparam) {
-				Session.Options.AIPlayers = SendDlgItemMessage(window, IDC_AIPLAYERS, TBM_GETPOS, 0, 0);
+			if (lparam == IDC_AIPLAYERS) {
+				Session.Options.AIPlayers = Lobby_Send(window, IDC_AIPLAYERS, LOBBY_MSG_TRACK_GET_POS, 0, 0);
 			}
-			if (GetDlgItem(window, IDC_UNITCOUNT) == (HWND)lparam) {
-				Session.Options.UnitCount = SendDlgItemMessage(window, IDC_UNITCOUNT, TBM_GETPOS, 0, 0);
+			if (lparam == IDC_UNITCOUNT) {
+				Session.Options.UnitCount = Lobby_Send(window, IDC_UNITCOUNT, LOBBY_MSG_TRACK_GET_POS, 0, 0);
 			}
-			if (GetDlgItem(window, IDC_TECHLEVEL) == (HWND)lparam) {
-				BuildLevel = SendDlgItemMessage(window, IDC_TECHLEVEL, TBM_GETPOS, 0, 0);
+			if (lparam == IDC_TECHLEVEL) {
+				BuildLevel = Lobby_Send(window, IDC_TECHLEVEL, LOBBY_MSG_TRACK_GET_POS, 0, 0);
 			}
-			if (GetDlgItem(window, IDC_CREDITS) == (HWND)lparam) {
-				Session.Options.Credits = SendDlgItemMessage(window, IDC_CREDITS, TBM_GETPOS, 0, 0);
+			if (lparam == IDC_CREDITS) {
+				Session.Options.Credits = Lobby_Send(window, IDC_CREDITS, LOBBY_MSG_TRACK_GET_POS, 0, 0);
 			}
-			if (GetDlgItem(window, IDC_GAME_SPEED_SLIDER) == (HWND)lparam) {
-				Session.Options.GameSpeed = 6 - SendDlgItemMessage(window, IDC_GAME_SPEED_SLIDER, TBM_GETPOS, 0, 0);
+			if (lparam == IDC_GAME_SPEED_SLIDER) {
+				Session.Options.GameSpeed = 6 - Lobby_Send(window, IDC_GAME_SPEED_SLIDER, LOBBY_MSG_TRACK_GET_POS, 0, 0);
 			}
 			break;
 
@@ -1481,8 +1578,8 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 		 * Refresh the game option controls.
 		 * ....................................................................
 		 */
-		case WM_INITDIALOG:
-		case OD_SUBCLASSED:
+		case LOBBY_MSG_INIT:
+		case LOBBY_MSG_SUBCLASSED:
 			DisplayGameopts(window, 1);
 			break;
 		}
@@ -1490,7 +1587,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 
 	switch (message) {
 
-	case WM_DESTROY:
+	case LOBBY_MSG_DESTROY:
 		return(0);
 
 	case WM_DRAWITEM:

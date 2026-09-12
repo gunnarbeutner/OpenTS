@@ -1,0 +1,111 @@
+<rml>
+<!--
+	The template carries its labels as literal control text rather than as string
+	identifiers, so they stay literal here; a localized build ships a translated copy.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * IDD_MPLAYER_SELECT_MAP is 360 by 200 dialog units at MS Sans Serif 8, which is 540
+		 * by 325 logical pixels, centred on the frame.
+		 */
+		#pick
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -270dp;
+			margin-top: -162dp;
+			width: 540dp;
+			height: 325dp;
+			decorator: image(frame:540x325);
+		}
+
+		#title, #maps, #frame, #pick button
+		{
+			position: absolute;
+			margin: 0;
+		}
+
+		#title
+		{
+			left: 33dp;
+			top: 20dp;
+			width: 474dp;
+			height: 20dp;
+			line-height: 20dp;
+			display: block;
+			text-align: center;
+		}
+
+		#maps
+		{
+			left: 33dp;
+			top: 42dp;
+			width: 262dp;
+			height: 231dp;
+			box-sizing: border-box;
+		}
+
+		#maps p
+		{
+			height: 14dp;
+			line-height: 14dp;
+			overflow: hidden;
+		}
+
+		/* The preview was scaled to fit its frame, keeping its shape, and centred in it. */
+		#frame
+		{
+			left: 314dp;
+			top: 96dp;
+			width: 194dp;
+			height: 130dp;
+			box-sizing: border-box;
+			border: 1dp #4eb6dcff;
+		}
+
+		#map
+		{
+			position: absolute;
+			left: 0;
+			top: 0;
+			width: 100%;
+			height: 100%;
+			decorator: image(surface:lobby-preview contain center center);
+		}
+
+		#pick button
+		{
+			top: 283dp;
+			height: 23dp;
+			line-height: 23dp;
+		}
+
+		#ok { left: 33dp; width: 75dp; decorator: image(button:u:75x23); }
+		#ok:active:hover { decorator: image(button:d:75x23); }
+		#cancel { left: 432dp; width: 75dp; decorator: image(button:u:75x23); }
+		#cancel:active:hover { decorator: image(button:d:75x23); }
+		#random { left: 198dp; width: 159dp; decorator: image(button:u:159x23); }
+		#random:active:hover { decorator: image(button:d:159x23); }
+	</style>
+</head>
+<body>
+	<div id="pick" class="dialog" data-model="lobby">
+		<p id="title">Select Multiplayer Map</p>
+
+		<div id="maps" class="list" data-event-mousedown="act('down', 'maps')">
+			<p data-for="row : Maps" data-attr-data-row="it_index"
+				data-class-picked="it_index == Selected">{{row}}</p>
+		</div>
+
+		<div id="frame">
+			<div id="map" data-if="HasPreview"></div>
+		</div>
+
+		<button id="ok" data-event-click="act('click', 'ok')">OK</button>
+		<button id="random" data-event-click="act('click', 'random')">Create Random Map</button>
+		<button id="cancel" data-event-click="act('click', 'cancel')">Cancel</button>
+	</div>
+</body>
+</rml>

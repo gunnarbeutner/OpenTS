@@ -1,0 +1,67 @@
+<rml>
+<!--
+	The message box the network lobby raises. IDD_MSGBOX_2 and IDD_MSGBOX_3_SMALL are 290 by
+	90 dialog units, IDD_MSGBOX_3_LARGE 360 by 160, which at MS Sans Serif 8 are 435 by 146
+	and 540 by 260 logical pixels. One document serves the three, with each button placed as
+	its template placed it; a button the caller did not ask for stays hidden, as it did.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		#box
+		{
+			left: 50%;
+			top: 50%;
+		}
+
+		#box.two, #box.small { margin-left: -217dp; margin-top: -73dp; width: 435dp; height: 146dp; decorator: image(frame:435x146); }
+		#box.large { margin-left: -270dp; margin-top: -130dp; width: 540dp; height: 260dp; decorator: image(frame:540x260); }
+
+		/* The text was centred across its box and wrapped, from the top. */
+		#text
+		{
+			position: absolute;
+			left: 33dp;
+			top: 20dp;
+			width: 369dp;
+			height: 65dp;
+			margin: 0;
+			display: block;
+			text-align: center;
+			white-space: pre-line;
+		}
+
+		#box.large #text { width: 474dp; height: 182dp; }
+
+		#box button
+		{
+			position: absolute;
+			margin: 0;
+			width: 75dp;
+			height: 23dp;
+			line-height: 23dp;
+			decorator: image(button:u:75x23);
+		}
+
+		#box button:active:hover { decorator: image(button:d:75x23); }
+
+		#box.two #ok { left: 33dp; top: 104dp; }
+		#box.two #cancel { left: 327dp; top: 104dp; }
+		#box.small #ok { left: 180dp; top: 104dp; }
+		#box.small #no { left: 105dp; top: 104dp; }
+		#box.small #yes { left: 254dp; top: 104dp; }
+		#box.large #ok { left: 232dp; top: 218dp; }
+		#box.large #no { left: 158dp; top: 218dp; }
+		#box.large #yes { left: 306dp; top: 218dp; }
+	</style>
+</head>
+<body>
+	<div id="box" class="dialog" data-model="lobby" data-attr-class="'dialog ' + Layout">
+		<p id="text">{{Message}}</p>
+		<button id="ok" data-if="Ok" data-event-click="act('click', 'ok')">OK</button>
+		<button id="cancel" data-if="Cancel" data-event-click="act('click', 'cancel')">Cancel</button>
+		<button id="no" data-if="No" data-event-click="act('click', 'no')">No</button>
+		<button id="yes" data-if="Yes" data-event-click="act('click', 'yes')">Yes</button>
+	</div>
+</body>
+</rml>

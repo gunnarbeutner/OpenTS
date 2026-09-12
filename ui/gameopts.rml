@@ -1,0 +1,353 @@
+<rml>
+<!--
+	IDD_MPLAYER_HOST and IDD_MPLAYER_GUEST lay out the same game options and differ in the
+	controls around them, so one document serves both, with one placement rule per control
+	and template taken from each template's dialog units at MS Sans Serif 8's base units. The
+	labels were literal control text in the templates and stay literal here. The guest's
+	options were disabled in its template and stay so.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * Both templates are 426 by 240 dialog units, which is 639 by 390 logical pixels.
+		 * The controls sit where the dialog's own scaling put them, measured against the
+		 * legacy view, which is a pixel or three from the template's position converted.
+		 */
+		#lobby
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -319dp;
+			margin-top: -195dp;
+			width: 639dp;
+			height: 390dp;
+			decorator: image(frame:639x390);
+		}
+
+		#lobby .label, #lobby .list, #lobby input.text, #lobby button, #lobby select,
+		#lobby .numbered, #lobby .check, #kick, #frame
+		{
+			position: absolute;
+			margin: 0;
+		}
+
+		#lobby .label
+		{
+			display: block;
+			line-height: 17dp;
+			white-space: nowrap;
+		}
+
+		#lobby .label.right
+		{
+			text-align: right;
+		}
+
+		/* A disabled static drew its text in RGB(144,144,144). */
+		#lobby .label.off, #lobby .check.off span
+		{
+			color: #909090ff;
+		}
+
+		#lobby .list
+		{
+			box-sizing: border-box;
+		}
+
+		#lobby .list p
+		{
+			position: relative;
+			height: 14dp;
+			line-height: 14dp;
+			overflow: hidden;
+		}
+
+		#messages p
+		{
+			height: auto;
+			white-space: normal;
+		}
+
+		/*
+		 * A player row had three cells: the host's or an accepted player's mark 5 pixels in,
+		 * the side's emblem at 25 and the name at 45, each picture centred in the row.
+		 */
+		#users p
+		{
+			padding: 0;
+		}
+
+		#users .mark, #users .emblem
+		{
+			position: absolute;
+			top: 0;
+			height: 14dp;
+		}
+
+		#users .mark { left: 5dp; width: 18dp; }
+		#users .emblem { left: 25dp; width: 18dp; }
+
+		#users .name
+		{
+			position: absolute;
+			left: 45dp;
+			right: 0;
+			top: 0;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: "...";
+		}
+
+		#lobby .check span
+		{
+			margin-left: 2dp;
+			vertical-align: top;
+			line-height: 18dp;
+		}
+
+		#lobby .numbered
+		{
+			height: 22dp;
+		}
+
+		#lobby .numbered input.slider slidertrack,
+		#lobby .numbered input.slider sliderprogress,
+		#lobby .numbered input.slider sliderbar
+		{
+			height: 22dp;
+		}
+
+		/* The combo box drew a box 24 pixels tall inside its frame. */
+		#lobby select
+		{
+			height: 26dp;
+			padding-top: 4dp;
+		}
+
+		#lobby .numbered.off .number
+		{
+			color: #909090ff;
+		}
+
+		#lobby button
+		{
+		}
+
+		#multimap
+		{
+			width: 135dp;
+			height: 23dp;
+			line-height: 23dp;
+			decorator: image(button:u:135x23);
+		}
+
+		#multimap:active:hover { decorator: image(button:d:135x23); }
+
+		/* The kick button was its two pictures and no skin. */
+		#kick
+		{
+			left: 27dp;
+			top: 349dp;
+			width: 30dp;
+			height: 29dp;
+			decorator: image(woukick.pcx);
+		}
+
+		#kick:active:hover { decorator: image(wodkick.pcx); }
+
+		/* The button carries no caption of its own, so its name is its tip. */
+		#kick .tooltip { left: 4dp; top: 31dp; }
+		#kick:hover .tooltip { display: block; }
+
+		/* The preview was scaled to fit its frame, keeping its shape, and centred in it. */
+		/* The group box drew its frame below the line its caption would have taken. */
+		#frame
+		{
+			left: 422dp;
+			top: 231dp;
+			width: 190dp;
+			height: 112dp;
+			box-sizing: border-box;
+			border: 1dp #4eb6dcff;
+		}
+
+		#map
+		{
+			position: absolute;
+			left: 0;
+			top: 0;
+			width: 100%;
+			height: 100%;
+			decorator: image(surface:lobby-preview contain center center);
+		}
+
+		#label-players { left: 27dp; width: 86dp; height: 20dp; }
+		#users { left: 27dp; top: 90dp; width: 225dp; }
+		#messages { left: 27dp; top: 210dp; width: 384dp; height: 106dp; }
+		#input { left: 27dp; top: 323dp; width: 384dp; height: 21dp; padding: 0 3dp; line-height: 18dp; }
+
+		#speed, #aiplayers, #ailevel, #units, #tech, #credits { left: 340dp; width: 101dp; }
+		#speed { top: 42dp; }
+		#aiplayers { top: 68dp; }
+		#ailevel { top: 94dp; }
+		#units { top: 120dp; }
+		#tech { top: 146dp; }
+		#credits { top: 172dp; }
+
+		#label-speed { top: 46dp; }
+		#label-aiplayers { top: 72dp; }
+		#label-ailevel { top: 98dp; }
+		#label-units { top: 124dp; }
+		#label-tech { top: 150dp; }
+		#label-credits { top: 176dp; }
+
+		#allies { left: 450dp; top: 39dp; width: 158dp; height: 18dp; }
+		#truce { left: 450dp; top: 59dp; width: 162dp; height: 18dp; }
+		#bases { left: 450dp; top: 77dp; width: 162dp; height: 18dp; }
+		#redeploy { left: 450dp; top: 98dp; width: 162dp; height: 18dp; }
+		#fog { left: 450dp; top: 117dp; width: 162dp; height: 18dp; }
+		#bridges { left: 450dp; top: 137dp; width: 162dp; height: 18dp; }
+		#crates { left: 450dp; top: 157dp; width: 162dp; height: 18dp; }
+		#short { left: 450dp; top: 176dp; width: 162dp; height: 18dp; }
+		#engineers { left: 450dp; top: 194dp; width: 162dp; height: 18dp; }
+
+		#lobby.host #label-side { left: 27dp; top: 13dp; width: 75dp; height: 20dp; }
+		#lobby.host #label-color { left: 27dp; top: 37dp; width: 78dp; height: 20dp; }
+		#lobby.host #side { left: 109dp; top: 7dp; width: 116dp; }
+		#lobby.host #color { left: 109dp; top: 33dp; width: 116dp; }
+		#lobby.host #label-players { top: 67dp; }
+		#lobby.host #users { height: 110dp; }
+		#lobby.host #scenario { left: 382dp; top: 13dp; width: 230dp; height: 16dp; }
+		#lobby.host #multimap { left: 240dp; top: 8dp; }
+		#lobby.host .label.right { left: 249dp; width: 87dp; height: 16dp; }
+		#lobby.host #go { left: 531dp; top: 356dp; width: 81dp; height: 23dp; line-height: 23dp; decorator: image(button:u:81x23); }
+		#lobby.host #go:active:hover { decorator: image(button:d:81x23); }
+		#lobby.host #cancel { left: 436dp; top: 356dp; width: 80dp; height: 23dp; line-height: 23dp; decorator: image(button:u:80x23); }
+		#lobby.host #cancel:active:hover { decorator: image(button:d:80x23); }
+
+		#lobby.guest #label-map { left: 224dp; top: 11dp; width: 39dp; height: 16dp; }
+		#lobby.guest #label-side { left: 27dp; top: 11dp; width: 75dp; height: 20dp; }
+		#lobby.guest #label-color { left: 27dp; top: 39dp; width: 75dp; height: 20dp; }
+		#lobby.guest #side { left: 99dp; top: 9dp; width: 116dp; }
+		#lobby.guest #color { left: 99dp; top: 37dp; width: 116dp; }
+		#lobby.guest #label-players { top: 68dp; }
+		#lobby.guest #users { height: 111dp; }
+		#lobby.guest #scenario { left: 264dp; top: 11dp; width: 348dp; height: 16dp; }
+		#lobby.guest .label.right { left: 243dp; width: 86dp; height: 16dp; }
+		#lobby.guest #short { width: 126dp; }
+		#lobby.guest #accept { left: 525dp; top: 349dp; width: 87dp; height: 30dp; line-height: 29dp; decorator: image(button:u:87x30); }
+		#lobby.guest #accept:active:hover { decorator: image(button:d:87x30); }
+		#lobby.guest #cancel { left: 418dp; top: 349dp; width: 87dp; height: 30dp; line-height: 29dp; decorator: image(button:u:87x30); }
+		#lobby.guest #cancel:active:hover { decorator: image(button:d:87x30); }
+
+		#lobby.guest #accept[disabled]
+		{
+			color: #388000ff;
+			image-color: #808080ff;
+			decorator: image(button:u:87x30);
+		}
+
+		#lobby.host #label-map, #lobby.host #accept,
+		#lobby.guest #multimap, #lobby.guest #kick, #lobby.guest #go
+		{
+			display: none;
+		}
+	</style>
+</head>
+<body>
+	<div id="lobby" class="dialog" data-model="lobby" data-attr-class="'dialog ' + Kind">
+		<p id="label-side" class="label">Your Side:</p>
+		<p id="label-color" class="label">Your Color:</p>
+		<p id="label-players" class="label">Players:</p>
+		<p id="label-map" class="label">Map:</p>
+		<p id="scenario" class="label">{{scenario.Text}}</p>
+
+		<select id="side" data-value="side.Value" data-attrif-disabled="!side.On"
+			data-event-change="act('pick', 'side')">
+			<option data-for="o : side.Items" data-attr-value="o.Value">{{o.Text}}</option>
+		</select>
+		<select id="color" data-value="color.Value" data-attrif-disabled="!color.On"
+			data-event-change="act('pick', 'color')">
+			<option data-for="o : color.Items" data-attr-value="o.Value"
+				data-style-color="o.Color">{{o.Text}}</option>
+		</select>
+
+		<button id="multimap" data-event-click="act('click', 'multimap')">Multiplayer Map</button>
+
+		<p id="label-speed" class="label right" data-class-off="Guest">{{Guest ? 'Game Speed' : 'Game Speed:'}}</p>
+		<p id="label-aiplayers" class="label right" data-class-off="Guest">{{Guest ? 'AI Players' : 'AI Players:'}}</p>
+		<p id="label-ailevel" class="label right" data-class-off="Guest">{{Guest ? 'AI Level' : 'AI Level:'}}</p>
+		<p id="label-units" class="label right" data-class-off="Guest">{{Guest ? 'Unit Count' : 'Unit Count:'}}</p>
+		<p id="label-tech" class="label right" data-class-off="Guest">{{Guest ? 'Tech Level' : 'Tech Level:'}}</p>
+		<p id="label-credits" class="label right" data-class-off="Guest">{{Guest ? 'Credits' : 'Credits:'}}</p>
+
+		<div id="speed" class="numbered" data-class-off="!speed.On">
+			<input type="range" class="slider" data-event-change="act('scroll', 'speed')"/>
+			<span class="number">{{speed.Value}}</span>
+		</div>
+		<div id="aiplayers" class="numbered" data-class-off="!aiplayers.On">
+			<input type="range" class="slider" data-event-change="act('scroll', 'aiplayers')"/>
+			<span class="number">{{aiplayers.Value}}</span>
+		</div>
+		<div id="ailevel" class="numbered" data-class-off="!ailevel.On">
+			<input type="range" class="slider" data-event-change="act('scroll', 'ailevel')"/>
+			<span class="number">{{ailevel.Value}}</span>
+		</div>
+		<div id="units" class="numbered" data-class-off="!units.On">
+			<input type="range" class="slider" data-event-change="act('scroll', 'units')"/>
+			<span class="number">{{units.Value}}</span>
+		</div>
+		<div id="tech" class="numbered" data-class-off="!tech.On">
+			<input type="range" class="slider" data-event-change="act('scroll', 'tech')"/>
+			<span class="number">{{tech.Value}}</span>
+		</div>
+		<div id="credits" class="numbered" data-class-off="!credits.On">
+			<input type="range" class="slider" data-event-change="act('scroll', 'credits')"/>
+			<span class="number">{{credits.Value}}</span>
+		</div>
+
+		<div id="allies" class="check" data-class-off="!allies.On"><input type="checkbox" data-checked="allies.Checked"
+			data-attrif-disabled="!allies.On" data-event-change="act('check', 'allies')"/><span>Allies allowed</span></div>
+		<div id="truce" class="check" data-class-off="!truce.On"><input type="checkbox" data-checked="truce.Checked"
+			data-attrif-disabled="!truce.On" data-event-change="act('check', 'truce')"/><span>Harvester Truce</span></div>
+		<div id="bases" class="check" data-class-off="!bases.On"><input type="checkbox" data-checked="bases.Checked"
+			data-attrif-disabled="!bases.On" data-event-change="act('check', 'bases')"/><span>Bases</span></div>
+		<div id="redeploy" class="check" data-class-off="!redeploy.On"><input type="checkbox" data-checked="redeploy.Checked"
+			data-attrif-disabled="!redeploy.On" data-event-change="act('check', 'redeploy')"/><span>Re-Deployable MCV</span></div>
+		<div id="fog" class="check" data-class-off="!fog.On"><input type="checkbox" data-checked="fog.Checked"
+			data-attrif-disabled="!fog.On" data-event-change="act('check', 'fog')"/><span>Fog Of War</span></div>
+		<div id="bridges" class="check" data-class-off="!bridges.On"><input type="checkbox" data-checked="bridges.Checked"
+			data-attrif-disabled="!bridges.On" data-event-change="act('check', 'bridges')"/><span>Bridges Destroyable</span></div>
+		<div id="crates" class="check" data-class-off="!crates.On"><input type="checkbox" data-checked="crates.Checked"
+			data-attrif-disabled="!crates.On" data-event-change="act('check', 'crates')"/><span>Crates</span></div>
+		<div id="short" class="check" data-class-off="!short.On"><input type="checkbox" data-checked="short.Checked"
+			data-attrif-disabled="!short.On" data-event-change="act('check', 'short')"/><span>Short Game</span></div>
+		<div id="engineers" class="check" data-class-off="!engineers.On"><input type="checkbox" data-checked="engineers.Checked"
+			data-attrif-disabled="!engineers.On" data-event-change="act('check', 'engineers')"/><span>Multi Engineer</span></div>
+
+		<div id="users" class="list" data-event-mousedown="act('down', 'users')"
+			data-event-dblclick="act('double', 'users')">
+			<p data-for="row : users.Rows" data-attr-data-row="it_index" data-class-picked="row.Picked"><span
+				class="mark" data-if="row.Mark != ''" data-style-decorator="'image(' + row.Mark + ' none left center)'"></span><span
+				class="emblem" data-if="row.Emblem != ''" data-style-decorator="'image(' + row.Emblem + ' none left center)'"></span><span
+				class="name" data-style-color="row.Color">{{row.Text}}</span></p>
+		</div>
+
+		<div id="messages" class="list">
+			<p data-for="line : messages.Lines" data-style-color="line.Color">{{line.Text}}</p>
+		</div>
+
+		<input id="input" type="text" class="text"/>
+
+		<div id="frame">
+			<div id="map" data-if="HasPreview"></div>
+		</div>
+
+		<div id="kick" data-event-click="act('click', 'kick')"><span class="tooltip">Kick a user from your game</span></div>
+		<button id="cancel" data-event-click="act('click', 'cancel')">Cancel</button>
+		<button id="go" data-attrif-disabled="!go.On" data-event-click="act('click', 'go')">Go!</button>
+		<button id="accept" data-attrif-disabled="!accept.On" data-event-click="act('click', 'accept')">Accept</button>
+	</div>
+</body>
+</rml>
