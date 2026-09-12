@@ -17,6 +17,19 @@ option(OPENTS_EXPERIMENTAL_CLANG_CL "Build with clang-cl using the MSVC ABI" OFF
 # this as well, so declare it here rather than inherit it from a vendored build.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+set(OPENTS_MOVIE_FORMAT "VQA" CACHE STRING "Movie container selected by this build: VQA or MP4")
+set_property(CACHE OPENTS_MOVIE_FORMAT PROPERTY STRINGS VQA MP4)
+string(TOUPPER "${OPENTS_MOVIE_FORMAT}" OPENTS_MOVIE_FORMAT)
+
+if(NOT OPENTS_MOVIE_FORMAT MATCHES "^(VQA|MP4)$")
+    message(FATAL_ERROR "OPENTS_MOVIE_FORMAT must be VQA or MP4")
+endif()
+
+if(OPENTS_MOVIE_FORMAT STREQUAL "MP4" AND NOT EMSCRIPTEN)
+    message(FATAL_ERROR "OPENTS_MOVIE_FORMAT=MP4 is available only for the WebAssembly target")
+endif()
+
+# Visual Studio 2022 is the supported toolchain. Emscripten configures the WebAssembly
 # target, whose state docs/BUILDING.md records.
 if(NOT EMSCRIPTEN)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"

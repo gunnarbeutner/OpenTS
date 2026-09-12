@@ -15,4 +15,6 @@ The screen is cleared ahead of any full screen movie that will not cover the dis
 
 The picture is resampled smoothly as it grows, which takes out the fine speckle that the movies' sixteen bit color carries and softens the edges of the compression's own blocks. A movie left at its own size is copied rather than resampled and looks exactly as it always did.
 
+The browser build omits it as `yes` rather than `no`, because the frame there is the browser window rather than a resolution anyone picked. Writing the key still decides it there as it does anywhere.
+
 The display options screen carries the same switch and stores it as the screen is accepted; leaving the options screen behind it writes the setting back to `sun.ini`.
