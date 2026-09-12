@@ -29,6 +29,7 @@
  * Functions:                                                                                  *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "mstimer.h"
 #include "always.h"
 
 #include "stimer.h"
@@ -54,7 +55,7 @@
 /// <returns>Returns with the current system time, expressed in timer ticks.</returns>
 int SystemTimerClass::operator () (void) const
 {
-	return(timeGetTime()/TIMER_TICK_MILLISECONDS);
+	return(System_Milliseconds()/TIMER_TICK_MILLISECONDS);
 }
 
 
@@ -66,5 +67,5 @@ int SystemTimerClass::operator () (void) const
 /// <returns>Returns with the current system time, expressed in timer ticks.</returns>
 SystemTimerClass::operator int (void) const
 {
-	return(timeGetTime()/TIMER_TICK_MILLISECONDS);
+	return(System_Milliseconds()/TIMER_TICK_MILLISECONDS);
 }
