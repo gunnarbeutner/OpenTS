@@ -1,0 +1,150 @@
+<rml>
+<!--
+	The template carries its labels as literal control text rather than as string
+	identifiers, so they stay literal here; a localized build ships a translated copy.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * The template is 302 by 198 dialog units at MS Sans Serif 8, which is 453 by 322
+		 * logical pixels, centred on the frame. Each control sits at its template position
+		 * converted the same way.
+		 */
+		#mission
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -226dp;
+			margin-top: -161dp;
+			width: 453dp;
+			height: 322dp;
+			decorator: image(frame:453x322);
+		}
+
+		#mission .caption
+		{
+			position: absolute;
+			height: 13dp;
+
+			/* The face sits higher in its line than the dialog font sat in its box. */
+			line-height: 17dp;
+			margin: 0;
+			white-space: nowrap;
+		}
+
+		#title { left: 33dp; top: 19dp; width: 387dp; text-align: center; }
+		#describe { left: 33dp; top: 42dp; width: 182dp; }
+		#stamp { left: 298dp; top: 42dp; width: 99dp; text-align: center; }
+
+		/*
+		 * The list drew the dialog behind it blended 180 parts in 255 toward black, inside a
+		 * frame in the frame colour, and picked out a row with RGB(34,80,97) while its text
+		 * stayed green. Rows were the font's height plus two, and the three columns sat 2,
+		 * 255 and 315 pixels in, each cut short with three dots.
+		 */
+		#files
+		{
+			position: absolute;
+			left: 33dp;
+			top: 68dp;
+			width: 387dp;
+			height: 171dp;
+			box-sizing: border-box;
+			border-color: #4eb6dcff;
+			background-color: #000000b4;
+		}
+
+		#files p
+		{
+			position: relative;
+			height: 14dp;
+			margin: 0;
+			padding: 0;
+		}
+
+		#files p:hover { color: #70ff00ff; }
+		#files p.picked { background-color: #225061ff; color: #70ff00ff; }
+
+		#files span
+		{
+			position: absolute;
+			top: 1dp;
+			height: 14dp;
+			line-height: 14dp;
+			overflow: hidden;
+			white-space: nowrap;
+			text-overflow: "...";
+		}
+
+		#files .name { left: 2dp; width: 249dp; }
+		#files .date { left: 255dp; width: 56dp; }
+		#files .time { left: 315dp; right: 0; }
+
+		/*
+		 * The edit drew the same dimmed background and frame colour as the list, with its
+		 * frame a pixel outside the template's rectangle and its text against the frame. It
+		 * took 79 characters from the keyboard.
+		 */
+		#description
+		{
+			position: absolute;
+			left: 32dp;
+			top: 250dp;
+			width: 389dp;
+			height: 25dp;
+			padding: 0;
+			line-height: 16dp;
+			border-color: #4eb6dcff;
+			background-color: #000000b4;
+		}
+
+		/* The buttons are 50 by 14 dialog units. */
+		#mission button
+		{
+			position: absolute;
+			top: 280dp;
+			width: 75dp;
+			height: 23dp;
+			line-height: 23dp;
+			margin-left: 0;
+			decorator: image(button:u:75x23);
+		}
+
+		#mission button:active:hover { decorator: image(button:d:75x23); }
+
+		/* A disabled button stayed raised under half-transparent black, caption and all. */
+		#mission button[disabled],
+		#mission button[disabled]:active:hover
+		{
+			color: #388000ff;
+			image-color: #808080ff;
+			decorator: image(button:u:75x23);
+		}
+
+		#accept { left: 261dp; }
+		#cancel { left: 345dp; }
+	</style>
+</head>
+<body>
+	<div id="mission" class="dialog" data-model="mission">
+		<p id="title" class="caption">SAVE</p>
+		<p id="describe" class="caption">Description</p>
+		<p id="stamp" class="caption">Time Stamp</p>
+
+		<div id="files" class="list" data-event-click="act('list')">
+			<p data-for="row : Rows" data-class-picked="it_index == Selected"
+				data-event-click="act('select', it_index)" data-event-dblclick="act('choose')"><span
+				class="name">{{row.Description}}</span><span class="date">{{row.Date}}</span><span
+				class="time">{{row.Time}}</span></p>
+		</div>
+
+		<input id="description" type="text" class="text" maxlength="79"
+			data-event-change="act('text')"/>
+
+		<button id="accept" data-attrif-disabled="!AcceptEnabled" data-event-click="act('accept')">Save</button>
+		<button id="cancel"
+			data-event-click="act('cancel')">Cancel</button>
+	</div>
+</body>
+</rml>
