@@ -7,6 +7,8 @@
 
 #include "savefile.h"
 
+#include "platform/file.h"
+
 #include <lzo/lzo1x.h>
 
 #include <cstdio>
@@ -70,42 +72,35 @@ static std::vector<unsigned char> Prose(std::size_t length)
 static std::vector<unsigned char> Read_Whole_File(char const * path)
 {
 	std::vector<unsigned char> data;
-	HANDLE const file = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (file == INVALID_HANDLE_VALUE) return(data);
-	DWORD const size = GetFileSize(file, nullptr);
-	if (size != INVALID_FILE_SIZE && size > 0) {
-		data.resize(size);
-		DWORD got = 0;
-		if (!ReadFile(file, data.data(), size, &got, nullptr) || got != size) data.clear();
+	PlatformFileClass file;
+	if (!file.Open(path, PlatformOpenType::READ)) return(data);
+	std::int64_t const size = file.Size();
+	if (size > 0) {
+		data.resize((std::size_t)size);
+		std::uint32_t got = 0;
+		if (!file.Read(data.data(), (std::uint32_t)size, got) || got != (std::uint32_t)size) data.clear();
 	}
-	CloseHandle(file);
 	return(data);
 }
 
 
 static bool Write_Whole_File(char const * path, std::vector<unsigned char> const & data)
 {
-	HANDLE const file = CreateFileA(path, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
-		FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (file == INVALID_HANDLE_VALUE) return(false);
-	DWORD written = 0;
+	PlatformFileClass file;
+	if (!file.Open(path, PlatformOpenType::WRITE)) return(false);
+	std::uint32_t written = 0;
 	bool ok = true;
 	if (!data.empty()) {
-		ok = WriteFile(file, data.data(), (DWORD)data.size(), &written, nullptr) && written == data.size();
+		ok = file.Write(data.data(), (std::uint32_t)data.size(), written) && written == data.size();
 	}
-	CloseHandle(file);
-	return(ok);
+	return(file.Close() && ok);
 }
 
 
 static bool File_Exists(char const * path)
 {
-	HANDLE const file = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (file == INVALID_HANDLE_VALUE) return(false);
-	CloseHandle(file);
-	return(true);
+	PlatformFileInfoType info;
+	return(Platform_File_Info(path, info));
 }
 
 
@@ -120,9 +115,7 @@ enum {
 
 static void Fill(SaveFileClass & save, std::vector<unsigned char> const & content)
 {
-	FILETIME when;
-	when.dwLowDateTime = 0x12345678u;
-	when.dwHighDateTime = 0x01D2C3B4u;
+	FileTimeType const when = FileTimeType::From_Parts(0x12345678u, 0x01D2C3B4u);
 
 	save.Set_String(FIELD_TITLE, "GDI 04: Eviction Notice");
 	save.Set_String(FIELD_HOUSE, "GDI");
@@ -136,7 +129,7 @@ static void Check_Fields(char const * prefix, SaveFileClass const & save)
 {
 	char text[64];
 	int value = 0;
-	FILETIME when = {};
+	FileTimeType when;
 
 	Check((std::string(prefix) + ": title present").c_str(), save.Get_String(FIELD_TITLE, text, sizeof(text)));
 	Check((std::string(prefix) + ": title text").c_str(), strcmp(text, "GDI 04: Eviction Notice") == 0);
@@ -146,7 +139,7 @@ static void Check_Fields(char const * prefix, SaveFileClass const & save)
 	Check((std::string(prefix) + ": version value").c_str(), value == 0x00010203);
 	Check((std::string(prefix) + ": time present").c_str(), save.Get_Time(FIELD_WHEN, &when));
 	Check((std::string(prefix) + ": time value").c_str(),
-		when.dwLowDateTime == 0x12345678u && when.dwHighDateTime == 0x01D2C3B4u);
+		when.Low() == 0x12345678u && when.High() == 0x01D2C3B4u && when.Ticks == 0x01D2C3B412345678ull);
 	Check((std::string(prefix) + ": a missing field is absent").c_str(), !save.Get_String(FIELD_MISSING, text, sizeof(text)));
 	Check((std::string(prefix) + ": a field is not found under another kind").c_str(), !save.Get_Int(FIELD_TITLE, &value));
 
@@ -259,6 +252,52 @@ static void Test_Overwrite(void)
 	Check_Result("replace: field rewrite read", read.Read_Fields(path.c_str()), SaveFileClass::RESULT_OK);
 	Check("replace: a field set twice keeps the last value",
 		read.Get_String(FIELD_TITLE, text, sizeof(text)) && strcmp(text, "final field") == 0);
+}
+
+
+/*
+** A save with fixed fields and content must come out as the same bytes the format has always
+** produced. The size and checksum were recorded from the writer that stored Win32 FILETIMEs;
+** the time field is spelled out byte for byte: eight bytes, the low word first, each
+** little-endian.
+*/
+static void Test_Fixed_Image(void)
+{
+	std::string const path = Scratch_Path("FIXED.SAV");
+
+	std::vector<unsigned char> content = Prose(5000);
+	for (unsigned int index = 0; index < 700; index++) {
+		content.push_back((unsigned char)((index * 2654435761u) >> 24));
+	}
+
+	SaveFileClass written;
+	written.Set_String(FIELD_TITLE, "GDI 04: Eviction Notice");
+	written.Set_String(FIELD_HOUSE, "GDI");
+	written.Set_Int(FIELD_VERSION, 0x00010203);
+	written.Set_Time(FIELD_WHEN, FileTimeType::From_Parts(0x12345678u, 0x01D2C3B4u));
+	written.Set_Time(12, FileTimeType{0x01DC2F0A9B8C7D6Eull});
+	written.Content = content;
+	Check_Result("fixed image: write", written.Write(path.c_str()), SaveFileClass::RESULT_OK);
+
+	std::vector<unsigned char> const image = Read_Whole_File(path.c_str());
+	Check("fixed image: the length it has always had", image.size() == 900);
+	Check("fixed image: the bytes it has always had",
+		SaveFileClass::Checksum(image.data(), (std::uint32_t)image.size()) == 0x9F0B64A9u);
+
+	unsigned char const field[16] = {
+		0x0D, 0x00, 0x03, 0x00, 0x08, 0x00, 0x00, 0x00,
+		0x78, 0x56, 0x34, 0x12, 0xB4, 0xC3, 0xD2, 0x01,
+	};
+	bool found = false;
+	for (std::size_t at = SaveFileClass::HEADER_SIZE; at + sizeof(field) <= image.size(); at++) {
+		if (memcmp(image.data() + at, field, sizeof(field)) == 0) found = true;
+	}
+	Check("fixed image: a time is stored low word first", found);
+
+	SaveFileClass read;
+	FileTimeType when;
+	Check_Result("fixed image: read", read.Read(path.c_str()), SaveFileClass::RESULT_OK);
+	Check("fixed image: a time reads back whole", read.Get_Time(12, &when) && when.Ticks == 0x01DC2F0A9B8C7D6Eull);
 }
 
 
@@ -464,20 +503,21 @@ int main(int argc, char ** argv)
 	}
 
 	Scratch = (argc > 1) ? argv[1] : ".";
-	CreateDirectoryA(Scratch.c_str(), nullptr);
+	Platform_Create_Directory(Scratch.c_str());
 
 	Test_Round_Trip();
 	Test_Cuts();
 	Test_Incompressible();
 	Test_Empty();
 	Test_Overwrite();
+	Test_Fixed_Image();
 	Test_Limits();
 	Test_Refusals();
 
 	char const * const names[] = { "ROUNDTRIP.SAV", "NOISE.SAV", "EMPTY.SAV", "REPLACE.SAV",
-		"LIMITS.SAV", "PLAIN.SAV", "GOOD.SAV", "DAMAGED.SAV" };
+		"LIMITS.SAV", "PLAIN.SAV", "GOOD.SAV", "DAMAGED.SAV", "FIXED.SAV" };
 	for (char const * name : names) {
-		DeleteFileA(Scratch_Path(name).c_str());
+		Platform_Remove_File(Scratch_Path(name).c_str());
 	}
 
 	printf("%d checks, %d failures\n", Checks, Failures);

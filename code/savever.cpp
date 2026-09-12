@@ -32,16 +32,6 @@ SaveVersionInfo::SaveVersionInfo(void) :
 	ScenarioDescription[0] = '\0';
 	PlayerHouse[0] = '\0';
 	ExecutableName[0] = '\0';
-
-	StartTime.dwLowDateTime = 0;
-	StartTime.dwHighDateTime = 0;
-
-	PlayTime.dwLowDateTime = 0;
-	PlayTime.dwHighDateTime = 0;
-
-	LastSaveTime.dwLowDateTime = 0;
-	LastSaveTime.dwHighDateTime = 0;
-
 }
 
 
@@ -197,7 +187,7 @@ const char * SaveVersionInfo::Get_Executable_Name(void)
 /// <summary>
 /// Records the time this game was begun.
 /// </summary>
-void SaveVersionInfo::Set_Start_Time(FILETIME &time)
+void SaveVersionInfo::Set_Start_Time(FileTimeType time)
 {
 	StartTime = time;
 }
@@ -207,7 +197,7 @@ void SaveVersionInfo::Set_Start_Time(FILETIME &time)
 /// Fetches the time this game was begun.
 /// </summary>
 /// <returns>Returns with the time stamp taken when the game was started.</returns>
-FILETIME SaveVersionInfo::Get_Start_Time(void)
+FileTimeType SaveVersionInfo::Get_Start_Time(void)
 {
 	return(StartTime);
 }
@@ -216,7 +206,7 @@ FILETIME SaveVersionInfo::Get_Start_Time(void)
 /// <summary>
 /// Records how long this game has been played.
 /// </summary>
-void SaveVersionInfo::Set_Play_Time(FILETIME &time)
+void SaveVersionInfo::Set_Play_Time(FileTimeType time)
 {
 	PlayTime = time;
 }
@@ -226,7 +216,7 @@ void SaveVersionInfo::Set_Play_Time(FILETIME &time)
 /// Fetches how long this game has been played.
 /// </summary>
 /// <returns>Returns with the accumulated play time recorded in the save.</returns>
-FILETIME SaveVersionInfo::Get_Play_Time(void)
+FileTimeType SaveVersionInfo::Get_Play_Time(void)
 {
 	return(PlayTime);
 }
@@ -235,7 +225,7 @@ FILETIME SaveVersionInfo::Get_Play_Time(void)
 /// <summary>
 /// Records the time this game was last saved.
 /// </summary>
-void SaveVersionInfo::Set_Last_Time(FILETIME &time)
+void SaveVersionInfo::Set_Last_Time(FileTimeType time)
 {
 	LastSaveTime = time;
 }
@@ -245,7 +235,7 @@ void SaveVersionInfo::Set_Last_Time(FILETIME &time)
 /// Fetches the time this game was last saved.
 /// </summary>
 /// <returns>Returns with the time stamp of the most recent save.</returns>
-FILETIME SaveVersionInfo::Get_Last_Time(void)
+FileTimeType SaveVersionInfo::Get_Last_Time(void)
 {
 	return(LastSaveTime);
 }

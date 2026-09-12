@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "win.h"
+#include "platform/filetime.h"
 
 class SaveFileClass;
 
@@ -58,14 +58,14 @@ class SaveVersionInfo
 		void Set_Executable_Name(const char * name);
 		const char * Get_Executable_Name(void);
 
-		void Set_Start_Time(FILETIME &time);
-		FILETIME Get_Start_Time(void);
+		void Set_Start_Time(FileTimeType time);
+		FileTimeType Get_Start_Time(void);
 
-		void Set_Play_Time(FILETIME &time);
-		FILETIME Get_Play_Time(void);
+		void Set_Play_Time(FileTimeType time);
+		FileTimeType Get_Play_Time(void);
 
-		void Set_Last_Time(FILETIME &time);
-		FILETIME Get_Last_Time(void);
+		void Set_Last_Time(FileTimeType time);
+		FileTimeType Get_Last_Time(void);
 
 		void Set_Game_Type(int id);
 		int Get_Game_Type(void);
@@ -114,9 +114,9 @@ class SaveVersionInfo
 		 * These are the times recorded with the save -- when the game was begun, how long
 		 * it has been played, and when it was last written out.
 		 */
-		FILETIME StartTime;
-		FILETIME PlayTime;
-		FILETIME LastSaveTime;
+		FileTimeType StartTime;
+		FileTimeType PlayTime;
+		FileTimeType LastSaveTime;
 
 		/*
 		 * This is the kind of session the save was made in, and the one it is restored into.
