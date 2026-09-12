@@ -20,6 +20,8 @@
 #include "video.h"
 #include "win.h"
 
+#include <windowsx.h>
+
 #include <commctrl.h>
 #include <windows.h>
 

@@ -34,6 +34,8 @@
 
 #include "always.h"
 
+#include <windowsx.h>
+
 #include "sounddlg.h"
 
 #include "dbgprint.h"

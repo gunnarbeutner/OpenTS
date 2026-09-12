@@ -33,6 +33,8 @@
 
 #include "always.h"
 
+#include <windowsx.h>
+
 #include "gamedlg.h"
 
 #include "_map.h"

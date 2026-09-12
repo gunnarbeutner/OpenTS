@@ -59,6 +59,7 @@
 #include "scenario.h"
 #include "session.h"
 #include "win.h"
+#include <windowsx.h>
 
 #include <algorithm>
 #include <cstdio>
@@ -792,7 +793,7 @@ bool LoadOptionsClass::Files_Present(void)
 	bool files_found = false;
 
 	char pattern[64];
-	sprintf(pattern, "*.%3s", Extension);
+	snprintf(pattern, sizeof(pattern), "*.%3s", Extension);
 
 	WIN32_FIND_DATAA find_data;
 	HANDLE hFind = FindFirstFile(Saved_Game_Name(pattern).c_str(), &find_data);

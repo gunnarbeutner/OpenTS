@@ -7,6 +7,7 @@
  * See LICENSE.md for applicable additional terms and warranty disclaimers.
  ******************************************************************************/
 
+#include "utf8.h"
 #include "always.h"
 
 #include "skirmish.h"
@@ -27,6 +28,7 @@
 #include "ownrdraw.h"
 #include "rules.h"
 #include "win.h"
+#include <windowsx.h>
 
 
 INT_PTR CALLBACK Skirmish_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
