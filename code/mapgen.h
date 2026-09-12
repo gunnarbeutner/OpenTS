@@ -339,21 +339,13 @@ class MapSeedClass : public LoadOptionsClass
 		virtual bool Load_File(const char * file_name) override;
 		virtual bool Save_File(const char * file_name, const char * descr) override;
 		virtual bool Delete_File(const char * file_name) override;
-		virtual bool Read_File(FileEntryClass * entry, WIN32_FIND_DATAA * ff) override;
+		virtual bool Read_File(FileEntryClass * entry, PlatformFileInfoType const * ff) override;
 
 	protected:
 
 		virtual int Save_Confirmation(void) const override;
 
 	public:
-
-		/*
-		 * Dialog interaction.
-		 */
-		void Get_Settings(HWND dialog);
-		void Set_Settings(HWND dialog);
-		void Set_Scroll_Bar(HWND handle, unsigned int min, unsigned int max, int position, bool enable);
-		void Set_Checkbox(HWND handle, bool state, bool enable);
 
 		/*
 		 * Settings adjustment.
@@ -495,7 +487,7 @@ class MapGeneratorClass
 		/*
 		 * Top-level generation and housekeeping.
 		 */
-		void Generate_Random_Map(bool full_init, HWND dialog);
+		void Generate_Random_Map(bool full_init);
 		void Init_Map(bool full_init);
 		void Cleanup(void);
 		void Update_Progress(int percent_progress);
@@ -681,7 +673,7 @@ inline bool My_In_Radar(Cell const &cell)
 			y + x <= MapRegionClass::MapEndDiagonal) ? true : false;
 }
 
-void Do_Random_Map(HWND, bool (*callback)());
+void Do_Random_Map(bool (*callback)());
 int Do_Random_Map_Dialog(bool (*callback)());
 
 extern MapRegionClass::CellData *RMGCellData;
