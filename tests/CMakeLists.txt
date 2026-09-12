@@ -56,7 +56,7 @@ function(opents_add_test target)
     endif()
 
     if(MSVC)
-        target_link_libraries(${target} PRIVATE kernel32 user32 shell32)
+        target_link_libraries(${target} PRIVATE kernel32 user32 shell32 winmm)
     endif()
     target_link_libraries(${target} PRIVATE ${TEST_LIBRARIES})
 

@@ -9,7 +9,7 @@ opents_add_test(SoundIni
         vocini.cpp
         ini.cpp
         utf8.cpp
-        dbgprint.cpp
+        ${OPENTS_LOGGER_SOURCES}
         b64pipe.cpp
         b64straw.cpp
         base64.cpp

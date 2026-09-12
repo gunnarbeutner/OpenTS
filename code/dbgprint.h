@@ -26,7 +26,8 @@
 
 #endif
 
-void Debug_Init(void);
+// Borrows the arguments for this call; repeated initialization leaves the first setup intact.
+void Debug_Init(int argc, char const * const * argv);
 void Debug_Init_Console(void);
 void Debug_Console_Hold(void);
 char const * Debug_Log_File_Name(void);
@@ -36,4 +37,6 @@ bool Delete_Files_Older_Than(char const * directory, char const * pattern, unsig
 void __cdecl DebugString(_Printf_format_string_ char const * string, ...);
 void __cdecl DebugStringNoPrefix(_Printf_format_string_ char const * string, ...);
 
+// Takes a GetLastError code on Windows and an errno value elsewhere. Defined by the
+// platform's diagnostics file.
 char const * Last_Error_Text(unsigned long error);
