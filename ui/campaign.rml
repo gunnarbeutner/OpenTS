@@ -1,0 +1,92 @@
+<rml>
+<!--
+	The template carries its labels as literal control text rather than as string
+	identifiers, so they stay literal here; a localized build ships a translated copy.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * The template is 246 by 149 dialog units at MS Sans Serif 8, which is 369 by 242
+		 * logical pixels. The driver centred it across the frame and put its top 147 pixels
+		 * down the 640 by 400 artwork.
+		 */
+		#campaign
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -185dp;
+			margin-top: -53dp;
+			width: 369dp;
+			height: 242dp;
+			decorator: image(frame:369x242@135,147);
+		}
+
+		#campaign .caption, #campaigns, #difficulty, #campaign button
+		{
+			position: absolute;
+			margin: 0;
+		}
+
+		#campaign .caption
+		{
+			white-space: nowrap;
+		}
+
+		/* The static text sat near the top of its box, measured against the legacy view. */
+		#title { left: 33dp; top: 20dp; width: 309dp; height: 16dp; line-height: 14dp; text-align: center; }
+		#difficulty-label { left: 35dp; top: 136dp; width: 202dp; height: 24dp; line-height: 16dp; }
+		#difficulty-name { left: 243dp; top: 136dp; width: 99dp; height: 24dp; line-height: 16dp; text-align: right; }
+
+		#campaigns
+		{
+			left: 33dp;
+			top: 46dp;
+			width: 309dp;
+			height: 83dp;
+		}
+
+		#difficulty
+		{
+			left: 33dp;
+			top: 159dp;
+			width: 309dp;
+			height: 24dp;
+		}
+
+		/* The buttons are 26 pixels tall and the skin 24, centred in them. */
+		#campaign button
+		{
+			top: 198dp;
+			width: 75dp;
+			min-width: 0;
+			height: 24dp;
+			line-height: 22dp;
+			decorator: image(button:u:75x24);
+		}
+
+		#campaign button:active:hover { decorator: image(button:d:75x24); }
+
+		#accept { left: 182dp; }
+		#cancel { left: 267dp; }
+	</style>
+</head>
+<body>
+	<div id="campaign" class="dialog" data-model="campaign">
+		<p id="title" class="caption">Select Campaign:</p>
+
+		<div id="campaigns" class="list">
+			<p data-for="row : Rows" data-class-picked="it_index == Selected"
+				data-event-click="act('select', it_index)">{{row}}</p>
+		</div>
+
+		<p id="difficulty-label" class="caption">Difficulty</p>
+		<p id="difficulty-name" class="caption">{{DifficultyName}}</p>
+		<input id="difficulty" type="range" class="slider" min="0" max="2" step="1"
+			data-value="Difficulty" data-event-change="act('difficulty')"/>
+
+		<button id="accept" data-event-click="act('accept')">OK</button>
+		<button id="cancel" data-event-click="act('cancel')">Cancel</button>
+	</div>
+</body>
+</rml>
