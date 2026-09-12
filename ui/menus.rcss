@@ -1,0 +1,29 @@
+/*
+ * What the plain menus share: a dialog placed where the menu driver moved it, centred across
+ * the frame with its top 147 pixels down the 640 by 400 artwork, and buttons and captions
+ * placed at their template positions.
+ */
+#menu
+{
+	left: 50%;
+	top: 50%;
+	margin-top: -53dp;
+}
+
+#menu button
+{
+	position: absolute;
+	height: 24dp;
+	line-height: 24dp;
+	margin: 0;
+	min-width: 0;
+}
+
+/* A caption was centred both ways in its box. */
+#menu .caption
+{
+	position: absolute;
+	margin: 0;
+	text-align: center;
+	white-space: nowrap;
+}

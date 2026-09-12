@@ -130,6 +130,9 @@ static unsigned int SurfaceCache_Wstring_Hash(Wstring & string)
 }
 
 
+SurfaceCacheClass SurfaceCache;
+
+
 /// <summary>
 /// Constructs the cache as a Wstring-keyed dictionary using the surface
 /// cache hash function.
@@ -724,4 +727,126 @@ bool SurfaceCacheClass::DrawMasked(Rect const & rect, Surface & tosurface, Surfa
 	fromsurface.Unlock();
 	masksurface.Unlock();
 	return(true);
+}
+
+
+/// <summary>
+/// Loads the dialogs' artwork into the cache: the button, tab, arrow, grip, check box and
+/// icon pieces, and the glyph sheets in the forms the text drawing reads them in. The cache
+/// hands out only what was loaded, so a caller drawing with any of these asks first. Later
+/// calls do nothing.
+/// </summary>
+void Cache_Dialog_Artwork(void)
+{
+	static bool _cached = false;
+	if (_cached) {
+		return;
+	}
+	_cached = true;
+
+	SurfaceCache.CachePCX("dbak6440.pcx");
+	SurfaceCache.CachePCX("gdii.pcx");
+	SurfaceCache.CachePCX("nodi.pcx");
+	SurfaceCache.CachePCX("arrow_uu.pcx");
+	SurfaceCache.CachePCX("arrow_ud.pcx");
+	SurfaceCache.CachePCX("arrow_du.pcx");
+	SurfaceCache.CachePCX("arrow_dd.pcx");
+	SurfaceCache.CachePCX("leftbar.pcx");
+	SurfaceCache.CachePCX("rightbar.pcx");
+	SurfaceCache.CachePCX("trakgrip.pcx");
+	SurfaceCache.CachePCX("sbgript.pcx");
+	SurfaceCache.CachePCX("sbgripm.pcx");
+	SurfaceCache.CachePCX("sbgripb.pcx");
+	SurfaceCache.CachePCX("bar_ll.pcx");
+	SurfaceCache.CachePCX("bar_lr.pcx");
+	SurfaceCache.CachePCX("bar_ul.pcx");
+	SurfaceCache.CachePCX("bar_ur.pcx");
+	SurfaceCache.CachePCX("dlgsysi.pcx", 1);
+	SurfaceCache.CachePalettedPCX("dlgsysa.pcx");
+	SurfaceCache.CachePCX("wouban.pcx");
+	SurfaceCache.CachePCX("wodban.pcx");
+	SurfaceCache.CachePCX("wouleave.pcx");
+	SurfaceCache.CachePCX("wodleave.pcx");
+	SurfaceCache.CachePCX("wousqlch.pcx");
+	SurfaceCache.CachePCX("wodsqlch.pcx");
+	SurfaceCache.CachePCX("woudcon.pcx");
+	SurfaceCache.CachePCX("woddcon.pcx");
+	SurfaceCache.CachePCX("woukick.pcx");
+	SurfaceCache.CachePCX("wodkick.pcx");
+	SurfaceCache.CachePCX("wouhelp.pcx");
+	SurfaceCache.CachePCX("wodhelp.pcx");
+	SurfaceCache.CachePCX("woufind.pcx");
+	SurfaceCache.CachePCX("wodfind.pcx");
+	SurfaceCache.CachePCX("wouopt.pcx");
+	SurfaceCache.CachePCX("wodopt.pcx");
+	SurfaceCache.CachePCX("woutrny.pcx");
+	SurfaceCache.CachePCX("wodtrny.pcx");
+	SurfaceCache.CachePCX("wouclan.pcx");
+	SurfaceCache.CachePCX("wodclan.pcx");
+	SurfaceCache.CachePCX("woufgame.pcx");
+	SurfaceCache.CachePCX("wodfgame.pcx");
+	SurfaceCache.CachePCX("wouact.pcx");
+	SurfaceCache.CachePCX("wodact.pcx");
+	SurfaceCache.CachePCX("wouref.pcx");
+	SurfaceCache.CachePCX("wodref.pcx");
+	SurfaceCache.CachePCX("tab_tlu.pcx");
+	SurfaceCache.CachePCX("tab_tmu.pcx");
+	SurfaceCache.CachePCX("tab_tru.pcx");
+	SurfaceCache.CachePCX("tab_tld.pcx");
+	SurfaceCache.CachePCX("tab_tmd.pcx");
+	SurfaceCache.CachePCX("tab_trd.pcx");
+	SurfaceCache.CachePCX("tab_ftl.pcx");
+	SurfaceCache.CachePCX("tab_ftr.pcx");
+	SurfaceCache.CachePCX("tab_ftm.pcx");
+	SurfaceCache.CachePCX("tab_fbr.pcx");
+	SurfaceCache.CachePCX("tab_fbl.pcx");
+	SurfaceCache.CachePCX("tab_fbm.pcx");
+	SurfaceCache.CachePCX("tab_fmr.pcx");
+	SurfaceCache.CachePCX("tab_fml.pcx");
+	SurfaceCache.CachePCX("woloper.pcx");
+	SurfaceCache.CachePCX("wolsqlch.pcx");
+	SurfaceCache.CachePCX("woltrny.pcx");
+	SurfaceCache.CachePCX("woluser.pcx");
+	SurfaceCache.CachePCX("wolvoice.pcx");
+	SurfaceCache.CachePCX("wolpriv.pcx");
+	SurfaceCache.CachePCX("wolacpt.pcx");
+	SurfaceCache.CachePCX("wolhost.pcx");
+	SurfaceCache.CachePCX("wolclan.pcx");
+	SurfaceCache.CachePCX("dnarrowp.pcx");
+	SurfaceCache.CachePCX("uparrowp.pcx");
+	SurfaceCache.CachePCX("dnarrowr.pcx");
+	SurfaceCache.CachePCX("uparrowr.pcx");
+	SurfaceCache.CachePCX("trofl.pcx");
+	SurfaceCache.CachePCX("trofm.pcx");
+	SurfaceCache.CachePCX("trofr.pcx");
+	SurfaceCache.CachePCX("sb_psh_u.pcx");
+	SurfaceCache.CachePCX("sb_psh_d.pcx");
+	SurfaceCache.CachePCX("sb_rel_u.pcx");
+	SurfaceCache.CachePCX("sb_rel_d.pcx");
+	SurfaceCache.CachePCX("bst_chkd.pcx");
+	SurfaceCache.CachePCX("bst_uchk.pcx");
+	SurfaceCache.CachePCX("bst_chkg.pcx");
+	SurfaceCache.CachePCX("bst_uckg.pcx");
+	SurfaceCache.CachePCX("ccd_i.pcx");
+	SurfaceCache.CachePCX("cce_i.pcx");
+	SurfaceCache.CachePCX("cud_i.pcx");
+	SurfaceCache.CachePCX("cue_i.pcx");
+	SurfaceCache.CachePCX("bue_li30.pcx");
+	SurfaceCache.CachePCX("bue_mi30.pcx");
+	SurfaceCache.CachePCX("bue_ri30.pcx");
+	SurfaceCache.CachePCX("bde_li30.pcx");
+	SurfaceCache.CachePCX("bde_mi30.pcx");
+	SurfaceCache.CachePCX("bde_ri30.pcx");
+	SurfaceCache.CachePCX("bud_li30.pcx");
+	SurfaceCache.CachePCX("bud_mi30.pcx");
+	SurfaceCache.CachePCX("bud_ri30.pcx");
+	SurfaceCache.CachePCX("bue_li24.pcx");
+	SurfaceCache.CachePCX("bue_mi24.pcx");
+	SurfaceCache.CachePCX("bue_ri24.pcx");
+	SurfaceCache.CachePCX("bde_li24.pcx");
+	SurfaceCache.CachePCX("bde_mi24.pcx");
+	SurfaceCache.CachePCX("bde_ri24.pcx");
+	SurfaceCache.CachePCX("bud_li24.pcx");
+	SurfaceCache.CachePCX("bud_mi24.pcx");
+	SurfaceCache.CachePCX("bud_ri24.pcx");
 }

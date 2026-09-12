@@ -56,3 +56,5 @@ int SurfaceCacheConvertPixel(int red, int green, int blue);
 void SurfaceCacheConvertPalette(unsigned char *pal);
 
 extern SurfaceCacheClass SurfaceCache;
+
+void Cache_Dialog_Artwork(void);
