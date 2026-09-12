@@ -1,0 +1,81 @@
+<rml>
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * The template this replaces is 272 by 106 dialog units at MS Sans Serif 8, which
+		 * is about 408 by 172 logical pixels, and it was centred on the frame. One
+		 * authored unit is one logical pixel, so the document keeps that size and the
+		 * screen keeps the proportions of the dialog it replaces.
+		 */
+		#version
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -204dp;
+			margin-top: -86dp;
+			width: 408dp;
+			height: 172dp;
+
+			/* The dialog's own backdrop, composed at this size. */
+			decorator: image(frame:408x172);
+		}
+
+		/* The build lines are read out to whoever is diagnosing a report, so a long one
+		   scrolls rather than wrapping and changing the line count. */
+		/* The list box sat at 22, 12, 228 by 55 dialog units: 33, 20, 342 by 89 pixels. */
+		#lines
+		{
+			position: absolute;
+			left: 33dp;
+			top: 20dp;
+			width: 342dp;
+			height: 89dp;
+		}
+
+		/* A line too long for the box ended in an ellipsis rather than being cut. */
+		#lines p
+		{
+			width: 334dp;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		/* The template put its one button at 111, 80, 50 by 14 dialog units. */
+		.buttons
+		{
+			position: absolute;
+			left: 167dp;
+			top: 130dp;
+			margin-top: 0;
+			text-align: left;
+		}
+
+		.buttons button
+		{
+			width: 75dp;
+			height: 23dp;
+			line-height: 23dp;
+			min-width: 0;
+			margin-left: 0;
+			decorator: image(button:u:75x23);
+		}
+
+		.buttons button:active:hover
+		{
+			decorator: image(button:d:75x23);
+		}
+	</style>
+</head>
+<body>
+	<div id="version" class="dialog" data-model="version">
+		<div id="lines" class="list">
+			<p data-for="line : Lines">{{line}}</p>
+		</div>
+		<div class="buttons">
+			<button data-action="accept" tabindex="auto">[[TXT_OK]]</button>
+		</div>
+	</div>
+</body>
+</rml>
