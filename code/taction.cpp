@@ -70,6 +70,7 @@
 #include "map.h"
 #include "movie.h"
 #include "partsys.h"
+#include "platform/wait.h"
 #include "reinf.h"
 #include "revent.h"
 #include "rules.h"
@@ -2052,7 +2053,7 @@ bool TActionClass::TAction_ZOOM_IN(HouseClass * , ObjectClass * , TriggerClass *
 	Map.Flag_To_Redraw();
 	Map.Render();
 
-	Sleep(1000);
+	Platform_Sleep(1000);
 	return(true);
 }
 

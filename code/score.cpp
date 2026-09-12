@@ -66,6 +66,7 @@
 #include "mixfile.h"
 #include "movie.h"
 #include "msgloop.h"
+#include "platform/wait.h"
 #include "scenario.h"
 #include "session.h"
 #include "shapeset.h"
@@ -1058,7 +1059,7 @@ void ScoreClass::Call_Back_Delay(int time)
 				cd.Start();
 			}
 
-			Sleep(0);
+			Platform_Sleep(0);
 
 		} while (cd > 0);
 
@@ -1119,7 +1120,7 @@ void ScoreClass::Timing(void)
 	}
 
 	while (!GameInFocus) {
-		Sleep(500);
+		Platform_Sleep(500);
 		Windows_Message_Handler();
 	}
 

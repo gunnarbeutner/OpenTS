@@ -10,15 +10,9 @@
 
 #include "utf8.h"
 
-#include <cstring>
+#include "codepage.h"
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
+#include <cstring>
 
 
 namespace {
@@ -96,30 +90,9 @@ char32_t Decode_Sequence(char const * text, std::size_t available, int & length,
 constexpr std::size_t UNBOUNDED = ~(std::size_t)0;
 
 
-/// <summary>
-/// Returns the byte of the given code page that shows code, or -1. Drawing text asks for
-/// every glyph on every frame, so the answers are kept in the caller's cache, where 0 marks
-/// an unasked slot.
-/// </summary>
-int Best_Fit_Index(unsigned page, short * cache, char32_t code)
+int Glyph_Index(int byte)
 {
-	if (code < 0x80) {
-		return((int)code);
-	}
-	if (code > 0xFFFF) {
-		return(-1);
-	}
-
-	short & slot = cache[code];
-	if (slot == 0) {
-		wchar_t wide = (wchar_t)code;
-		char narrow = 0;
-		BOOL defaulted = FALSE;
-		int written = WideCharToMultiByte(page, 0, &wide, 1, &narrow, 1, NULL, &defaulted);
-		unsigned char byte = (unsigned char)narrow;
-		slot = (written == 1 && !defaulted && byte >= 0x20 && byte != 0x7F) ? (short)byte : (short)-1;
-	}
-	return(slot);
+	return((byte >= 0x20 && byte != 0x7F) ? byte : -1);
 }
 
 }
@@ -375,8 +348,10 @@ int UTF8::Windows_1252_Index(char32_t code)
 /// </summary>
 int UTF8::OEM_437_Glyph(char32_t code)
 {
-	static short cache[0x10000];
-	return(Best_Fit_Index(437, cache, code));
+	if (code < 0x80) {
+		return((int)code);
+	}
+	return(Glyph_Index(Code_Page_437_Byte(code)));
 }
 
 
@@ -386,9 +361,11 @@ int UTF8::OEM_437_Glyph(char32_t code)
 /// </summary>
 int UTF8::Windows_1252_Glyph(char32_t code)
 {
-	if (code >= 0x80 && code < 0xA0) {
+	if (code < 0x80) {
+		return((int)code);
+	}
+	if (code < 0xA0) {
 		return(-1);
 	}
-	static short cache[0x10000];
-	return(Best_Fit_Index(1252, cache, code));
+	return(Glyph_Index(Code_Page_1252_Byte(code)));
 }

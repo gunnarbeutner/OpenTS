@@ -67,6 +67,7 @@
 #include "language/language.h"
 #include "msgloop.h"
 #include "netglobal.h"
+#include "platform/wait.h"
 #include "progress.h"
 #include "queue.h"
 #include "rules.h"
@@ -1441,7 +1442,7 @@ void SessionClass::Update_Progress(int percent)
 				Call_Back();
 
 				while (Ipx.Global_Num_Send() > 5 && timer > 0) {
-					Sleep(20);
+					Platform_Sleep(20);
 					Windows_Message_Handler();
 					Call_Back();
 				}

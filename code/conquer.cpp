@@ -105,6 +105,7 @@
 #include "netglobal.h"
 #include "netshare.h"
 #include "platform/disk.h"
+#include "platform/wait.h"
 #include "progress.h"
 #include "queue.h"
 #include "rules.h"
@@ -959,7 +960,7 @@ bool Map_Edit_Loop(void)
 	Call_Back();								// maintains Theme.AI() for music
 //	Color_Cycle();
 
-	Sleep(1);
+	Platform_Sleep(1);
 
 	return(!GameActive);
 }
@@ -988,7 +989,7 @@ static void Resize_Tactical_View(bool flag)
 		Rect view(0, 0, Options.ScreenWidth, Options.ScreenHeight);
 		Map.Set_View_Dimensions(view);
 
-		Sleep(2);
+		Platform_Sleep(2);
 
 	} else {
 
@@ -1001,7 +1002,7 @@ static void Resize_Tactical_View(bool flag)
 		Rect view(0, _tab_height, Options.ScreenWidth-_sidebar_width, Options.ScreenHeight-_tab_height);
 		Map.Set_View_Dimensions(view);
 
-		Sleep(2);
+		Platform_Sleep(2);
 	}
 }
 
