@@ -15,6 +15,7 @@
 
 #if !defined(_MSC_VER)
 
+#include <cstdint>
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
