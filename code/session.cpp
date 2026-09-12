@@ -44,6 +44,7 @@
  *   SessionClass::Compute_Unique_ID -- computes unique local ID number                        *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "mstimer.h"
 #include "always.h"
 
 #include "session.h"
@@ -1215,7 +1216,7 @@ unsigned int SessionClass::Compute_Unique_ID(void)
 	//------------------------------------------------------------------------
 //	time(&tm);
 //	id = (unsigned long)tm;
-	id = timeGetTime();
+	id = System_Milliseconds();
 
 	//------------------------------------------------------------------------
 	// Now add in the free space on the hard drive
