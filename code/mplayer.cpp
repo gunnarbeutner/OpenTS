@@ -48,6 +48,7 @@
 #include "msgbox.h"
 #include "ownrdraw.h"
 #include "session.h"
+#include "ui/uimenus.h"
 
 class ListClass;
 

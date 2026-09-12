@@ -1,0 +1,42 @@
+<rml>
+<!--
+	The template carries its labels as literal control text rather than as string
+	identifiers, so they stay literal here; a localized build ships a translated copy.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<link type="text/rcss" href="menus.rcss"/>
+	<style>
+		/*
+		 * The template is 228 by 108 dialog units, which is 342 by 176 logical pixels. This
+		 * dialog was never moved, so it stayed centred on the frame.
+		 */
+		#menu
+		{
+			margin-left: -171dp;
+			margin-top: -88dp;
+			width: 342dp;
+			height: 176dp;
+			decorator: image(frame:342x176);
+		}
+
+		#menu button { left: 93dp; width: 156dp; decorator: image(button:u:156x24); }
+		#menu button:active:hover { decorator: image(button:d:156x24); }
+
+		#title { left: 33dp; top: 20dp; width: 276dp; height: 31dp; line-height: 31dp; }
+
+		/* The buttons are 23 pixels tall and the skin took 24 from their top. */
+		#original { top: 68dp; }
+		#firestorm { top: 101dp; }
+		#back { top: 133dp; }
+	</style>
+</head>
+<body>
+	<div id="menu" class="dialog">
+		<p id="title" class="caption">Select Game Type</p>
+		<button id="original" data-action="original">Tiberian Sun (Original)</button>
+		<button id="firestorm" data-action="firestorm">Firestorm</button>
+		<button id="back" data-action="back">Main Menu</button>
+	</div>
+</body>
+</rml>
