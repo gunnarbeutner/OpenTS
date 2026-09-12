@@ -1,0 +1,131 @@
+<rml>
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * The template is 339 by 220 dialog units at MS Sans Serif 8, which is 508 by 358
+		 * logical pixels, centred on the frame. Each control sits at its template position
+		 * converted the same way.
+		 */
+		#disconnect
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -254dp;
+			margin-top: -179dp;
+			width: 508dp;
+			height: 358dp;
+			decorator: image(frame:508x358);
+		}
+
+		/* A kick button for each player, 90 by 14 dialog units. */
+		#disconnect button
+		{
+			position: absolute;
+			height: 23dp;
+			line-height: 23dp;
+			margin-left: 0;
+		}
+
+		#disconnect button.kick
+		{
+			width: 135dp;
+			decorator: image(button:u:135x23);
+		}
+
+		#disconnect button.kick:active:hover { decorator: image(button:d:135x23); }
+
+		/*
+		 * Each bar fills its player's 60 by 16 group box from the left edge, and the box's
+		 * frame is drawn over it, its top line half a line down as a group box with no
+		 * caption draws it.
+		 */
+		.bar
+		{
+			position: absolute;
+			width: 60dp;
+			height: 16dp;
+		}
+
+		.bar .fill
+		{
+			position: absolute;
+			left: 0;
+			top: 0;
+			height: 16dp;
+		}
+
+		.bar .frame
+		{
+			position: absolute;
+			left: 0;
+			top: 7dp;
+			width: 60dp;
+			height: 9dp;
+			box-sizing: border-box;
+			border: 1dp #4eb6dcff;
+		}
+
+		#time
+		{
+			position: absolute;
+			left: 44dp;
+			top: 143dp;
+			width: 418dp;
+			height: 13dp;
+			line-height: 17dp;
+			margin: 0;
+			white-space: nowrap;
+		}
+
+		#messages
+		{
+			position: absolute;
+			left: 33dp;
+			top: 167dp;
+			width: 442dp;
+			height: 136dp;
+			box-sizing: border-box;
+			overflow: hidden;
+		}
+
+		/* A line too long for the list was cut short with three dots. */
+		#messages p
+		{
+			height: 14dp;
+			margin: 0;
+			overflow: hidden;
+			text-overflow: "...";
+		}
+
+		#cancel
+		{
+			left: 33dp;
+			top: 315dp;
+			width: 442dp;
+			decorator: image(button:u:442x23);
+		}
+
+		#cancel:active:hover { decorator: image(button:d:442x23); }
+	</style>
+</head>
+<body>
+	<div id="disconnect" class="dialog" data-model="disconnect">
+		<div data-for="slot : Slots">
+			<button class="kick" data-action="kick" data-attr-data-identity="slot.Index"
+				data-style-left="slot.Left + 'dp'" data-style-top="slot.Top + 'dp'">{{slot.Name}}</button>
+			<div class="bar" data-style-left="slot.Left + 144 + 'dp'" data-style-top="slot.Top + 'dp'"><div class="fill"
+				data-style-width="slot.BarWidth + 'dp'" data-style-background-color="slot.BarColour"></div><div
+				class="frame"></div></div>
+		</div>
+
+		<p id="time">{{Time}}</p>
+
+		<div id="messages" class="list">
+			<p data-for="line : Messages">{{line}}</p>
+		</div>
+
+		<button id="cancel" data-action="cancel">Cancel</button>
+	</div>
+</body>
+</rml>

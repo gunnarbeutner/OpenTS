@@ -1,0 +1,250 @@
+<rml>
+<!--
+	The templates carry their labels as literal control text rather than as string
+	identifiers, so they stay literal here; a localized build ships a translated copy.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * Both templates are 360 by 264 dialog units at MS Sans Serif 8, which is 540 by 429
+		 * logical pixels, centred on the frame. Each control sits at its template position
+		 * converted the same way. On a frame shorter than the dialog, the chat list gives up
+		 * the difference and what sits below it moves up.
+		 */
+		#desync
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -270dp;
+			width: 540dp;
+		}
+
+		#desync .caption
+		{
+			position: absolute;
+			margin: 0;
+			line-height: 17dp;
+			white-space: nowrap;
+		}
+
+		#header { left: 45dp; top: 16dp; width: 420dp; height: 16dp; text-align: center; }
+		#players { left: 45dp; top: 37dp; width: 150dp; height: 16dp; }
+
+		.blurb
+		{
+			position: absolute;
+			left: 240dp;
+			width: 270dp;
+		}
+
+		/* Static text stepped its lines at the font's own height rather than a list's row. */
+		.blurb p
+		{
+			line-height: 17dp;
+		}
+
+		.blurb p.gap
+		{
+			height: 17dp;
+		}
+
+		.explain { top: 41dp; height: 133dp; }
+		.closing { top: 206dp; height: 36dp; }
+
+		/*
+		 * The player list: the host's icon two pixels in, the name from 20, and the status
+		 * in the last 56 pixels in its own colour.
+		 */
+		#playerlist
+		{
+			position: absolute;
+			left: 45dp;
+			top: 57dp;
+			width: 180dp;
+			height: 171dp;
+			box-sizing: border-box;
+			overflow: hidden;
+		}
+
+		#playerlist p
+		{
+			position: relative;
+			height: 14dp;
+			margin: 0;
+			padding: 0;
+		}
+
+		#playerlist img
+		{
+			position: absolute;
+			left: 2dp;
+			top: 1dp;
+		}
+
+		#playerlist span
+		{
+			position: absolute;
+			top: 0;
+			height: 14dp;
+			overflow: hidden;
+			white-space: nowrap;
+		}
+
+		#playerlist .name { left: 20dp; width: 98dp; text-overflow: "..."; }
+		#playerlist .status { left: 124dp; width: 56dp; text-overflow: "..."; }
+
+		#chatlist
+		{
+			position: absolute;
+			left: 45dp;
+			top: 236dp;
+			width: 450dp;
+			box-sizing: border-box;
+			overflow: hidden;
+		}
+
+		#chatlist p
+		{
+			height: 14dp;
+			margin: 0;
+			overflow: hidden;
+			text-overflow: "...";
+		}
+
+		/* Everything from the chat field down, placed from the field's own top. */
+		#lower
+		{
+			position: absolute;
+			left: 0;
+			width: 540dp;
+			height: 72dp;
+		}
+
+		#chat
+		{
+			position: absolute;
+			left: 45dp;
+			top: 0;
+			width: 448dp;
+			height: 20dp;
+		}
+
+		#countdown { left: 45dp; top: 26dp; width: 210dp; height: 16dp; }
+
+		/*
+		 * The countdown bar fills its 224 by 20 group box from the left edge, and the box's
+		 * frame is drawn over it, its top line half a line down as a group box with no
+		 * caption draws it.
+		 */
+		#bar
+		{
+			position: absolute;
+			left: 270dp;
+			top: 25dp;
+			width: 224dp;
+			height: 20dp;
+		}
+
+		#bar .fill
+		{
+			position: absolute;
+			left: 0;
+			top: 0;
+			height: 20dp;
+		}
+
+		#bar .frame
+		{
+			position: absolute;
+			left: 0;
+			top: 7dp;
+			width: 224dp;
+			height: 13dp;
+			box-sizing: border-box;
+			border: 1dp #4eb6dcff;
+		}
+
+		/* The buttons are 70 by 12 dialog units. */
+		#desync button
+		{
+			position: absolute;
+			top: 52dp;
+			width: 105dp;
+			height: 20dp;
+			line-height: 20dp;
+			margin-left: 0;
+			decorator: image(button:u:105x20);
+		}
+
+		#desync button:active:hover { decorator: image(button:d:105x20); }
+
+		#desync button[disabled],
+		#desync button[disabled]:active:hover
+		{
+			color: #388000ff;
+			image-color: #808080ff;
+			decorator: image(button:u:105x20);
+		}
+
+		#load { left: 45dp; }
+		#continue { left: 218dp; }
+		#quit { left: 390dp; }
+		#quit.alone { left: 218dp; }
+	</style>
+</head>
+<body>
+	<div id="desync" class="dialog" data-model="desync"
+		data-style-height="(429 - Shrink) + 'dp'"
+		data-style-margin-top="(0 - (429 - Shrink) / 2) + 'dp'"
+		data-style-decorator="'image(frame:540x' + (429 - Shrink) + ')'">
+		<p id="header" class="caption">Synchronization Error</p>
+		<p id="players" class="caption">Players:</p>
+
+		<div id="playerlist" class="list">
+			<p data-for="player : Players"><img data-if="player.Host" src="key:wolhost.pcx"/><span
+				class="name">{{player.Name}}</span><span class="status"
+				data-style-color="player.StatusColour">{{player.Status}}</span></p>
+		</div>
+
+		<div class="blurb explain" data-if="Host">
+			<p>The game has gone out of sync.</p>
+			<p class="gap"></p>
+			<p>Press "Load Game" to load a saved game from this session, re-syncing the game for all players.</p>
+			<p class="gap"></p>
+			<p>Press "Continue" to continue playing without the desynced players. They will continue in a separate game session.</p>
+		</div>
+		<div class="blurb closing" data-if="Host">
+			<p>Press "Quit" to exit the game.</p>
+		</div>
+
+		<div class="blurb explain" data-if="!Host">
+			<p>The game has gone out of sync.</p>
+			<p class="gap"></p>
+			<p>If there are saves available from this session, the game host can attempt to load a save to re-sync the game.</p>
+			<p class="gap"></p>
+			<p>Alternatively, the host can choose for the desynced players to continue playing in separate game sessions.</p>
+		</div>
+		<div class="blurb closing" data-if="!Host">
+			<p>Please wait while the host is making a decision.</p>
+		</div>
+
+		<div id="chatlist" class="list" data-style-height="(98 - Shrink) + 'dp'">
+			<p data-for="line : Chat">{{line}}</p>
+		</div>
+
+		<div id="lower" data-style-top="(336 - Shrink) + 'dp'">
+			<input id="chat" type="text" class="text"
+				data-event-focus="chatfocus(1)" data-event-blur="chatfocus(0)"/>
+
+			<p id="countdown" class="caption" data-if="Countdown">{{CountdownText}}</p>
+			<div id="bar" data-if="Countdown"><div class="fill" data-style-width="BarWidth + 'dp'"
+				data-style-background-color="BarColour"></div><div class="frame"></div></div>
+
+			<button id="load" data-if="Host" data-action="load" data-attrif-disabled="!LoadEnabled">Load Game</button>
+			<button id="continue" data-if="Host" data-action="continue" data-attrif-disabled="!ContinueEnabled">Continue</button>
+			<button id="quit" data-class-alone="!Host" data-action="quit" data-attrif-disabled="!QuitEnabled">Quit</button>
+		</div>
+	</div>
+</body>
+</rml>
