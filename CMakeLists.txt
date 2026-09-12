@@ -96,6 +96,31 @@ add_custom_target(OpenTSBuildStamp ALL
     VERBATIM
 )
 
+# The names a UI document may use for a string. Generated from the language header, which is
+# where the identifiers are declared, so no list of them is kept by hand. It follows that
+# header rather than HEAD, so it runs at configure time and again when the header changes.
+set(OPENTS_STRING_NAME_HEADER "${OPENTS_GENERATED_DIR}/opents_stringnames.h")
+set(OPENTS_LANGUAGE_HEADER "${CMAKE_SOURCE_DIR}/code/language/language.h")
+
+set(OPENTS_STRING_NAME_ARGS
+    "-DOPENTS_LANGUAGE_HEADER=${OPENTS_LANGUAGE_HEADER}"
+    "-DOPENTS_STRING_NAME_HEADER=${OPENTS_STRING_NAME_HEADER}"
+    -P "${CMAKE_SOURCE_DIR}/cmake/StringNames.cmake"
+)
+
+execute_process(COMMAND ${CMAKE_COMMAND} ${OPENTS_STRING_NAME_ARGS})
+
+add_custom_command(
+    OUTPUT "${OPENTS_STRING_NAME_HEADER}"
+    COMMAND ${CMAKE_COMMAND} ${OPENTS_STRING_NAME_ARGS}
+    DEPENDS "${OPENTS_LANGUAGE_HEADER}" "${CMAKE_SOURCE_DIR}/cmake/StringNames.cmake"
+    COMMENT "Collecting the string identifier names"
+    VERBATIM
+)
+
+add_custom_target(OpenTSStringNames DEPENDS "${OPENTS_STRING_NAME_HEADER}")
+
+# macOS builds with clang against POSIX rather than the Windows SDK.
 add_subdirectory(thirdparty)
 add_subdirectory(code)
 add_subdirectory(code/language)

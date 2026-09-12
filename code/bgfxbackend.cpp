@@ -7,13 +7,15 @@
  * See LICENSE.md for applicable additional terms and warranty disclaimers.
  ******************************************************************************/
 
-// The bgfx side of the presenter. This is the only translation unit that includes bgfx,
+// The bgfx side of the presenter. Only this file and the UI shell's renderer include bgfx,
 // which keeps the library's headers and build settings away from the rest of the engine.
 
 #include "bgfxbackend.h"
+#include "viewid.hh"
 
 #include "dbgprint.h"
 #include "except.h"
+#include "platform/diagnostics.h"
 
 #include <bx/allocator.h>
 #include <bgfx/bgfx.h>
@@ -23,10 +25,13 @@
 #include <fs_ocornut_imgui.bin.h>
 
 #include <algorithm>
+#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#if defined(_WIN32)
 #include <malloc.h>
+#endif
 
 
 static const bgfx::EmbeddedShader _EmbeddedShaders[] = {
@@ -36,15 +41,10 @@ static const bgfx::EmbeddedShader _EmbeddedShaders[] = {
 };
 
 
-// The view that magnifies the frame when the pixel art filter needs an intermediate
-// target, and the one that draws onto the window. Views render in ascending order, so
-// the magnify pass must carry the lower id for the present pass to sample its output
-// from this frame rather than the last one.
-static const bgfx::ViewId VIEW_PRESCALE = 0;
-static const bgfx::ViewId VIEW_PRESENT = 1;
-
-
 static bool _Initialized = false;
+
+// Whether Backend_Present submitted the frame that Backend_End_Frame would end.
+static bool _FrameSubmitted = false;
 
 static bgfx::TextureHandle _FrameTexture = BGFX_INVALID_HANDLE;
 static bgfx::ProgramHandle _Program = BGFX_INVALID_HANDLE;
@@ -104,7 +104,7 @@ class BackendCallback : public bgfx::CallbackI
 		{
 			char message[1024];
 			vsnprintf(message, sizeof(message), format, argList);
-			OutputDebugString(message);
+			Debug_Output_Write(message);
 		}
 
 		virtual void profilerBegin(const char *, uint32_t, const char *, uint16_t) override {}
@@ -121,6 +121,8 @@ class BackendCallback : public bgfx::CallbackI
 
 static BackendCallback _Callback;
 
+
+#if defined(_WIN32)
 
 // bgfx contains cache-line-aligned render records but requests their backing arrays with
 // the allocator's default alignment. The Win32 CRT only guarantees eight-byte alignment,
@@ -144,6 +146,8 @@ class BackendAllocator : public bx::AllocatorI
 };
 
 static BackendAllocator _Allocator;
+
+#endif
 
 
 /// <summary>
@@ -304,7 +308,9 @@ bool Backend_Init(NativeWindow const & window, int drawablewidth, int drawablehe
 	init.resolution.height = (uint32_t)drawableheight;
 	init.resolution.reset = _ResetFlags;
 	init.callback = &_Callback;
+#if defined(_WIN32)
 	init.allocator = &_Allocator;
+#endif
 
 	switch (renderer) {
 		case BACKEND_RENDERER_D3D11:
@@ -470,7 +476,8 @@ void Backend_On_Resize(int drawablewidth, int drawableheight)
 /// <param name="destwidth">How wide the frame is drawn.</param>
 /// <param name="destheight">How tall the frame is drawn.</param>
 /// <param name="mode">How the frame is filtered when it is drawn larger than it is.</param>
-void Backend_Present(void const * pixels, int pitch, int destx, int desty, int destwidth, int destheight, BackendScaleMode mode)
+/// <param name="upload">Whether the pixels changed since the last present.</param>
+void Backend_Present(void const * pixels, int pitch, int destx, int desty, int destwidth, int destheight, BackendScaleMode mode, bool upload)
 {
 	if (!_Initialized || pixels == NULL || !bgfx::isValid(_FrameTexture)) {
 		return;
@@ -481,7 +488,9 @@ void Backend_Present(void const * pixels, int pitch, int destx, int desty, int d
 		return;
 	}
 
-	if (_FrameIs565) {
+	if (!upload) {
+		// The texture already on the device is the newest frame there is.
+	} else if (_FrameIs565) {
 		bgfx::updateTexture2D(_FrameTexture, 0, 0, 0, 0, (uint16_t)_FrameWidth, (uint16_t)_FrameHeight, bgfx::copy(pixels, (uint32_t)(_FrameHeight * pitch)), (uint16_t)pitch);
 	} else if (_ConvertBuffer != NULL) {
 		for (int y = 0; y < _FrameHeight; y++) {
@@ -496,6 +505,9 @@ void Backend_Present(void const * pixels, int pitch, int destx, int desty, int d
 
 	bgfx::TextureHandle source = _FrameTexture;
 	unsigned int samplerflags = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;
+
+	// Only a render target, never an uploaded texture, is flipped on the
+	// renderers whose texture origin is the lower left corner.
 	bool from_prescale = false;
 
 	if (mode == BACKEND_SCALE_NEAREST) {
@@ -527,6 +539,8 @@ void Backend_Present(void const * pixels, int pitch, int destx, int desty, int d
 		}
 	}
 
+	_FrameSubmitted = true;
+
 	// Clearing the whole window is what paints the bars beside a frame that does not
 	// share the window's shape.
 	bgfx::setViewFrameBuffer(VIEW_PRESENT, BGFX_INVALID_HANDLE);
@@ -535,7 +549,24 @@ void Backend_Present(void const * pixels, int pitch, int destx, int desty, int d
 
 	bool flipv = from_prescale && bgfx::getCaps()->originBottomLeft;
 	Submit_Quad(VIEW_PRESENT, source, (float)destx, (float)desty, (float)destwidth, (float)destheight, samplerflags, flipv);
+}
 
+
+/// <summary>
+/// Ends the frame Backend_Present opened, which is what puts the submitted views on the
+/// screen. Kept apart from Backend_Present so the UI shell can submit its own views over
+/// the game's frame before the frame ends.
+/// </summary>
+void Backend_End_Frame(void)
+{
+	// Backend_Present gives up on a state it cannot draw in, and the frame ended only on a
+	// present that reached the window before the two were separated. Keeping that means a
+	// frame no one submitted to is not advanced.
+	if (!_FrameSubmitted) {
+		return;
+	}
+
+	_FrameSubmitted = false;
 	bgfx::frame();
 }
 

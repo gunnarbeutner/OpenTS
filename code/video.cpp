@@ -11,6 +11,8 @@
 // as it always has; this decides when that frame reaches the screen and where in the
 // window it lands, and hands it to the renderer behind video.h.
 
+#include "hostwindow.h"
+#include "mstimer.h"
 #include "always.h"
 
 #include "video.h"
@@ -23,6 +25,7 @@
 #include "goptions.h"
 #include "misc.h"
 #include "surface.h"
+#include "ui/uishell.h"
 #include "wincursor.h"
 
 #include <cstdlib>
@@ -211,6 +214,7 @@ bool Video_Set_Mode(int width, int height)
 
 	Update_Scale_Info();
 	Win_Cursor_Refresh();
+	UI_On_Frame_Size_Changed();
 	_FrameIsDirty = true;
 	return(true);
 }
@@ -230,6 +234,7 @@ void Video_On_Resize(int drawablewidth, int drawableheight)
 	Backend_On_Resize(drawablewidth, drawableheight);
 	Update_Scale_Info();
 	Win_Cursor_Refresh();
+	UI_On_Frame_Size_Changed();
 	Video_Mark_Dirty();
 }
 
@@ -257,10 +262,9 @@ void Video_Mark_Dirty(void)
 }
 
 
-/// <summary>
-/// Puts the visible surface on the screen whatever its state.
-/// </summary>
-void Video_Present(void)
+// upload says whether the frame's pixels have to reach the device again. Only a present
+// that nothing but the overlay asked for may leave them alone.
+static void Present_Frame(bool upload)
 {
 	if (!_Initialized || _Presenting || VisibleSurface == NULL) {
 		return;
@@ -274,11 +278,24 @@ void Video_Present(void)
 	}
 
 	_Presenting = true;
-	Backend_Present(pixels, surface->Stride(), _ScaleInfo.DestX, _ScaleInfo.DestY, _ScaleInfo.DestWidth, _ScaleInfo.DestHeight, Backend_Scale_Mode());
+	Backend_Present(pixels, surface->Stride(), _ScaleInfo.DestX, _ScaleInfo.DestY, _ScaleInfo.DestWidth, _ScaleInfo.DestHeight, Backend_Scale_Mode(), upload);
+	UI_Render_Overlay();
+	Backend_End_Frame();
 	_Presenting = false;
 
 	_FrameIsDirty = false;
-	_LastPresentTime = timeGetTime();
+	_LastPresentTime = System_Milliseconds();
+}
+
+
+/// <summary>
+/// Puts the visible surface on the screen whatever its state.
+/// </summary>
+void Video_Present(void)
+{
+	// A caller that asks for a present outright may have drawn without marking the frame,
+	// so this path always uploads.
+	Present_Frame(true);
 }
 
 
@@ -290,16 +307,19 @@ void Video_Present(void)
 /// </summary>
 void Video_Present_If_Dirty(void)
 {
-	if (!_FrameIsDirty) {
+	// A document that has changed has to reach the screen even when the game's frame has
+	// not, and the frame is only uploaded again when the frame itself is marked.
+	if (!_FrameIsDirty && !UI_Overlay_Is_Dirty()) {
 		return;
 	}
 
-	unsigned int now = timeGetTime();
+	unsigned int now = System_Milliseconds();
 	if ((now - _LastPresentTime) < _PresentInterval) {
 		return;
 	}
 
-	Video_Present();
+	// A present that only a document asked for reuses the frame already on the device.
+	Present_Frame(_FrameIsDirty);
 }
 
 
@@ -340,7 +360,6 @@ static int __cdecl Compare_Modes(void const * left, void const * right)
 /// when nothing matched.</returns>
 int * EnumDisplayModes(int minwidth, int minheight, int maxwidth, int maxheight)
 {
-	DEVMODE devmode;
 	int count = 0;
 	int capacity = 0;
 	int * modes = NULL;
@@ -350,15 +369,11 @@ int * EnumDisplayModes(int minwidth, int minheight, int maxwidth, int maxheight)
 		count = 0;
 
 		for (int index = 0; ; index++) {
-			memset(&devmode, 0, sizeof(devmode));
-			devmode.dmSize = sizeof(devmode);
-
-			if (!EnumDisplaySettings(NULL, index, &devmode)) {
+			int width = 0;
+			int height = 0;
+			if (!Host_Display_Mode(index, width, height)) {
 				break;
 			}
-
-			int width = (int)devmode.dmPelsWidth;
-			int height = (int)devmode.dmPelsHeight;
 
 			if (width < minwidth || width > maxwidth || height < minheight || height > maxheight) {
 				continue;
