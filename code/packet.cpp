@@ -31,6 +31,7 @@
  *   PacketClass::Add_Field -- Adds a FieldClass entry to head of packet li*
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "netsocket.h"
 #include "always.h"
 
 #include "packet.h"
@@ -100,10 +101,10 @@ PacketClass::PacketClass(char *curbuf)
 	//
 	Size = *(unsigned short *)curbuf;
 	curbuf += sizeof (unsigned short);
-	Size = ntohs(Size);
+	Size = Socket_Host_Port(Size);
 	ID	  = *(short *)curbuf;
 	curbuf += sizeof (short);
-	ID   = ntohs(ID);
+	ID   = Socket_Host_Port(ID);
 	Head = NULL;
 
 	//
@@ -129,7 +130,7 @@ PacketClass::PacketClass(char *curbuf)
 		//
 		// Copy the data into the buffer
 		//
-		int size			= ntohs(field->Size);
+		int size			= Socket_Host_Port(field->Size);
 		field->Data		= new char[size];
 		memcpy(field->Data, curbuf, size);
 		curbuf			+= size;
@@ -137,7 +138,7 @@ PacketClass::PacketClass(char *curbuf)
 		//
 		// Make sure we allow for the pad bytes.
 		//
-		int pad = (4 - (ntohs(field->Size) & 3)) & 3;
+		int pad = (4 - (Socket_Host_Port(field->Size) & 3)) & 3;
 		curbuf += pad;
 		remaining_size   -= pad;
 
@@ -197,9 +198,9 @@ char *PacketClass::Create_Comms_Packet(int &size)
 	//
 	// write the size into the packet header
 	//
-	*(unsigned short *)curbuf = (unsigned short)htons((unsigned short)size);
+	*(unsigned short *)curbuf = (unsigned short)Socket_Network_Port((unsigned short)size);
 	curbuf += sizeof (unsigned short);
-	*(short *)curbuf = htons(ID);
+	*(short *)curbuf = Socket_Network_Port(ID);
 	curbuf += sizeof (short);
 
 	//
@@ -222,13 +223,13 @@ char *PacketClass::Create_Comms_Packet(int &size)
 		//
 		// Copy the data into the buffer and then advance the buffer
 		//
-		memcpy(curbuf, current->Data, ntohs(current->Size));
-		curbuf += ntohs(current->Size);
+		memcpy(curbuf, current->Data, Socket_Host_Port(current->Size));
+		curbuf += Socket_Host_Port(current->Size);
 
 		//
 		// Finally take care of any pad bytes by setting them to 0
 		//
-		int pad = (4 - (ntohs(current->Size) & 3)) & 3;
+		int pad = (4 - (Socket_Host_Port(current->Size) & 3)) & 3;
 
 		//
 		// If there is any pad left over, make sure you memset it

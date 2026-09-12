@@ -44,8 +44,9 @@
 
 #include "utracker.h"
 
+#include "netsocket.h"
+
 #include <cstring>
-#include <winsock.h>
 
 
 /***********************************************************************************************
@@ -193,7 +194,7 @@ void UnitTrackerClass::To_Network_Format (void)
 {
 	if (!InNetworkFormat){
 		for (int i=0 ; i<UnitCount ; i++){
-			UnitTotals[i] = htonl (UnitTotals[i]);
+			UnitTotals[i] = Socket_Network_Long(UnitTotals[i]);
 		}
 	}
 	InNetworkFormat = 1;		// Flag that data is now in network format
@@ -218,7 +219,7 @@ void UnitTrackerClass::To_PC_Format (void)
 {
 	if (InNetworkFormat){
 		for (int i=0 ; i<UnitCount ; i++){
-			UnitTotals[i] = ntohl (UnitTotals[i]);
+			UnitTotals[i] = Socket_Host_Long(UnitTotals[i]);
 		}
 	}
 	InNetworkFormat = 0;		// Flag that data is now in PC format

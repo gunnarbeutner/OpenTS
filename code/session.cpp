@@ -44,6 +44,7 @@
  *   SessionClass::Compute_Unique_ID -- computes unique local ID number                        *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "netsocket.h"
 #include "mstimer.h"
 #include "always.h"
 
@@ -385,7 +386,7 @@ int SessionClass::Create_Connections(void)
 
 			Houses[Players[i]->Player.ID]->SquadID = Players[i]->Player.SquadID;
 
-			unsigned int ip = ntohl(Session.Players[i]->Address.Get_IP());
+			unsigned int ip = Socket_Host_Long(Session.Players[i]->Address.Get_IP());
 
 			DebugString("House[%d] IP = %X  Clan=%d\n",Players[i]->Player.ID, ip, Players[i]->Player.SquadID);
 

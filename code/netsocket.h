@@ -69,6 +69,50 @@ inline uint16_t Socket_Network_Port(uint16_t port)
 }
 
 
+// The same byte pair read back, for a port that arrived in network order.
+inline uint16_t Socket_Host_Port(uint16_t network)
+{
+	unsigned char bytes[2];
+	std::memcpy(bytes, &network, sizeof(network));
+	return(static_cast<uint16_t>((bytes[0] << 8) | bytes[1]));
+}
+
+
+// A four byte quantity in network order, from and to the host's own order.
+inline uint32_t Socket_Network_Long(uint32_t value)
+{
+	unsigned char const bytes[4] = {
+		static_cast<unsigned char>(value >> 24),
+		static_cast<unsigned char>(value >> 16),
+		static_cast<unsigned char>(value >> 8),
+		static_cast<unsigned char>(value)
+	};
+
+	uint32_t network = 0;
+	std::memcpy(&network, bytes, sizeof(network));
+	return(network);
+}
+
+
+inline uint32_t Socket_Host_Long(uint32_t network)
+{
+	unsigned char bytes[4];
+	std::memcpy(bytes, &network, sizeof(network));
+	return((uint32_t(bytes[0]) << 24) | (uint32_t(bytes[1]) << 16)
+			| (uint32_t(bytes[2]) << 8) | uint32_t(bytes[3]));
+}
+
+
+// Reads a dotted quad into an address in network order. Returns false for anything
+// else, where inet_addr would have answered the broadcast address.
+bool Socket_Parse_Address(char const * text, uint32_t & address);
+
+
+// The address that reaches every machine on the local network. Its bytes are the same
+// whichever order the host stores an integer in.
+inline constexpr uint32_t SOCKET_BROADCAST_ADDRESS = 0xFFFFFFFFu;
+
+
 class SocketClass
 {
 	public:
