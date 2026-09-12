@@ -23,6 +23,11 @@ struct HostCursor;
 Point2D Host_Pointer_Position(void);
 void Host_Move_Pointer(Point2D const & position);
 
+// Whether the position above is a pointer resting where it was left. A touch leaves nothing
+// behind when the finger lifts, so hover-driven code has to stop reading it; a host with a
+// mouse answers true throughout.
+bool Host_Pointer_Is_Hovering(void);
+
 // Raises or lowers the pointer's display count, as ShowCursor does; the pointer shows while
 // the count is not negative. Returns the count after the change.
 int Host_Show_Pointer(bool show);

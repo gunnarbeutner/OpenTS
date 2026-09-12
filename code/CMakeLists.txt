@@ -162,7 +162,7 @@ set(OPENTS_COMPILE_OPTIONS
     -fshort-wchar
 
     # C++ exception handling, matching /EHsc.
-    $<$<BOOL:${OPENTS_MACOS}>:-fexceptions>
+    $<$<BOOL:${APPLE}>:-fexceptions>
 
     # The inherited declarations carry MSVC's __declspec, which clang parses only when asked.
     -fdeclspec
@@ -382,6 +382,11 @@ if(OPENTS_MACOS)
     find_package(SDL2 CONFIG REQUIRED)
     target_compile_definitions(OpenTS PRIVATE OPENTS_SDL_HOST)
     target_link_libraries(OpenTS PRIVATE SDL2::SDL2)
+endif()
+
+# The same host under UIKit, packaged as an app with the game data inside it.
+if(OPENTS_IOS)
+    include("${CMAKE_SOURCE_DIR}/ios/Bundle.cmake")
 endif()
 
 if (WIN32)

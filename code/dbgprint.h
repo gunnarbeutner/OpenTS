@@ -27,7 +27,9 @@
 #endif
 
 // Borrows the arguments for this call; repeated initialization leaves the first setup intact.
-void Debug_Init(int argc, char const * const * argv);
+// A directory overrides the default folder beside the executable, which a read-only bundle has
+// no room for.
+void Debug_Init(int argc, char const * const * argv, char const * directory = nullptr);
 void Debug_Init_Console(void);
 void Debug_Console_Hold(void);
 char const * Debug_Log_File_Name(void);

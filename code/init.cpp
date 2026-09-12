@@ -2411,9 +2411,13 @@ static bool Init_Secondary_Mixfiles(void)
 
 	DebugStringNoPrefix(" SCORES.MIX");
 
+	// An iOS app ships only the archives the game cannot start without, so its music and its
+	// movies may both be absent.
+#if !defined(OPENTS_IOS_HOST)
 	if (ScoresMix == NULL) {
 		return(false);
 	}
+#endif
 
 	if (CCFileClass("SCORES01.MIX").Is_Available()) {
 		Scores01Mix = Register_Mixfile("SCORES01.MIX", PREFETCH_STREAMED);
@@ -2445,9 +2449,11 @@ static bool Init_Secondary_Mixfiles(void)
 		}
 	}
 
+#if !defined(OPENTS_IOS_HOST)
 	if (MoviesMix == NULL) {
 		return(false);
 	}
+#endif
 
 	return(true);
 }

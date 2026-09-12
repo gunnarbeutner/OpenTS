@@ -35,3 +35,5 @@ Supply the required game data in `Run/`, then launch the built executable and na
 ```
 
 The game's text is compiled into the executable. OpenTS neither builds nor reads `Language.dll`, so a localized or edited copy beside the executable or in the game data directory has no effect.
+
+The experimental native iOS app bundles local game data and starts the first GDI campaign mission by default. The repository's `docs/IOS-PORT.md` owns simulator build and installation instructions, storage locations, and port limitations.
