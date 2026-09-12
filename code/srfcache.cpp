@@ -23,18 +23,46 @@
 #include <algorithm>
 #include <cstdint>
 #include <new>
+#include <vector>
 
 
 /*
  * Layout of a Windows .BMP file image in memory: the file header immediately
  * followed by the info header and palette. Packed to 2 to match the on-disk
- * layout (BITMAPFILEHEADER is 14 bytes).
+ * layout (the file header is 14 bytes).
  */
 #pragma pack(push, 2)
+struct BMPFileHeader
+{
+	std::uint16_t Type;
+	std::uint32_t Size;
+	std::uint16_t Reserved1;
+	std::uint16_t Reserved2;
+	std::uint32_t OffBits;
+};
+
+struct BMPInfoHeader
+{
+	std::uint32_t Size;
+	std::int32_t Width;
+	std::int32_t Height;
+	std::uint16_t Planes;
+	std::uint16_t BitCount;
+	std::uint32_t Compression;
+	std::uint32_t SizeImage;
+	std::int32_t XPelsPerMeter;
+	std::int32_t YPelsPerMeter;
+	std::uint32_t ClrUsed;
+	std::uint32_t ClrImportant;
+};
+
 struct MSBitmap
 {
-	BITMAPFILEHEADER filehead;
-	BITMAPINFO info;
+	BMPFileHeader filehead;
+	BMPInfoHeader info;
+
+	// The palette begins here, four bytes to an entry: blue, green, red, and one unused.
+	unsigned char colors[4];
 };
 static_assert(sizeof(MSBitmap) == 58, "the file header, info header and one colour occupy 58 bytes on disk");
 #pragma pack(pop)
@@ -141,14 +169,13 @@ bool SurfaceCacheClass::CacheBMP(char const * name, void * bitmap, int bytes, in
 {
 	unsigned char *bitmap_palette_data;
 	unsigned char *bitmap_data;
-	BITMAPFILEHEADER filehead;
-	BITMAPINFO *bitmap_info_header;
+	BMPFileHeader filehead;
 	int palette_bytes;
 	int bitmap_width;
 	int surface_width;
 	BSurface *surface;
 	unsigned short *surface_data;
-	BITMAPINFOHEADER header;
+	BMPInfoHeader header;
 
 	/*
 	 * The 16-bit palette scratch buffer doubles as the storage for the old
@@ -165,35 +192,22 @@ bool SurfaceCacheClass::CacheBMP(char const * name, void * bitmap, int bytes, in
 	 * follows the info header.
 	 */
 	filehead = ((MSBitmap *)bitmap)->filehead;
-	BITMAPINFO *info = &((MSBitmap *)bitmap)->info;
-	header = info->bmiHeader;
-	bitmap_palette_data = (unsigned char *)info->bmiColors;
+	header = ((MSBitmap *)bitmap)->info;
+	bitmap_palette_data = ((MSBitmap *)bitmap)->colors;
 
 	/*
-	 * Build a working copy of the info header with room for the palette
-	 * behind it, then copy the palette in.
+	 * Copy the palette out, into a table with room for all 256 entries the conversion reads.
 	 */
-	bitmap_info_header = (BITMAPINFO *)operator new(4 * (1 << header.biBitCount) + sizeof(BITMAPINFOHEADER));
-	bitmap_info_header->bmiHeader.biHeight = header.biHeight;
-	bitmap_info_header->bmiHeader.biSize = header.biSize;
-	bitmap_info_header->bmiHeader.biCompression = header.biCompression;
-	bitmap_info_header->bmiHeader.biPlanes = header.biPlanes;
-	bitmap_info_header->bmiHeader.biYPelsPerMeter = header.biYPelsPerMeter;
-	bitmap_info_header->bmiHeader.biWidth = header.biWidth;
-	bitmap_info_header->bmiHeader.biSizeImage = header.biSizeImage;
-	bitmap_info_header->bmiHeader.biClrUsed = header.biClrUsed;
-	bitmap_info_header->bmiHeader.biBitCount = header.biBitCount;
-	palette_bytes = header.biClrUsed * sizeof(RGBQUAD);
-	bitmap_info_header->bmiHeader.biClrImportant = header.biClrImportant;
-	bitmap_info_header->bmiHeader.biXPelsPerMeter = header.biXPelsPerMeter;
-	memcpy(bitmap_info_header->bmiColors, bitmap_palette_data, palette_bytes);
+	std::vector<unsigned char> colors(std::max<std::size_t>((std::size_t)4 << header.BitCount, 4 * 256), 0);
+	palette_bytes = (int)header.ClrUsed * 4;
+	memcpy(colors.data(), bitmap_palette_data, palette_bytes);
 	bitmap_palette_data += palette_bytes;
 
 	/*
-	**	Convert the palette (RGBQUAD entries, stored blue-green-red-reserved)
+	**	Convert the palette (entries stored blue-green-red-reserved)
 	**	into a table of ready-made 16-bit pixels.
 	*/
-	unsigned char *p = (unsigned char *)bitmap_info_header->bmiColors;
+	unsigned char *p = colors.data();
 	for (int i = 0; i < 256; i++) {
 		int blue = *p++;
 		int green = *p++;
@@ -207,8 +221,8 @@ bool SurfaceCacheClass::CacheBMP(char const * name, void * bitmap, int bytes, in
 	/*
 	 * Copy the pixel data out of the file image.
 	 */
-	bitmap_data = (unsigned char *)operator new(filehead.bfSize - filehead.bfOffBits);
-	memcpy(bitmap_data, bitmap_palette_data, filehead.bfSize - filehead.bfOffBits);
+	bitmap_data = (unsigned char *)operator new(filehead.Size - filehead.OffBits);
+	memcpy(bitmap_data, bitmap_palette_data, filehead.Size - filehead.OffBits);
 
 	/*
 	 * Blit the bitmap into a new surface. BMP pixel data is stored bottom-up,
@@ -216,19 +230,19 @@ bool SurfaceCacheClass::CacheBMP(char const * name, void * bitmap, int bytes, in
 	 * is the width rounded down to a dword boundary plus four, which over-pads
 	 * widths that are already dword-aligned.
 	 */
-	surface = new BSurface(header.biWidth, header.biHeight, bpp);
+	surface = new BSurface(header.Width, header.Height, bpp);
 	surface_data = (unsigned short *)surface->Lock();
 	surface_width = surface->Stride() / 2;
-	bitmap_width = header.biWidth - (header.biWidth & 3) + 4;
+	bitmap_width = header.Width - (header.Width & 3) + 4;
 
-	if (header.biHeight > 0) {
+	if (header.Height > 0) {
 		int offset = 0;
 		int row_step = -bitmap_width;
-		int row_offset = bitmap_width * (header.biHeight - 1);
-		int row_count = header.biHeight;
+		int row_offset = bitmap_width * (header.Height - 1);
+		int row_count = header.Height;
 		do {
 			int x = 0;
-			if (header.biWidth > 0) {
+			if (header.Width > 0) {
 				do {
 					int source_index = row_offset + x;
 
@@ -238,7 +252,7 @@ bool SurfaceCacheClass::CacheBMP(char const * name, void * bitmap, int bytes, in
 						surface_data[offset + x] = bitmap_data[source_index];
 					}
 					x++;
-				} while (x < header.biWidth);
+				} while (x < header.Width);
 			}
 			row_offset += row_step;
 			offset += surface_width;
@@ -250,12 +264,11 @@ bool SurfaceCacheClass::CacheBMP(char const * name, void * bitmap, int bytes, in
 	 * An 8-bit surface keeps its palette in the cache entry.
 	 */
 	if (bpp == 1) {
-		memcpy(new_entry.palette, bitmap_info_header->bmiColors, sizeof(new_entry.palette));
+		memcpy(new_entry.palette, colors.data(), sizeof(new_entry.palette));
 	}
 	new_entry.surf = surface;
 
 	surface->Unlock();
-	operator delete(bitmap_info_header);
 	operator delete(bitmap_data);
 
 	Wstring key(name);

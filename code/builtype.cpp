@@ -982,7 +982,7 @@ void const * BuildingTypeClass::Get_Image_Data(void) const
 /// <param name="theater">The theater to fetch the art for.</param>
 void BuildingTypeClass::Fetch_Building_Normal_Image(TheaterType theater)
 {
-	char fullname[MAX_PATH];
+	char fullname[_MAX_PATH];
 	char buffer[64];
 
 	if (!IsDemandLoadBuildup) {
@@ -2080,7 +2080,7 @@ int BuildingTypeClass::Get_Max_Drain(DynamicVectorClass<BuildingTypeClass *> con
 /// none.</returns>
 void const * BuildingTypeClass::Get_Buildup_Data(void) const
 {
-	char fullname[MAX_PATH];
+	char fullname[_MAX_PATH];
 
 	if (BuildupData == NULL && IsDemandLoadBuildup) {
 		if (!BuildupFilename.empty()) {

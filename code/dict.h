@@ -86,7 +86,7 @@ Dictionary<K,V>::Dictionary(unsigned int (*hashFn)(K &key))
 	tableBits--;
 	size=1<<tableBits;
 	entries=0;
-	keepSize=FALSE;
+	keepSize=false;
 
 	table=(DNode<K,V> **)new DNode<K,V>* [size];
 	assert(table!=NULL);
@@ -121,7 +121,7 @@ void Dictionary<K,V>::clear(void)
 	}
 	entries=0;
 
-	while ((getSize()>(unsigned int)MIN_TABLE_SIZE)&&(keepSize==FALSE)) {
+	while ((getSize()>(unsigned int)MIN_TABLE_SIZE)&&(keepSize==false)) {
 		shrink();
 	}
 }
@@ -168,7 +168,7 @@ char Dictionary<K,V>::iterate(int &index,int &offset,V &value) const
 	DNode<K,V> *temp;
 
 	if ((index<0)||(index >= getSize()))
-		return(FALSE);
+		return(false);
 
 	temp=table[index];
 	while ((temp==NULL)&&((++index) < getSize()))
@@ -178,7 +178,7 @@ char Dictionary<K,V>::iterate(int &index,int &offset,V &value) const
 	}
 
 	if (temp==NULL)
-		return(FALSE);
+		return(false);
 
 	unsigned int i=0;
 	while ((temp!=NULL) && (i < offset))
@@ -188,7 +188,7 @@ char Dictionary<K,V>::iterate(int &index,int &offset,V &value) const
 	}
 
 	if (temp==NULL)
-		return(FALSE);
+		return(false);
 
 	value=temp->value;
 	if (temp->hashNext==NULL)
@@ -199,7 +199,7 @@ char Dictionary<K,V>::iterate(int &index,int &offset,V &value) const
 	else
 		offset++;
 
-	return(TRUE);
+	return(true);
 }
 
 template <class K,class V>
@@ -225,15 +225,15 @@ char Dictionary<K,V>::contains(K &key)
 	node=table[offset];
 
 	if (node==NULL)
-	{ return(FALSE); }
+	{ return(false); }
 
 	while (node!=NULL)
 	{
 		if ((node->key)==key)
-		{ return(TRUE); }
+		{ return(true); }
 		node=node->hashNext;
 	}
-	return(FALSE);
+	return(false);
 }
 
 template <class K,class V>
@@ -242,11 +242,11 @@ char Dictionary<K,V>::updateValue(K &key,V &value)
 	int retval;
 
 	retval=remove(key);
-	if (retval==FALSE)
-		return(FALSE);
+	if (retval==false)
+		return(false);
 
 	add(key,value);
-	return(TRUE);
+	return(true);
 }
 
 template <class K, class V>
@@ -292,7 +292,7 @@ char Dictionary<K,V>::add(K &key,V &value)
 	if (percent>= EXPAND_THRESHOLD )
 		expand();
 
-	return(TRUE);
+	return(true);
 }
 
 template <class K,class V>
@@ -303,7 +303,7 @@ char Dictionary<K,V>::remove(K &key,V &value)
 	float percent;
 
 	if (entries==0)
-		return(FALSE);
+		return(false);
 
 	percent=(float)(entries-1);
 	percent/=(float)getSize();
@@ -312,7 +312,7 @@ char Dictionary<K,V>::remove(K &key,V &value)
 	node=table[offset];
 
 	last=node;
-	if (node==NULL) return(FALSE);
+	if (node==NULL) return(false);
 
 	#ifdef KEY_MEM_OPS
 	if (0==memcmp(&(node->key),&key,sizeof(K)))
@@ -331,11 +331,11 @@ char Dictionary<K,V>::remove(K &key,V &value)
 		entries--;
 		if (percent <= SHRINK_THRESHOLD)
 			shrink();
-		return(TRUE);
+		return(true);
 	}
 	node=node->hashNext;
 
-	char retval=FALSE;
+	char retval=false;
 
 	while (node!=NULL)
 	{
@@ -353,7 +353,7 @@ char Dictionary<K,V>::remove(K &key,V &value)
 			last->hashNext=node->hashNext;
 			entries--;
 			delete(node);
-			retval=TRUE;
+			retval=true;
 			break;
 		}
 		last=node;
@@ -380,7 +380,7 @@ char Dictionary<K,V>::removeAny(K &key,V &value)
 	float percent;
 
 	if (entries==0)
-		return(FALSE);
+		return(false);
 
 	percent=(entries-1);
 	percent/=(float)getSize();
@@ -395,7 +395,7 @@ char Dictionary<K,V>::removeAny(K &key,V &value)
 		}
 
 	if (offset==-1)
-		return(FALSE);
+		return(false);
 
 	node=table[offset];
 	last=node;
@@ -417,7 +417,7 @@ char Dictionary<K,V>::removeAny(K &key,V &value)
 	entries--;
 	if (percent <= SHRINK_THRESHOLD)
 		shrink();
-	return(TRUE);
+	return(true);
 }
 
 template <class K,class V>
@@ -443,14 +443,14 @@ char Dictionary<K,V>::getPointer(K &key, V **valptr)
 	DNode<K,V> *node;
 
 	if (entries==0)
-		return(FALSE);
+		return(false);
 
 	offset=keyHash(key);
 
 	node=table[offset];
 
 	if (node==NULL)
-		return(FALSE);
+		return(false);
 
 	#ifdef KEY_MEM_OPS
 		while ((node!=NULL)&&(memcmp(&(node->key),&key,sizeof(K))))
@@ -460,11 +460,11 @@ char Dictionary<K,V>::getPointer(K &key, V **valptr)
 	{ node=node->hashNext; }
 
 	if (node==NULL)
-	{ return(FALSE); }
+	{ return(false); }
 
 	*valptr=&(node->value);
 
-	return(TRUE);
+	return(true);
 }
 
 template <class K,class V>
@@ -475,7 +475,7 @@ void Dictionary<K,V>::shrink(void)
 	unsigned int offset;
 	DNode<K,V> **oldtable,*temp,*first,*next;
 
-	if ((size<=(unsigned int)MIN_TABLE_SIZE)||(keepSize==TRUE))
+	if ((size<=(unsigned int)MIN_TABLE_SIZE)||(keepSize==true))
 		return;
 
 	oldtable=table;
@@ -511,7 +511,7 @@ void Dictionary<K,V>::expand(void)
 	unsigned int offset;
 	DNode<K,V> **oldtable,*temp,*first,*next;
 
-	if (keepSize==TRUE)
+	if (keepSize==true)
 		return;
 
 	oldtable=table;

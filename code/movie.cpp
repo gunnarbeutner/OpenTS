@@ -52,7 +52,7 @@ void Rebuild_Interpolated_Palette(unsigned char * interpal)
 
 
 unsigned char 	* InterpolatedPalettes[100];
-BOOL				PalettesRead;
+bool				PalettesRead;
 unsigned			PaletteCounter;
 
 
