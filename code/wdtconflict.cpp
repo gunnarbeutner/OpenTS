@@ -156,13 +156,13 @@ void Conflict::Init_Game_Options(void)
 	));
 
 	WDTGameOptionList.Add(new FlagGameOption(WDT_BITMASK_BASES,
-		TXT_WDT_BASES_OFF, FALSE,
-		TXT_WDT_BASES_ON, TRUE
+		TXT_WDT_BASES_OFF, false,
+		TXT_WDT_BASES_ON, true
 	));
 
 	WDTGameOptionList.Add(new FlagGameOption(WDT_BITMASK_SHORT_GAME,
-		TXT_WDT_SHORT_GAME_OFF, TRUE,
-		TXT_WDT_SHORT_GAME_ON, FALSE
+		TXT_WDT_SHORT_GAME_OFF, true,
+		TXT_WDT_SHORT_GAME_ON, false
 	));
 
 	WDTGameOptionList.Add(new ValueGameOption<unsigned short>(WDT_BITMASK_CREDITS,
@@ -172,13 +172,13 @@ void Conflict::Init_Game_Options(void)
 	));
 
 	WDTGameOptionList.Add(new FlagGameOption(WDT_BITMASK_FOG_OF_WAR,
-		TXT_NONE, TRUE,
-		TXT_WDT_FOG_OF_WAR, FALSE
+		TXT_NONE, true,
+		TXT_WDT_FOG_OF_WAR, false
 	));
 
 	WDTGameOptionList.Add(new FlagGameOption(WDT_BITMASK_HARV_TRUCE,
-		TXT_NONE, TRUE,
-		TXT_WDT_HARV_TRUCE, FALSE
+		TXT_NONE, true,
+		TXT_WDT_HARV_TRUCE, false
 	));
 
 	WDTGameOptionList.Add(new ValueGameOption<unsigned char>(WDT_BITMASK_UNIT_COUNT,
@@ -188,13 +188,13 @@ void Conflict::Init_Game_Options(void)
 	));
 
 	WDTGameOptionList.Add(new FlagGameOption(WDT_BITMASK_MCV_REDEPLOY,
-		TXT_WDT_MCV_REDEPLOY_OFF, TRUE,
-		TXT_WDT_MCV_REDEPLOY_ON, FALSE
+		TXT_WDT_MCV_REDEPLOY_OFF, true,
+		TXT_WDT_MCV_REDEPLOY_ON, false
 	));
 
 	WDTGameOptionList.Add(new FlagGameOption(WDT_BITMASK_CRATES,
-		TXT_WDT_GOODIES_OFF, TRUE,
-		TXT_WDT_GOODIES_ON, TRUE
+		TXT_WDT_GOODIES_OFF, true,
+		TXT_WDT_GOODIES_ON, true
 	));
 
 	WDTGameOptionList.Add(new RangedGameOptionT<char>(WDT_BITMASK_TIBERIUM,
@@ -204,13 +204,13 @@ void Conflict::Init_Game_Options(void)
 	));
 
 	WDTGameOptionList.Add(new FlagGameOption(WDT_BITMASK_VEINHOLES,
-		TXT_NONE, TRUE,
-		TXT_WDT_VEINHOLES, TRUE
+		TXT_NONE, true,
+		TXT_WDT_VEINHOLES, true
 	));
 
 	WDTGameOptionList.Add(new FlagGameOption(WDT_BITMASK_CREATURES,
-		TXT_NONE, TRUE,
-		TXT_WDT_LIFEFORMS, TRUE
+		TXT_NONE, true,
+		TXT_WDT_LIFEFORMS, true
 	));
 
 	WDTGameOptionList.Add(new RangedGameOptionT<char>(WDT_BITMASK_TIBERIUM_FIELDS,
@@ -224,8 +224,8 @@ void Conflict::Init_Game_Options(void)
 	));
 
 	WDTGameOptionList.Add(new FlagGameOption(WDT_BITMASK_BRIDGE_DESTROY,
-		TXT_WDT_BRIDGE_DESTROY_OFF, TRUE,
-		TXT_WDT_BRIDGE_DESTROY_ON, FALSE
+		TXT_WDT_BRIDGE_DESTROY_OFF, true,
+		TXT_WDT_BRIDGE_DESTROY_ON, false
 	));
 
 	WDTGameOptionList.Add(new RangedGameOptionT<char>(WDT_BITMASK_ACCESSABILITY,
@@ -241,8 +241,8 @@ void Conflict::Init_Game_Options(void)
 	));
 
 	WDTGameOptionList.Add(new FlagGameOption(WDT_BITMASK_TIME_TRANSITIONS,
-		TXT_NONE, TRUE,
-		TXT_WDT_TIME_OF_DAY_TRANSITIONS, TRUE
+		TXT_NONE, true,
+		TXT_WDT_TIME_OF_DAY_TRANSITIONS, true
 	));
 
 	WDTGameOptionList.Add(new RangedGameOptionT<char>(WDT_BITMASK_HILLS,
