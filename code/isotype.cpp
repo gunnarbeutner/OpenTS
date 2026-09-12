@@ -1787,7 +1787,7 @@ void IsometricTileTypeClass::Draw_Tile(LightConvertClass * drawer, int subtile, 
 			const IsoTileSet * set = (const IsoTileSet *)tileptr->Get_Image_Data();
 			if (set != NULL) {
 				if (use_z) {
-					IsoDrawData.BaseDepth = (unsigned short)(LOWORD(DepthBuffer->Bounds.Y) + LOWORD(DepthBuffer->ScrollOffset) - y - LOWORD(set->Height));
+					IsoDrawData.BaseDepth = (unsigned short)((unsigned short)DepthBuffer->Bounds.Y + (unsigned short)DepthBuffer->ScrollOffset - y - (unsigned short)set->Height);
 					IsoDrawData.BaseDepth += height * set->Height / -2;
 				}
 
