@@ -637,7 +637,7 @@ test('The scenario file is kept from its first read and carried in the save', ()
 
 	assert.match(
 		functionBody(scenario, 'void ScenarioClass::Serialize(SaveStreamClass & stream)'),
-		/stream\.Serialize\(SourceFile\);/,
+		/SERIALIZE\(stream, SourceFile\);/,
 		'the held file travels with the scenario record',
 	);
 

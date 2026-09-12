@@ -1013,11 +1013,17 @@ restart:
 			}
 
 			if ((selection == SEL_NONE) && !Debug_ForceScenario) {
+				// The browser page offers its native build only while this is set, so it
+				// brackets the menu alone and not the intro or the screens it leads to.
+				Main_Menu_Is_Up = true;
+
 				if (Get_New_Menu()->MixFile) {
 					selection = New_Main_Menu();
 				} else {
 					selection = Main_Menu(ATTRACT_MODE_TIMEOUT);
 				}
+
+				Main_Menu_Is_Up = false;
 			}
 
 			if (Debug_ForceScenario) {
@@ -1623,6 +1629,11 @@ bool Parse_Command_Line(int argc, char * argv[])
 
 		if (stricmp(string, "-NOBRIEFING") == 0) {
 			Debug_Skip_Briefing = true;
+			continue;
+		}
+
+		if (stricmp(string, "-PGOCAPTURE") == 0) {
+			Debug_PGO_Capture = true;
 			continue;
 		}
 
