@@ -670,6 +670,8 @@ bool UI_Point_Is_Over_Document(int clientx, int clienty)
 
 	return(_Context->GetElementAtPoint(Rml::Vector2f((float)x, (float)y)) != nullptr);
 }
+
+
 bool UI_Text_Field_Has_Focus(void)
 {
 	if (!_Initialized || _Context == nullptr) {

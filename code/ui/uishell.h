@@ -55,7 +55,9 @@ bool UI_Handle_Mouse_Wheel(float delta, unsigned int modifiers);
 bool UI_Handle_Key(UIKeyType key, bool down, unsigned int modifiers);
 bool UI_Handle_Text(char const * utf8);
 
+// Whether a document's element is under the point, which then takes a press as it lands.
 bool UI_Point_Is_Over_Document(int clientx, int clienty);
+
 // Whether the element holding the focus takes typed text.
 bool UI_Text_Field_Has_Focus(void);
 
