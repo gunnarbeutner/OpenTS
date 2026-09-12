@@ -119,5 +119,5 @@ std::vector<PlatformFileInfoType> Platform_Find_Files(char const * pattern);
 bool Platform_Name_Order(std::string const & left, std::string const & right);
 
 // What the host calls the file the engine names: the path itself on Windows, and the
-// resolved spelling elsewhere.
+// resolved spelling, in the persistent directory where that applies, elsewhere.
 std::string Platform_Host_Path(char const * path);
