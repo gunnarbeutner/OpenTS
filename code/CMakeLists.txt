@@ -45,8 +45,16 @@ foreach(f ${OPENTS_RAW})
         set(EXCLUDED TRUE)
     endif()
 
-    # The Windows UI input adapter is fed by the window procedure; another target's host
-    # feeds the shell itself.
+    # The VQA player's own audio handler goes with the player it is written against.
+    if(OPENTS_MOVIE_FORMAT STREQUAL "MP4" AND f MATCHES "/(audiomovie|unvqtblc|vqa)\\.cpp$")
+        set(EXCLUDED TRUE)
+    endif()
+
+    if(OPENTS_MOVIE_FORMAT STREQUAL "VQA" AND f MATCHES "/mp4\\.cpp$")
+        set(EXCLUDED TRUE)
+    endif()
+
+    # The two UI input adapters are each one target's. The page posts into the keyboard
     # buffer rather than dispatching a window message, so the hook it offers is what feeds
     # the shell there, and the window procedure's hook is what feeds it on Windows.
     if(OPENTS_POSIX AND f MATCHES "/ui/uiwin32\\.cpp$")
@@ -232,9 +240,11 @@ target_compile_options(OpenTS PRIVATE ${OPENTS_COMPILE_OPTIONS})
 # Subprojects
 # ---------------------------------------------------------
 #
-# The VQA player carries its own project, and hands OpenTS its include path along with the
-# library, so the movie code is reached the same way from anywhere in the solution.
-add_subdirectory(vqalib)
+# The VQA player carries its own project, and hands a VQA build its include path along with
+# the library. An MP4 build has neither the player sources nor the library in its target.
+if(OPENTS_MOVIE_FORMAT STREQUAL "VQA")
+    add_subdirectory(vqalib)
+endif()
 
 message(STATUS "${PROJECT_NAME}: Adding include paths...")
 target_include_directories(OpenTS PRIVATE
@@ -355,6 +365,10 @@ target_compile_definitions(OpenTS PRIVATE
     NOMINMAX
 )
 
+if(OPENTS_MOVIE_FORMAT STREQUAL "MP4")
+    target_compile_definitions(OpenTS PRIVATE OPENTS_MP4_MOVIES)
+endif()
+
 #
 # ---------------------------------------------------------
 # Windows libraries and linker options
@@ -373,8 +387,6 @@ message(STATUS "${PROJECT_NAME}: Applying linker options...")
 #
 
 target_link_libraries(OpenTS PRIVATE
-    VQALib
-
     $<TARGET_FILE:bgfx>
     $<TARGET_FILE:bx>
     $<TARGET_FILE:bimg_decode>
@@ -389,6 +401,9 @@ target_link_libraries(OpenTS PRIVATE
 set_target_properties(bimg_decode PROPERTIES EXCLUDE_FROM_ALL FALSE)
 add_dependencies(OpenTS bimg_decode)
 
+if(OPENTS_MOVIE_FORMAT STREQUAL "VQA")
+    target_link_libraries(OpenTS PRIVATE VQALib)
+endif()
 
 # The renderer is linked as a file rather than a target, so the frameworks bgfx reaches on
 # macOS are named here.
@@ -464,6 +479,19 @@ if (EMSCRIPTEN)
     #   NONE      Nothing carries a wait. The engine keeps the thread, the page stops
     #             answering at the first one, and says so once. This is the destination:
     #             what a build configured here fails at is the work still to do.
+    #
+    set(OPENTS_WASM_SUSPEND "JSPI" CACHE STRING
+        "How the engine's not-yet-flattened waits are carried: JSPI, ASYNCIFY, or NONE")
+    set_property(CACHE OPENTS_WASM_SUSPEND PROPERTY STRINGS JSPI ASYNCIFY NONE)
+
+    if(NOT OPENTS_WASM_SUSPEND MATCHES "^(JSPI|ASYNCIFY|NONE)$")
+        message(FATAL_ERROR "OPENTS_WASM_SUSPEND must be JSPI, ASYNCIFY, or NONE")
+    endif()
+
+    if(OPENTS_MOVIE_FORMAT STREQUAL "MP4" AND OPENTS_WASM_SUSPEND STREQUAL "NONE")
+        message(FATAL_ERROR "OPENTS_MOVIE_FORMAT=MP4 requires JSPI or ASYNCIFY")
+    endif()
+
     #
     # Both mechanisms give the engine the same thing -- a wait that hands the thread back and
     # comes back to where it left -- and the source asks for no more than that, so one

@@ -17,8 +17,13 @@ typedef void * (*MovieSurfaceLockCallback) (void);
 typedef bool (*MovieSurfaceUnlockCallback) (void);
 typedef void (*MovieSurfaceDrawCallback) (void);
 
+#if defined(OPENTS_MP4_MOVIES)
+class MP4Class;
+using MovieClass = MP4Class;
+#else
 class VQAClass;
 using MovieClass = VQAClass;
+#endif
 class Surface;
 struct VQHandle;
 template<class T> class DynamicVectorClass;
