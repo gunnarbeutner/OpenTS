@@ -155,6 +155,158 @@ bool LoadOptionsClass::Delete(void)
 }
 
 
+#if defined(__EMSCRIPTEN__)
+
+#include <emscripten/emscripten.h>
+
+#include "dbgprint.h"
+#include "gamedirs.h"
+#include "rawfile.h"
+
+#include <cstdlib>
+#include <cstdio>
+#include <string>
+
+// Hands a save to the browser as a download. The bytes are read here rather than passed
+// through the heap: /save is an ordinary directory to the runtime's filesystem, and the
+// page can read it directly.
+EM_JS(void, Save_Transfer_Export, (char const * name, void const * data, int size), {
+	try {
+		var leaf = UTF8ToString(name);
+		var bytes = HEAPU8.slice(data, data + size);
+		var url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+		var link = document.createElement('a');
+
+		link.href = url;
+		link.download = leaf;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+	} catch (error) {
+		err('OpenTS: save export failed: ' + (error && (error.message || error.name) || error));
+	}
+});
+
+
+// Asks for a file and holds it until the engine takes it. Suspends while the picker is up,
+// which is why the click has to reach here with the browser still willing to open one; the
+// engine drains a click within the frame it arrived in, so the gesture is still live.
+//
+// A save begins with the four bytes OTSV and carries a 32 byte header. Anything else is
+// refused here rather than left for the engine to fail on later.
+//
+// Nothing is written from the page: where a save belongs is the engine's business, and it
+// resolves that through the same file layer it saves with.
+EM_ASYNC_JS(int, Save_Transfer_Pick, (void), {
+	var OTSV = [0x4F, 0x54, 0x53, 0x56];
+
+	try {
+		globalThis.__opentsIncoming = null;
+
+		var input = document.createElement('input');
+		input.type = 'file';
+		input.accept = '.SAV,.sav';
+		input.style.position = 'fixed';
+		input.style.left = '-1000px';
+		document.body.appendChild(input);
+
+		var chosen = await new Promise(function (resolve) {
+			input.addEventListener('change', function () { resolve(input.files[0] || null); });
+			input.addEventListener('cancel', function () { resolve(null); });
+			input.click();
+		});
+
+		document.body.removeChild(input);
+		if (!chosen) return 0;
+
+		var bytes = new Uint8Array(await chosen.arrayBuffer());
+
+		if (bytes.length < 32) return -1;
+
+		for (var index = 0; index < OTSV.length; index++) {
+			if (bytes[index] !== OTSV[index]) return -1;
+		}
+
+		globalThis.__opentsIncoming = bytes;
+		return bytes.length;
+	} catch (error) {
+		err('OpenTS: save import failed: ' + (error && (error.message || error.name) || error));
+		return -1;
+	}
+});
+
+
+EM_JS(void, Save_Transfer_Take, (void * buffer), {
+	var bytes = globalThis.__opentsIncoming;
+
+	if (bytes) HEAPU8.set(bytes, buffer);
+	globalThis.__opentsIncoming = null;
+});
+
+
+// Hands the named save to the page as a download.
+static void Export_Saved_Game(char const * filename)
+{
+	// Read through the engine's own file layer rather than by naming a path for the page
+	// to open: saves sit in a folder of their own beneath the persistent directory, and
+	// the platform file layer resolves that, and its casing, already.
+	// The name is held in a local: RawFileClass's constructor keeps the pointer it is given
+	// rather than copying it, so a temporary string would leave it dangling and every open
+	// would fail on a path that reads correctly.
+	std::string const path = Saved_Game_Name(filename);
+	RawFileClass file(path.c_str());
+
+	if (file.Is_Available()) {
+		int const size = file.Size();
+		void * const bytes = (size > 0) ? std::malloc((std::size_t)size) : NULL;
+
+		if (bytes != NULL && file.Open(BufferIOFileClass::READ)) {
+			int const got = file.Read(bytes, size);
+			file.Close();
+
+			if (got > 0) Save_Transfer_Export(filename, bytes, got);
+		}
+
+		std::free(bytes);
+	}
+}
+
+
+// Takes a save from the page into the save folder, and says whether one was written.
+static bool Import_Saved_Game(LoadOptionsClass & options)
+{
+	int const size = Save_Transfer_Pick();
+
+	if (size <= 0) return(false);
+
+	void * const bytes = std::malloc((std::size_t)size);
+
+	if (bytes == NULL) return(false);
+
+	Save_Transfer_Take(bytes);
+
+	bool written = false;
+
+	// Named the way the engine names a save of its own, so the dialog lists what arrives
+	// and an import never lands on a name already in use.
+	char leaf[256];
+	options.Pick_Filename(leaf);
+
+	std::string const path = Saved_Game_Name(leaf);
+	RawFileClass file(path.c_str());
+
+	if (file.Open(BufferIOFileClass::WRITE)) {
+		written = (file.Write(bytes, size) == size);
+		file.Close();
+	}
+
+	std::free(bytes);
+	return(written);
+}
+
+
+#endif	// __EMSCRIPTEN__
 
 
 /// <summary>
@@ -199,6 +351,10 @@ bool LoadOptionsClass::Dialog(void)
 	request.ScanLimit = Scan_Limit();
 	request.Saved_Game_Exists = Saved_Game_Exists;
 	request.Save_Confirmation = [this](void) { return(Save_Confirmation()); };
+#if defined(__EMSCRIPTEN__)
+	request.Export = Export_Saved_Game;
+	request.Import = [this](void) { return(Import_Saved_Game(*this)); };
+#endif
 
 	// A screen that could not be shown did nothing, as a dialog that could not be created did.
 	int const state = UI_Mission_Files_Screen(request);
@@ -234,6 +390,16 @@ void LoadOptionsClass::Pick_Filename(char *name)
 /// Should the load option be offered to the player?
 /// </summary>
 /// <returns>bool; Is the load dialog worth opening?</returns>
+bool LoadOptionsClass::Offer_Load(void)
+{
+#if defined(__EMSCRIPTEN__)
+	// The dialog is the only way a save reaches the browser's storage, so it has to open
+	// before there is anything in it. Its own load button stays disabled until then.
+	return(true);
+#else
+	return(Files_Present());
+#endif
+}
 
 
 bool LoadOptionsClass::Files_Present(void)

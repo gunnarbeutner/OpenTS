@@ -34,6 +34,10 @@ struct UIMissionFilesRequest
 
 	bool (*Saved_Game_Exists)(char const * name) = nullptr;
 	std::function<int(void)> Save_Confirmation;
+
+	// The browser build's download and upload of a save. Empty where there is no page.
+	std::function<void(char const * filename)> Export;
+	std::function<bool(void)> Import;
 };
 
 

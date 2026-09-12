@@ -106,6 +106,11 @@
 
 		#accept { left: 256dp; }
 		#cancel { left: 345dp; }
+
+		/* The browser build's two buttons, to the left of the accept button an eighth of a
+		   button apart. */
+		#import { left: 172dp; }
+		#export { left: 88dp; }
 	</style>
 </head>
 <body>
@@ -119,6 +124,12 @@
 				data-event-click="act('select', it_index)" data-event-dblclick="act('choose')"><span
 				class="name">{{row.Description}}</span><span class="date">{{row.Date}}</span><span
 				class="time">{{row.Time}}</span></p>
+		</div>
+
+		<div data-if="Transfer">
+			<button id="export" data-attrif-disabled="!ExportEnabled" data-event-click="act('export')">Export</button>
+			<button id="import"
+				data-event-click="act('import')">Import</button>
 		</div>
 
 		<button id="accept" data-attrif-disabled="!AcceptEnabled" data-event-click="act('accept')">Load</button>

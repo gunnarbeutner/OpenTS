@@ -124,6 +124,11 @@
 
 		#accept { left: 261dp; }
 		#cancel { left: 345dp; }
+
+		/* The browser build's two buttons, to the left of the accept button an eighth of a
+		   button apart. */
+		#import { left: 177dp; }
+		#export { left: 93dp; }
 	</style>
 </head>
 <body>
@@ -141,6 +146,12 @@
 
 		<input id="description" type="text" class="text" maxlength="79"
 			data-event-change="act('text')"/>
+
+		<div data-if="Transfer">
+			<button id="export" data-attrif-disabled="!ExportEnabled" data-event-click="act('export')">Export</button>
+			<button id="import"
+				data-event-click="act('import')">Import</button>
+		</div>
 
 		<button id="accept" data-attrif-disabled="!AcceptEnabled" data-event-click="act('accept')">Save</button>
 		<button id="cancel"
