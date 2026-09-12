@@ -5,7 +5,7 @@ opents_add_test(LogStress
     NAME logstress
     SOURCES logstress.cpp
     ENGINE
-        dbgprint.cpp
+        ${OPENTS_LOGGER_SOURCES}
     INCLUDES ${OPENTS_GENERATED_DIR}
     DEFINITIONS WIN32 _WINDOWS _MBCS NOMINMAX
     STAMP

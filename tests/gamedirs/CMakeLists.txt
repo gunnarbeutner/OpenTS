@@ -10,7 +10,7 @@ opents_add_test(GameDirs
         cdfile.cpp
         bfiofile.cpp
         rawfile.cpp
-        dbgprint.cpp
+        ${OPENTS_LOGGER_SOURCES}
         ini.cpp
         utf8.cpp
         b64pipe.cpp

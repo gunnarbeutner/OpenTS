@@ -37,6 +37,7 @@
 
 int WestwoodOnline_PortNumber = 1234;
 
+#include "netsocket.h"
 #include "always.h"
 
 #include "addon.h"
@@ -54,6 +55,7 @@ int WestwoodOnline_PortNumber = 1234;
 #include "misc.h"
 #include "netshare.h"
 #include "packet.h"
+#include "platform/process.h"
 #include "session.h"
 #include "stats.h"
 #include "stimer.h"
@@ -400,14 +402,6 @@ void Send_Statistics_Packet(void)
 	stats.Add_Field (FIELD_CPU_TYPE, (char)CPUType);
 
 	/*
-	**	Memory
-	*/
-	MEMORYSTATUS	mem_info;
-	mem_info.dwLength=sizeof(mem_info);
-	GlobalMemoryStatus(&mem_info);
-	stats.Add_Field (FIELD_MEMORY, (int)mem_info.dwTotalPhys);
-
-	/*
 	**	Game speed setting.
 	*/
 	stats.Add_Field (FIELD_SPEED_SETTING, (char)Options.GameSpeed);
@@ -419,19 +413,20 @@ void Send_Statistics_Packet(void)
 	snprintf(version, sizeof(version), "V%s", VerNum.Version_Name() );
 	stats.Add_Field (FIELD_GAME_VERSION, (char*)version);
 
-	char path_to_exe[280];
-	FILETIME write_time;		//File time is 64 bits
+	FileTimeType write_time;
 
-	GetModuleFileName (ProgramInstance, path_to_exe, sizeof(path_to_exe));
+	std::string const path_to_exe = Executable_Path();
+	RawFileClass file;
+	file.Set_Name(path_to_exe.c_str());
+	file.Open();
 
-	// The packet carries each half byte-swapped with the low half still leading.
-	WIN32_FILE_ATTRIBUTE_DATA attributes;
-
-	if (GetFileAttributesEx (path_to_exe, GetFileExInfoStandard, &attributes)) {
-		write_time = attributes.ftLastWriteTime;
-		write_time.dwLowDateTime = htonl (write_time.dwLowDateTime);
-		write_time.dwHighDateTime = htonl (write_time.dwHighDateTime);
-		stats.Add_Field (FIELD_GAME_BUILD_DATE, (void*)&write_time, sizeof (write_time));
+	// Sent as the two halves of a FILETIME, low first, each in network order.
+	if (file.Get_File_Handle().Modified_Time(write_time)) {
+		std::uint32_t const stamp[2] = {
+			Socket_Network_Long(write_time.Low()),
+			Socket_Network_Long(write_time.High()),
+		};
+		stats.Add_Field (FIELD_GAME_BUILD_DATE, (void*)stamp, sizeof (stamp));
 	}
 
 	/*
