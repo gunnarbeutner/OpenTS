@@ -158,6 +158,7 @@
 #include "ovrlight.h"
 #include "partsys.h"
 #include "pcx.h"
+#include "pgoprofile.h"
 #include "platform/file.h"
 #include "platform/filetime.h"
 #include "queue.h"
@@ -370,6 +371,12 @@ int Init_Game(int , char * [])
 	**	handler to function.
 	*/
 	DebugString("Bootstrap.....");
+
+#if defined(__EMSCRIPTEN__)
+	// A matching profile is the whole prefetch decision, so it is applied ahead
+	// of every archive registration.
+	PGO_Profile_Apply(PGO_PROFILE_MENU);
+#endif
 
 	if (!Bootstrap()) {
 		DebugStringNoPrefix(" ..Failed to bootstrap!\n");
