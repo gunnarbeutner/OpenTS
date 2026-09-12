@@ -21,7 +21,12 @@
 #include "phase.h"
 #include "surface.h"
 #include "theme.h"
+#if defined(OPENTS_MP4_MOVIES)
+#include "manifest.h"
+#include "mp4.h"
+#else
 #include "vqa.h"
+#endif
 #include "vqoption.h"
 #include "win.h"
 #include "video.h"
@@ -106,8 +111,13 @@ void Movie_Blit_To_Screen(void)
 
 namespace {
 
+// A manifest movie has no archive entry, so its manifest entry stands in for
+// the archive check.
 bool Movie_Available(char const * filename)
 {
+#if defined(OPENTS_MP4_MOVIES)
+	if (!Manifest_Find_Movie(filename).empty()) return(true);
+#endif
 	return(CCFileClass(filename).Is_Available());
 }
 
@@ -147,6 +157,7 @@ VQHandle * Movie_Create(char const * name, Surface * surface, Rect rect1, Rect r
 			Set_Option(OPTION_NO_AUDIO);
 		}
 
+#if !defined(OPENTS_MP4_MOVIES)
 		if (Get_Option(OPTION_PLAY_FROM_MIXFILE)) {
 			flags |= VQACF_PLAY_FROM_MIXFILE;
 		}
@@ -154,6 +165,7 @@ VQHandle * Movie_Create(char const * name, Surface * surface, Rect rect1, Rect r
 		if (MovieInt1 == 1) {
 			flags |= VQACF_2;
 		}
+#endif
 
 		if (fullscreen == true) {
 			callback = Movie_Blit_To_Screen;
@@ -193,6 +205,14 @@ VQHandle * Movie_Create(char const * name, Surface * surface, Rect rect1, Rect r
 
 		handle->InitialRect = Intersect(rect1, irect1);
 		handle->StretchRect = Intersect(rect2, irect2);
+
+#if defined(OPENTS_MP4_MOVIES)
+		// Only a fullscreen movie has nothing drawn over it, so only it gets
+		// the true color layer.
+		if (fullscreen == true) {
+			handle->VQA->Set_Fullscreen_Video();
+		}
+#endif
 
 		if (cmode == 1 || cmode == 4) {
 			handle->VQA->Set_Primary_Color_Mode(DSurface::Get_Primary_Color_Mode());
@@ -340,9 +360,15 @@ bool Movie_Is_Playing(void)
 
 void Movie_Set_Pause_On_Focus_Loss(VQHandle * handle, bool pause)
 {
+#if !defined(OPENTS_MP4_MOVIES)
 	if (handle != NULL && handle->VQA != NULL) {
 		handle->VQA->Set_Pause_On_Focus_Loss(pause);
 	}
+#else
+	// A media element keeps its own time, and the page decides what a hidden tab does.
+	(void)handle;
+	(void)pause;
+#endif
 }
 
 

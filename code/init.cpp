@@ -2530,6 +2530,15 @@ static bool Init_Secondary_Mixfiles(void)
 		}
 	}
 
+	if (MoviesMix == NULL) {
+#if defined(OPENTS_MP4_MOVIES)
+		if (Movie_Is_Available("WWLOGO")) {
+			return(true);
+		}
+#endif
+		return(false);
+	}
+
 	return(true);
 }
 

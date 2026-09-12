@@ -8,6 +8,7 @@ extensions:
 role: video
 related:
   - { type: format, id: mix }
+  - { type: format, id: mp4-video }
 source_files:
   - code/audio/audiomovie.cpp
   - code/movie.cpp
@@ -21,7 +22,7 @@ source_files:
   - code/vqalib/vqafile.h
 ---
 
-A `.VQA` is an IFF container holding vector-quantized video and, optionally, an audio track. A build configured with `OPENTS_MOVIE_FORMAT=VQA` plays one either full screen, interrupting the mission, or a frame at a time inside the radar pane while the mission carries on. This is the default and the only movie format available to the supported Win32 target.
+A `.VQA` is an IFF container holding vector-quantized video and, optionally, an audio track. A build configured with `OPENTS_MOVIE_FORMAT=VQA` plays one either full screen, interrupting the mission, or a frame at a time inside the radar pane while the mission carries on. This is the default and the only movie format available to the supported Win32 target. [MP4 video](/formats/mp4-video/) is the WebAssembly alternative.
 
 ## Registering a movie
 
