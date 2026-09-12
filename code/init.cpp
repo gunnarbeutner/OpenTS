@@ -154,6 +154,8 @@
 #include "ownrdraw.h"
 #include "partsys.h"
 #include "pcx.h"
+#include "platform/file.h"
+#include "platform/filetime.h"
 #include "queue.h"
 #include "ramfile.h"
 #include "revent.h"

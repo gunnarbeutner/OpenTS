@@ -2,12 +2,10 @@
  *                                O P E N  T S
  *******************************************************************************
  * SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright 2020, 2025 Electronic Arts Inc.
- * Copyright 2020-2022 Vanilla Conquer contributors
+ * Copyright 2025 Electronic Arts Inc.
  * Copyright 2026 OpenTS contributors
  *
- * Contains material derived from Electronic Arts source code and from Vanilla
- * Conquer (https://github.com/TheAssemblyArmada/Vanilla-Conquer).
+ * Contains material derived from Electronic Arts source code.
  * Modified by OpenTS contributors, 2026.
  * EA's GPLv3 Section 7 additional terms and supplemental warranty
  * disclaimers apply; see LICENSE.md.
@@ -53,23 +51,13 @@
 
 #include "rawfile.h"
 
-#include "file.h"
+#include "platform/filetime.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-
-#ifndef _WIN32
-#include <ctime>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <utime.h>
-#define _unlink         unlink
-#else
-#include <io.h>
-#include <windows.h>
-#endif
 
 
 /***********************************************************************************************
@@ -91,9 +79,10 @@
 RawFileClass::~RawFileClass(void)
 {
 	Close();
-	if (Filename) {
+	if (Allocated && Filename) {
 		free((char *)Filename);
 		((char *&)Filename) = 0;
+		Allocated = false;
 	}
 }
 
@@ -147,13 +136,11 @@ RawFileClass::RawFileClass(char const * filename) :
 	Rights(0),
 	BiasStart(0),
 	BiasLength(-1),
-	Handle(nullptr),
-	Filename(nullptr),
+	Filename(filename),
 	Date(0),
 	Time(0),
-	LastAccessType(0)
+	Allocated(false)
 {
-	Set_Name(filename);
 }
 
 
@@ -179,9 +166,10 @@ RawFileClass::RawFileClass(char const * filename) :
  *=============================================================================================*/
 char const * RawFileClass::Set_Name(char const * filename)
 {
-	if (Filename != NULL) {
+	if (Filename != NULL && Allocated) {
 		free((char *)Filename);
-		Filename = nullptr;
+		Filename = NULL;
+		Allocated = false;
 	}
 
 	if (filename == NULL) return(NULL);
@@ -193,20 +181,7 @@ char const * RawFileClass::Set_Name(char const * filename)
 		Error(ENOMEM, false, filename);
 		return(NULL);
 	}
-
-#ifndef _WIN32
-	/*
-	** If we ever save this file, make sure we save it in lowercase but
-	** if Resolve_File finds an actual file on-disk we use the real name
-	** instead.
-	*/
-	_strlwr(Filename);
-
-	/*
-	** Try to locate an existing file ignoring case, updates Filename
-	*/
-	Resolve_File(Filename);
-#endif
+	Allocated = true;
 
 	return(Filename);
 }
@@ -261,7 +236,6 @@ int RawFileClass::Open(char const * filename, int rights)
 int RawFileClass::Open(int rights)
 {
 	Close();
-	LastAccessType = 0;
 
 	/*
 	**	Verify that there is a filename associated with this file object. If not, then this is a
@@ -293,24 +267,20 @@ int RawFileClass::Open(int rights)
 			**	an invalid access code.
 			*/
 			default:
-				errno = EINVAL;
 				break;
 
 			case READ:
-				Handle = fopen(Filename, "rb");
+				Handle.Open(Filename, PlatformOpenType::READ);
 				break;
 
 			case WRITE:
-				Handle = fopen(Filename, "wb");
+				Handle.Open(Filename, PlatformOpenType::WRITE);
 				break;
 
 			case READ|WRITE:
-				// SKB 5/13/99 try "r+" first before using "w+" so that files
+				// SKB 5/13/99 use OPEN_ALWAYS instead of CREATE_ALWAYS so that files
 				//             does not get destroyed.
-				Handle = fopen(Filename, "r+b");
-				if (Handle == nullptr) {
-					Handle = fopen(Filename, "w+b");
-				}
+				Handle.Open(Filename, PlatformOpenType::UPDATE);
 				break;
 		}
 
@@ -326,10 +296,10 @@ int RawFileClass::Open(int rights)
 		**	For the case of the file cannot be found, then allow a retry. All other cases
 		**	are fatal.
 		*/
-		if (Handle == nullptr) {
+		if (!Handle.Is_Open()) {
 			return(false);
 
-//			Error(errno, false, Filename);
+//			Error(GetLastError(), false, Filename);
 //			continue;
 		}
 		break;
@@ -381,18 +351,19 @@ bool RawFileClass::Is_Available(int forced)
 	**	CD-ROM, this routine will return a failure condition. In all but the missing file
 	**	condition, go through the normal error recover channels.
 	*/
-	Handle = fopen(Filename, "r");
-	if (Handle == nullptr) {
-		return(false);
+	for (;;) {
+		if (!Handle.Open(Filename, PlatformOpenType::READ)) {
+			return(false);
+		}
+		break;
 	}
 
 	/*
 	**	Since the file could be opened, then close it and return that the file exists.
 	*/
-	if (fclose(Handle) != 0) {
-		Error(errno, false, Filename);
+	if (!Handle.Close()) {
+		Error(EIO, false, Filename);
 	}
-	Handle = nullptr;
 
 	return(true);
 }
@@ -424,20 +395,9 @@ void RawFileClass::Close(void)
 		**	Try to close the file. If there was an error (who knows what that could be), then
 		**	call the error routine.
 		*/
-		if (fclose(Handle) != 0) {
-			Error(errno, false, Filename);
+		if (!Handle.Close()) {
+			Error(EIO, false, Filename);
 		}
-
-		/*
-		**	At this point the file must have been closed. Mark the file as empty and return.
-		*/
-		Handle = nullptr;
-
-		/*
-		**	Clear any positioning information incase class is reused to open another file.
-		*/
-		BiasStart = 0;
-		BiasLength = -1;
 	}
 }
 
@@ -493,26 +453,21 @@ int RawFileClass::Read(void * buffer, int size)
 		size = size < remainder ? size : remainder;
 	}
 
-	if (!opened && LastAccessType != 0 && LastAccessType != READ) {
-		if (fseek(Handle, ftell(Handle), SEEK_SET) < 0) {
-			Error(errno, false, Filename);
-			return(0);
-		}
-	}
-	LastAccessType = READ;
-
 	int total = 0;
 	while (size > 0) {
-		clearerr(Handle);
-		bytesread = fread(buffer, 1, size, Handle);
-		buffer = (char *)buffer + bytesread;
-		if (ferror(Handle)) {
+		std::uint32_t got = 0;
+		bool const ok = Handle.Read(buffer, (std::uint32_t)size, got);
+		bytesread = (int)got;
+
+		if (!ok) {
+			buffer = (char *)buffer + bytesread;
 			size -= bytesread;
 			total += bytesread;
-			Error(errno, true, Filename);
-			if (bytesread == 0) break;
+
+			Error(EIO, true, Filename);
 			continue;
 		}
+		buffer = (char *)buffer + bytesread;
 		size -= bytesread;
 		total += bytesread;
 		if (bytesread == 0) break;
@@ -563,19 +518,11 @@ int RawFileClass::Write(void const * buffer, int size)
 		opened = true;
 	}
 
-	if (!opened && LastAccessType != 0 && LastAccessType != WRITE) {
-		if (fseek(Handle, ftell(Handle), SEEK_SET) < 0) {
-			Error(errno, false, Filename);
-			return(0);
-		}
+	std::uint32_t put = 0;
+	if (!Handle.Write(buffer, (std::uint32_t)size, put)) {
+		Error(EIO, false, Filename);
 	}
-	LastAccessType = WRITE;
-
-	clearerr(Handle);
-	byteswritten = fwrite(buffer, 1, size, Handle);
-	if (ferror(Handle)) {
-		Error(errno, false, Filename);
-	}
+	byteswritten = (int)put;
 
 	/*
 	**	Fixup the bias length if necessary.
@@ -707,29 +654,14 @@ int RawFileClass::Size(void)
 	*/
 	if (Is_Open()) {
 
+		size = (int)Handle.Size();
+
 		/*
-		** With stdio we seek to end to obtain the length, then reset the position back.
+		**	If there was in internal error, then call the error function.
 		*/
-		clearerr(Handle);
-
-		int position = ftell(Handle);
-		if (position < 0) {
-			Error(errno, false, Filename);
-			return(0);
+		if (size == -1) {
+			Error(EIO, false, Filename);
 		}
-
-		if (fseek(Handle, 0, SEEK_END) < 0) {
-			Error(errno, false, Filename);
-			return(0);
-		}
-
-		size = ftell(Handle);
-
-		if (fseek(Handle, position, SEEK_SET) < 0) {
-			Error(errno, false, Filename);
-			return(0);
-		}
-		LastAccessType = 0;
 
 	} else {
 
@@ -839,8 +771,8 @@ int RawFileClass::Delete(void)
 			return(false);
 		}
 
-		if (_unlink(Filename) < 0) {
-			Error(errno, false, Filename);
+		if (!Platform_Remove_File(Filename)) {
+			Error(EIO, false, Filename);
 			return(false);
 		}
 		break;
@@ -871,45 +803,11 @@ int RawFileClass::Delete(void)
  *=============================================================================================*/
 unsigned int RawFileClass::Get_Date_Time(void)
 {
-#ifdef _WIN32
-	if (RawFileClass::Is_Open()) {
-		BY_HANDLE_FILE_INFORMATION info;
-		HANDLE osHandle = (HANDLE)_get_osfhandle(_fileno(Handle));
+	FileTimeType written;
 
-		if (osHandle != INVALID_HANDLE_VALUE &&
-		    GetFileInformationByHandle(osHandle, &info)) {
-			WORD dosdate;
-			WORD dostime;
-			FileTimeToDosDateTime(&info.ftLastWriteTime, &dosdate, &dostime);
-			return((dosdate << 16) | dostime);
-		}
+	if (Handle.Modified_Time(written)) {
+		return(Dos_Date_Time(written));
 	}
-#else
-	/*
-	**	DOS date/time format:
-	**	https://learn.microsoft.com/en-us/windows/win32/api/oleauto/nf-oleauto-dosdatetimetovarianttime
-	**
-	**	POSIX date/time format:
-	**	https://pubs.opengroup.org/onlinepubs/009696799/basedefs/time.h.html
-	*/
-	struct stat statbuf;
-
-	if (stat(Filename, &statbuf) == 0) {
-		struct tm *parsed_time = localtime(&statbuf.st_mtime);
-
-		if (parsed_time != NULL) {
-			Date = (((parsed_time->tm_year - 80) & ((1 << 7) - 1)) << 9) |
-			       (((parsed_time->tm_mon + 1)   & ((1 << 4) - 1)) << 5) |
-			       (parsed_time->tm_mday         & ((1 << 5) - 1));
-
-			Time = ((parsed_time->tm_hour        & ((1 << 5) - 1)) << 11) |
-			       ((parsed_time->tm_min         & ((1 << 6) - 1)) << 5)  |
-			       ((parsed_time->tm_sec >> 1)   & ((1 << 5) - 1));
-
-			return(Date << 16 | Time);
-		}
-	}
-#endif
 	return(0);
 }
 
@@ -931,52 +829,13 @@ unsigned int RawFileClass::Get_Date_Time(void)
  *=============================================================================================*/
 bool RawFileClass::Set_Date_Time(unsigned int datetime)
 {
-#ifdef _WIN32
 	if (RawFileClass::Is_Open()) {
-		BY_HANDLE_FILE_INFORMATION info;
-		HANDLE osHandle = (HANDLE)_get_osfhandle(_fileno(Handle));
+		FileTimeType stamp;
 
-		if (osHandle != INVALID_HANDLE_VALUE &&
-		    GetFileInformationByHandle(osHandle, &info)) {
-			FILETIME filetime;
-			if (DosDateTimeToFileTime((WORD)(datetime >> 16), (WORD)(datetime & 0x0FFFF), &filetime)) {
-				return(SetFileTime(osHandle, &info.ftCreationTime, &filetime, &filetime) != 0);
-			}
+		if (File_Time_From_Dos_Date_Time(datetime, stamp)) {
+			return(Handle.Set_Modified_Time(stamp));
 		}
 	}
-#else
-	/*
-	**	DOS date/time format:
-	**	https://learn.microsoft.com/en-us/windows/win32/api/oleauto/nf-oleauto-dosdatetimetovarianttime
-	**
-	**	POSIX date/time format:
-	**	https://pubs.opengroup.org/onlinepubs/009696799/basedefs/time.h.html
-	*/
-	struct tm input_time = { 0 };
-	time_t unix_time;
-
-	Date = (datetime >> 16) & 0xFFFF;
-	Time =  datetime        & 0xFFFF;
-
-	input_time.tm_year = ((Date >> 9) & ((1 << 7) - 1)) + 80;
-	input_time.tm_mon  = ((Date >> 5) & ((1 << 4) - 1)) - 1;
-	input_time.tm_mday = Date         & ((1 << 5) - 1);
-
-	input_time.tm_hour = (Time >> 11) & ((1 << 5) - 1);
-	input_time.tm_min  = (Time >> 5)  & ((1 << 6) - 1);
-	input_time.tm_sec  = (Time        & ((1 << 5) - 1)) << 1;
-
-	input_time.tm_isdst = -1;
-
-	unix_time = mktime(&input_time);
-	if (unix_time >= 0) {
-		struct utimbuf buf = { 0 };
-		buf.actime  = unix_time;
-		buf.modtime = unix_time;
-
-		return(utime(Filename, &buf) == 0);
-	}
-#endif
 	return(false);
 }
 
@@ -1052,26 +911,19 @@ int RawFileClass::Raw_Seek(int pos, int dir)
 	*/
 	if (!Is_Open()) {
 		Error(EBADF, false, Filename);
-	} else {
-
-		clearerr(Handle);
-
-		/*
-		**	If pos == 0 and dir == SEEK_CUR, fseek should basically do nothing.
-		**	However, some very bad implementations (like the Nintendo DS's libfat)
-		**	just goes back to the beginning of the file and iterate it until it
-		**	finds the current position, which is awful.  So instead of doing that,
-		**	guard this case so that sequential ::Read's do not take too much time.
-		*/
-		if (!(pos == 0 && dir == SEEK_CUR)) {
-			if (fseek(Handle, pos, dir) < 0) {
-				Error(errno, false, Filename);
-			}
-			LastAccessType = 0;
-		}
-
-		pos = ftell(Handle);
+		return(0);
 	}
+
+	std::int64_t const position = Handle.Seek(pos, dir);
+
+	/*
+	**	If there was an error in the seek, then bail with an error condition.
+	*/
+	if (position < 0) {
+		Error(EIO, false, Filename);
+		return(0);
+	}
+	pos = (int)position;
 
 	/*
 	**	Return with the new position of the file. This will range between zero and the number of

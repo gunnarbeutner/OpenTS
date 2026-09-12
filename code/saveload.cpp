@@ -93,6 +93,7 @@
 #include "particle.h"
 #include "partsys.h"
 #include "persist.h"
+#include "platform/filetime.h"
 #include "psystype.h"
 #include "ptype.h"
 #include "revent.h"
@@ -1041,11 +1042,10 @@ bool Save_Game(const char *file_name, char const * descr)
 	info.Set_Executable_Name("SUN.EXE");
 	info.Set_Game_Type(Session.Type);
 
-	FILETIME FileTime;
-	GetSystemTimeAsFileTime(&FileTime);
-	info.Set_Last_Time(FileTime);
-	info.Set_Start_Time(FileTime);
-	info.Set_Play_Time(FileTime);
+	FileTimeType const now = File_Time_Now();
+	info.Set_Last_Time(now);
+	info.Set_Start_Time(now);
+	info.Set_Play_Time(now);
 
 	SaveFileClass file;
 	info.Save(file);

@@ -10,9 +10,6 @@ opents_add_test(DeploymentConfig
         _deploymentconfig.cpp
         bfiofile.cpp
         rawfile.cpp
-        file.cpp
-        file_posix.cpp
-        file_win.cpp
         dbgprint.cpp
         ini.cpp
         utf8.cpp
@@ -32,6 +29,7 @@ opents_add_test(DeploymentConfig
         xstraw.cpp
     INCLUDES ${OPENTS_GENERATED_DIR}
     DEFINITIONS WIN32 _WINDOWS _MBCS NOMINMAX
+    LIBRARIES OpenTSPlatform
     UTF8
     STAMP
 )

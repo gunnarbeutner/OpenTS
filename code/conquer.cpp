@@ -104,6 +104,7 @@
 #include "netdlg2.h"
 #include "netglobal.h"
 #include "netshare.h"
+#include "platform/disk.h"
 #include "progress.h"
 #include "queue.h"
 #include "rules.h"
@@ -1201,7 +1202,7 @@ TechnoTypeClass const * Fetch_Techno_Type(RTTIType type, int id)
  *=========================================================================*/
 unsigned int Disk_Space_Available(void)
 {
-	ULARGE_INTEGER freebytecount;		// Free bytes on disk available to caller (caller may not have access to entire disk).
+	std::uint64_t freebytecount = 0;		// Free bytes on disk available to caller (caller may not have access to entire disk).
 
 	DebugString("Checking available disk space\n");
 
@@ -1210,16 +1211,14 @@ unsigned int Disk_Space_Available(void)
 	 * directory once a player has one of their own.
 	 */
 	std::string const user_directory = User_File_Write_Name("");
-	LPCTSTR const disk = user_directory.empty() ? NULL : user_directory.c_str();
 
-	if (!GetDiskFreeSpaceEx(disk, &freebytecount, NULL, NULL)) {
-		DWORD const error = GetLastError();
-		DebugString("GetDiskFreeSpaceEx failed with error code %d - %s\n", error, Last_Error_Text(error));
+	if (!Platform_Free_Space(user_directory.c_str(), freebytecount)) {
+		DebugString("The free disk space could not be determined\n");
 		return(0);
 	}
 
 	// The kilobyte count saturates rather than wrapping.
-	unsigned int const diskspace = (unsigned int)std::min<ULONGLONG>(freebytecount.QuadPart / 1024, UINT_MAX);
+	unsigned int const diskspace = (unsigned int)std::min<std::uint64_t>(freebytecount / 1024, UINT_MAX);
 	DebugString("Free disk space is %u Mb\n", diskspace / 1024);
 	return(diskspace);
 }

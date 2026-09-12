@@ -10,6 +10,7 @@
 #include "savefile.h"
 
 #include "crc.h"
+#include "platform/file.h"
 
 #include <lzo/lzo1x.h>
 
@@ -81,13 +82,13 @@ bool Reserve(std::vector<unsigned char> & buffer, std::size_t length)
 }
 
 
-bool Read_Range(HANDLE file, void * into, std::uint32_t length)
+bool Read_Range(PlatformFileClass & file, void * into, std::uint32_t length)
 {
 	unsigned char * cursor = (unsigned char *)into;
 
 	while (length > 0) {
-		DWORD got = 0;
-		if (!ReadFile(file, cursor, length, &got, nullptr) || got == 0) return(false);
+		std::uint32_t got = 0;
+		if (!file.Read(cursor, length, got) || got == 0) return(false);
 		cursor += got;
 		length -= got;
 	}
@@ -96,14 +97,14 @@ bool Read_Range(HANDLE file, void * into, std::uint32_t length)
 }
 
 
-bool Write_Range(HANDLE file, void const * data, std::uint32_t length)
+bool Write_Range(PlatformFileClass & file, void const * data, std::uint32_t length)
 {
 	unsigned char const * cursor = (unsigned char const *)data;
 
 	while (length > 0) {
-		DWORD const block = (length > 0x100000) ? 0x100000 : length;
-		DWORD written = 0;
-		if (!WriteFile(file, cursor, block, &written, nullptr) || written != block) return(false);
+		std::uint32_t const block = (length > 0x100000) ? 0x100000 : length;
+		std::uint32_t written = 0;
+		if (!file.Write(cursor, block, written) || written != block) return(false);
 		cursor += written;
 		length -= written;
 	}
@@ -242,11 +243,11 @@ void SaveFileClass::Set_Int(int id, int value)
 }
 
 
-void SaveFileClass::Set_Time(int id, FILETIME const & time)
+void SaveFileClass::Set_Time(int id, FileTimeType time)
 {
 	unsigned char bytes[8];
-	Put_U32(bytes, time.dwLowDateTime);
-	Put_U32(bytes + 4, time.dwHighDateTime);
+	Put_U32(bytes, time.Low());
+	Put_U32(bytes + 4, time.High());
 	Set(id, FIELD_TIME, bytes, sizeof(bytes));
 }
 
@@ -285,14 +286,13 @@ bool SaveFileClass::Get_Int(int id, int * value) const
 }
 
 
-bool SaveFileClass::Get_Time(int id, FILETIME * time) const
+bool SaveFileClass::Get_Time(int id, FileTimeType * time) const
 {
 	FieldType const * const field = Find(id, FIELD_TIME);
 	if (field == nullptr || field->Bytes.size() != 8) return(false);
 
 	if (time != nullptr) {
-		time->dwLowDateTime = Get_U32(field->Bytes.data());
-		time->dwHighDateTime = Get_U32(field->Bytes.data() + 4);
+		*time = FileTimeType::From_Parts(Get_U32(field->Bytes.data()), Get_U32(field->Bytes.data() + 4));
 	}
 	return(true);
 }
@@ -400,20 +400,19 @@ SaveFileClass::ResultType SaveFileClass::Write(char const * path) const
 
 	std::string const temporary = std::string(path) + ".tmp";
 
-	HANDLE const file = CreateFileA(temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
-		FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (file == INVALID_HANDLE_VALUE) return(RESULT_WRITE_FAILED);
+	PlatformFileClass file;
+	if (!file.Open(temporary.c_str(), PlatformOpenType::WRITE)) return(RESULT_WRITE_FAILED);
 
 	bool ok = Write_Range(file, header, HEADER_SIZE);
 	if (ok && !table.empty()) ok = Write_Range(file, table.data(), (std::uint32_t)table.size());
 	if (ok && payload_length > 0) ok = Write_Range(file, payload, payload_length);
-	if (ok) ok = (FlushFileBuffers(file) != FALSE);
-	if (!CloseHandle(file)) ok = false;
+	if (ok) ok = file.Flush();
+	if (!file.Close()) ok = false;
 
-	if (ok) ok = (MoveFileExA(temporary.c_str(), path, MOVEFILE_REPLACE_EXISTING) != FALSE);
+	if (ok) ok = Platform_Replace_File(temporary.c_str(), path);
 
 	if (!ok) {
-		DeleteFileA(temporary.c_str());
+		Platform_Remove_File(temporary.c_str());
 		return(RESULT_WRITE_FAILED);
 	}
 
@@ -428,31 +427,30 @@ SaveFileClass::ResultType SaveFileClass::Read(char const * path)
 
 	if (path == nullptr) return(RESULT_MISSING);
 
-	HANDLE const file = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (file == INVALID_HANDLE_VALUE) return(RESULT_MISSING);
+	PlatformFileClass file;
+	if (!file.Open(path, PlatformOpenType::READ)) return(RESULT_MISSING);
 
 	// The header is judged before anything the file's size could ask for is allocated.
 	unsigned char head[HEADER_SIZE];
-	DWORD got = 0;
-	bool const ok = (ReadFile(file, head, HEADER_SIZE, &got, nullptr) != FALSE);
+	std::uint32_t got = 0;
+	bool const ok = file.Read(head, HEADER_SIZE, got);
 
 	HeaderType header;
 	ResultType result = ok ? Parse_Header(head, got, header) : RESULT_CORRUPT;
 
 	std::vector<unsigned char> image;
 	if (result == RESULT_OK) {
-		DWORD const size = GetFileSize(file, nullptr);
-		if (size == INVALID_FILE_SIZE || size != header.ContentOffset + header.StoredLength) {
+		std::int64_t const size = file.Size();
+		if (size != (std::int64_t)header.ContentOffset + header.StoredLength) {
 			result = RESULT_CORRUPT;
-		} else if (!Reserve(image, size)) {
+		} else if (!Reserve(image, (std::size_t)size)) {
 			result = RESULT_NO_MEMORY;
 		} else {
 			memcpy(image.data(), head, HEADER_SIZE);
-			if (!Read_Range(file, image.data() + HEADER_SIZE, size - HEADER_SIZE)) result = RESULT_CORRUPT;
+			if (!Read_Range(file, image.data() + HEADER_SIZE, (std::uint32_t)size - HEADER_SIZE)) result = RESULT_CORRUPT;
 		}
 	}
-	CloseHandle(file);
+	file.Close();
 	if (result != RESULT_OK) return(result);
 
 	if (Header_CRC(image.data(), image.data() + HEADER_SIZE, header.TableLength) != header.HeaderCRC) {
@@ -508,21 +506,20 @@ SaveFileClass::ResultType SaveFileClass::Read_Fields(char const * path)
 
 	if (path == nullptr) return(RESULT_MISSING);
 
-	HANDLE const file = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (file == INVALID_HANDLE_VALUE) return(RESULT_MISSING);
+	PlatformFileClass file;
+	if (!file.Open(path, PlatformOpenType::READ)) return(RESULT_MISSING);
 
 	unsigned char head[HEADER_SIZE];
-	DWORD got = 0;
-	bool ok = (ReadFile(file, head, HEADER_SIZE, &got, nullptr) != FALSE);
+	std::uint32_t got = 0;
+	bool ok = file.Read(head, HEADER_SIZE, got);
 
 	HeaderType header;
 	ResultType result = ok ? Parse_Header(head, got, header) : RESULT_CORRUPT;
 
 	std::vector<unsigned char> table;
 	if (result == RESULT_OK && header.TableLength > 0) {
-		DWORD const size = GetFileSize(file, nullptr);
-		if (size == INVALID_FILE_SIZE || header.TableLength > size - HEADER_SIZE) {
+		std::int64_t const size = file.Size();
+		if (size < 0 || header.TableLength > size - HEADER_SIZE) {
 			result = RESULT_CORRUPT;
 		} else if (!Reserve(table, header.TableLength)) {
 			result = RESULT_NO_MEMORY;
@@ -530,7 +527,7 @@ SaveFileClass::ResultType SaveFileClass::Read_Fields(char const * path)
 			if (!Read_Range(file, table.data(), header.TableLength)) result = RESULT_CORRUPT;
 		}
 	}
-	CloseHandle(file);
+	file.Close();
 
 	if (result != RESULT_OK) return(result);
 	if (Header_CRC(head, table.data(), (std::uint32_t)table.size()) != header.HeaderCRC) return(RESULT_CORRUPT);

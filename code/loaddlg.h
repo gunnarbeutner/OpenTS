@@ -34,6 +34,7 @@
 
 #include "house.hh"
 #include "opents_version.h"
+#include "platform/filetime.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -48,7 +49,7 @@ class FileEntryClass {
 		HousesType House;   // house
 		char PlayerName[64];
 		int Num;            // save file number (from the extension)
-		FILETIME DateTime;  // date/time stamp of file
+		FileTimeType DateTime;  // date/time stamp of file
 		bool Valid;         // Is the scenario valid?
 		GameType Type;
 
@@ -62,8 +63,6 @@ class FileEntryClass {
 			Descr[0] = '\0';
 			Filename[0] = '\0';
 			PlayerName[0] = '\0';
-			DateTime.dwHighDateTime = 0;
-			DateTime.dwLowDateTime = 0;
 		}
 };
 
@@ -105,7 +104,7 @@ class LoadOptionsClass
 		virtual bool Load_File(const char * file_name);
 		virtual bool Save_File(const char * file_name, const char * descr);
 		virtual bool Delete_File(const char * file_name);
-		virtual bool Read_File(FileEntryClass * entry, WIN32_FIND_DATAA * ff);
+		virtual bool Read_File(FileEntryClass * entry, PlatformFileInfoType const * ff);
 
 	protected:
 		/*
@@ -204,7 +203,7 @@ class MultiplayerLoadOptionsClass : public LoadOptionsClass
 		MultiplayerLoadOptionsClass(void);
 
 		virtual bool Load_File(const char * file_name);
-		virtual bool Read_File(FileEntryClass * entry, WIN32_FIND_DATAA * ff);
+		virtual bool Read_File(FileEntryClass * entry, PlatformFileInfoType const * ff);
 
 		char const * Picked_File(void) const {return(Picked);}
 
