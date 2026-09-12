@@ -13,8 +13,6 @@
 
 #pragma once
 
-#include "win.h"
-
 struct GlobalPacketType;
 class IPXAddressClass;
 

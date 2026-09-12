@@ -9,6 +9,8 @@
 
 #include "scenfile.h"
 
+#include "crtcompat.h"
+
 #include <cstring>
 #include <utility>
 

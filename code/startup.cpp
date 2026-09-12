@@ -164,6 +164,7 @@
 #include <io.h>
 #include <cfloat>
 #include <filesystem>
+#include <lzo/lzo1x.h>
 #include <string>
 #include <system_error>
 #include <vector>

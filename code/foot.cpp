@@ -140,7 +140,6 @@
 
 #include <algorithm>
 #include <cstring>
-#include <intrin.h>
 #include <iterator>
 
 

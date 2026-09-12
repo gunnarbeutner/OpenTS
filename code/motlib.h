@@ -11,8 +11,6 @@
 
 #include "matrix3d.h"
 
-#include <windows.h>
-
 class FileClass;
 
 
@@ -24,7 +22,7 @@ class MotionLibrary
 		~MotionLibrary();
 
 		void Clear();
-		BOOL Read_File(FileClass & file);
+		bool Read_File(FileClass & file);
 		void Scale(float scale);
 
 		bool Load_Failed() const { return(LoadFailed); }

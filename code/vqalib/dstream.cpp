@@ -45,7 +45,17 @@
 #include	"vqaplayp.h"
 #include	<stdio.h>
 #include	<fcntl.h>
+#include	<sys/stat.h>
+#if defined(_WIN32)
 #include	<io.h>
+#else
+#include	<unistd.h>
+#endif
+
+// Only the Windows runtime distinguishes text from binary reads.
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
 #include	<string.h>
 
 
@@ -119,7 +129,14 @@ intptr_t __cdecl Disk_VQA_Stream_Handler(VQAHandle *vqa, long action, void *buff
 			break;
 
 		case VQACMD_SIZE:
+#if defined(_WIN32)
 			*((unsigned int *)buffer) = filelength(fh);
+#else
+			{
+				struct stat info;
+				*((unsigned int *)buffer) = (fstat(fh, &info) == 0) ? (unsigned int)info.st_size : 0;
+			}
+#endif
 			error = 0;
 			break;
 

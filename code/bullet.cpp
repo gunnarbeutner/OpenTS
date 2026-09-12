@@ -91,7 +91,6 @@
 #include "weapon.h"
 
 #include <algorithm>
-#include <intrin.h>
 
 
 

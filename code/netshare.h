@@ -11,24 +11,35 @@
 
 #include "dict.h"
 #include "globals.h"
+#include "lobbymsg.h"
 #include "preview.h"
 #include "wstring.h"
 
+#include <cstdint>
+
 class HouseClass;
 
+// The buttons ODMessageBox offers. The values are those of the Windows message box styles.
+enum ODMessageBoxType
+{
+	OD_BOX_OK = 0x00,
+	OD_BOX_OK_CANCEL = 0x01,
+	OD_BOX_YES_NO = 0x04,
+};
+
 int ODMessageBox(const char *text, int type, bool (*callback)(void), bool large = false);
-INT_PTR CALLBACK ODMessageBox_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
+LobbyResult ODMessageBox_Proc(WSScreenHandle window, unsigned int message, LobbyWParam wparam, LobbyLParam lparam);
 
 bool Set_Scenario_Info_From_Index(int index);
 void Commit_Session_Specials(void);
 void PregameSetup(void);
-void Update_Network_Dialog_Preview(HWND win);
+void Update_Network_Dialog_Preview(WSScreenHandle win);
 void Receive_Random_Map_Preview(void);
 void Send_Preview_To_Guests(void);
 int CountAliveTeams(HouseClass * house);
 
 int RandomMapWaypointCount(int index);
-int Scenario_Dialog(HWND hWndParent);
+int Scenario_Dialog(WSScreenHandle hWndParent);
 
 unsigned int Wstring_Hash(Wstring & string);
 
@@ -45,29 +56,26 @@ void PumpGameopts(bool, bool = false);
 bool DecodePubGameopt(char * options, char * name);
 void SendPublicGameopts(char const * options);
 void SendPrivateGameopts(char const * player, char const * options);
-void DisplayGameopts(HWND window, BOOL initialize);
-
-void LBSaveSelections(HWND win, Dictionary<Wstring,bool> & lbdict);
-void LBRestoreSelections(HWND win, Dictionary<Wstring,bool> & lbdict);
+void DisplayGameopts(WSScreenHandle window, bool initialize);
 
 char * CalcRandomMapDigest(void);
 int CreateRandomMap(void);
 
-extern COLORREF PlayerColorTable[MAX_PLAYERS];
+extern std::uint32_t PlayerColorTable[MAX_PLAYERS];
 
 /*
  * These are the predefined colors that PMessagePrintf and SMessagePrintf display their
  * messages in.
  */
-extern const COLORREF ColorSystem;
-extern const COLORREF ColorUser;
-extern const COLORREF ColorPriv;
-extern const COLORREF ColorPrivAction;
-extern const COLORREF ColorAction;
-extern const COLORREF ColorOp;
-extern const COLORREF ColorPaged;
-extern const COLORREF ColorMe;
-extern const COLORREF ColorNoJoin;
+extern const std::uint32_t ColorSystem;
+extern const std::uint32_t ColorUser;
+extern const std::uint32_t ColorPriv;
+extern const std::uint32_t ColorPrivAction;
+extern const std::uint32_t ColorAction;
+extern const std::uint32_t ColorOp;
+extern const std::uint32_t ColorPaged;
+extern const std::uint32_t ColorMe;
+extern const std::uint32_t ColorNoJoin;
 
 
 extern MapPreviewClass *MultiplayerMapPreview;

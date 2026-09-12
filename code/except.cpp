@@ -64,7 +64,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <eh.h>
 #include <exception>
 
 #define MS_VC_THREAD_NAME_EXCEPTION			0x406D1388

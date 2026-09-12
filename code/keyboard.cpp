@@ -55,6 +55,7 @@
 #include "keyboard.h"
 
 #include "_xmouse.h"
+#include "hostwindow.h"
 #include "msgloop.h"
 #include "vidscale.h"
 
@@ -62,18 +63,6 @@
 
 
 #define	ARRAY_SIZE(x)		int(sizeof(x)/sizeof(x[0]))
-
-
-/// <summary>
-/// Halts the game for a waiting programmer.
-/// This routine is what the Scroll Lock key calls. It does nothing on its own -- the
-/// point of it is to be somewhere convenient to hang a breakpoint, so that the game can
-/// be stopped from the keyboard at an interesting moment.
-/// </summary>
-void Stop_Execution (void)
-{
-	//	__asm nop			// Is this line needed?
-}
 
 
 /***********************************************************************************************
@@ -93,7 +82,6 @@ WWKeyboardClass::WWKeyboardClass(void) :
 	Head(0),
 	Tail(0)
 {
-	memset(KeyState, '\0', sizeof(KeyState));
 }
 
 
@@ -227,18 +215,7 @@ bool WWKeyboardClass::Put_Key_Message(unsigned short vk_key, bool release)
 	**	would be incompatible with the dos version.
 	*/
 	if (!Is_Mouse_Key(vk_key)) {
-		if (((GetKeyState(VK_SHIFT) & 0x8000) != 0) /*||
-			((GetKeyState(VK_CAPITAL) & 0x0008) != 0) ||
-			((GetKeyState(VK_NUMLOCK) & 0x0008) != 0)*/) {
-
-			vk_key |= WWKEY_SHIFT_BIT;
-		}
-		if ((GetKeyState(VK_CONTROL) & 0x8000) != 0) {
-			vk_key |= WWKEY_CTRL_BIT;
-		}
-		if ((GetKeyState(VK_MENU) & 0x8000) != 0) {
-			vk_key |= WWKEY_ALT_BIT;
-		}
+		vk_key |= Host_Key_Modifiers();
 	}
 
 	if (release) {
@@ -310,57 +287,7 @@ int WWKeyboardClass::To_ASCII(unsigned short key)
 		return(0);
 	}
 
-	/*
-	**	Set the KeyState buffer to reflect the shift bits stored in the key value.
-	*/
-	if (key & WWKEY_SHIFT_BIT) {
-		KeyState[VK_SHIFT] = 0x80;
-	}
-	if (key & WWKEY_CTRL_BIT) {
-		KeyState[VK_CONTROL] = 0x80;
-	}
-	if (key & WWKEY_ALT_BIT) {
-		KeyState[VK_MENU] = 0x80;
-	}
-
-	/*
-	**	Ask windows to translate the key into a character.
-	*/
-	wchar_t buffer[4];
-	int result;
-//	int result = 1;
-	int scancode;
-//	int scancode = 0;
-
-	scancode = MapVirtualKey(key & 0xFF, 0);
-	result = ToUnicode((UINT)(key & 0xFF), (UINT)scancode, (PBYTE)KeyState, buffer, ARRAY_SIZE(buffer), 0);
-
-	/*
-	**	Restore the KeyState buffer back to pristine condition.
-	*/
-	if (key & WWKEY_SHIFT_BIT) {
-		KeyState[VK_SHIFT] = 0;
-	}
-	if (key & WWKEY_CTRL_BIT) {
-		KeyState[VK_CONTROL] = 0;
-	}
-	if (key & WWKEY_ALT_BIT) {
-		KeyState[VK_MENU] = 0;
-	}
-
-	if (result == 2 && IS_SURROGATE_PAIR(buffer[0], buffer[1])) {
-		return(0x10000 + ((buffer[0] - 0xD800) << 10) + (buffer[1] - 0xDC00));
-	}
-
-	/*
-	**	If Windows could not perform the translation as expected, then
-	**	return with a null character.
-	*/
-	if (result != 1) {
-		return(0);
-	}
-
-	return(buffer[0]);
+	return(Host_Key_To_Character(key));
 }
 
 
@@ -382,11 +309,7 @@ bool WWKeyboardClass::Down(unsigned short key)
 {
 	key &= 0xFF;
 
-	if ((key == VK_LBUTTON || key == VK_RBUTTON) && GetSystemMetrics(SM_SWAPBUTTON) == TRUE) {
-		key = (key != VK_LBUTTON) ? VK_LBUTTON : VK_RBUTTON;
-	}
-
-	return(GetAsyncKeyState(key) != 0);
+	return(Host_Key_Is_Down(key));
 }
 
 
@@ -584,182 +507,6 @@ void WWKeyboardClass::Clear(void)
 
 
 /***********************************************************************************************
- * WWKeyboardClass::Message_Handler -- Process a windows message as it relates to the keyboard *
- *                                                                                             *
- *    This routine will examine the Windows message specified. If the message relates to an    *
- *    event that the keyboard input system needs to process, then it will be processed         *
- *    accordingly.                                                                             *
- *                                                                                             *
- * INPUT:   window   -- Handle to the window receiving the message.                            *
- *                                                                                             *
- *          message  -- The message number of this event.                                      *
- *                                                                                             *
- *          wParam   -- The windows specific word parameter (meaning depends on message).      *
- *                                                                                             *
- *          lParam   -- The windows specific long word parameter (meaning is message dependant)*
- *                                                                                             *
- * OUTPUT:  bool; Was this keyboard message recognized and processed? A 'false' return value   *
- *                means that the message should be processed normally.                         *
- *                                                                                             *
- * WARNINGS:   none                                                                            *
- *                                                                                             *
- * HISTORY:                                                                                    *
- *   09/30/1996 JLB : Created.                                                                 *
- *=============================================================================================*/
-int WWKeyboardClass::Message_Handler(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	bool processed = false;
-
-	/*
-	 * The message router has already put mouse positions into frame coordinates, so
-	 * there is no screen round trip to make here; the position only needs holding
-	 * inside the frame.
-	 */
-	POINT point;
-	point.x = (short)LOWORD(lParam);
-	point.y = (short)HIWORD(lParam);
-	Clamp_To_Game(point);
-	LONG x = point.x;
-	LONG y = point.y;
-
-	/*
-	**	Examine the message to see if it is one that should be processed. Only keyboard and
-	**	pertinant mouse messages are processed.
-	*/
-	switch (message) {
-
-		/*
-		**	System key has been pressed. This is the normal keyboard event message.
-		*/
-		case WM_SYSKEYDOWN:
-		case WM_KEYDOWN:
-			if (wParam == VK_SCROLL) {
-				Stop_Execution();
-			/*
-			 * https://learn.microsoft.com/en-us/windows/win32/inputdev/wm-keydown
-			 * check the previous key-state flag. A value of 1 if the key is down before
-			 * the message is sent, or it is zero if the key is up.
-			 */
-			} else if (!(lParam & (1 << 30))) {
-				Put_Key_Message((unsigned short)wParam);
-			}
-			processed = true;
-			break;
-
-		/*
-		**	The key has been released. This is the normal key release message.
-		*/
-		case WM_SYSKEYUP:
-		case WM_KEYUP:
-			Put_Key_Message((unsigned short)wParam, true);
-			processed = true;
-			break;
-
-		/*
-		**	Press of the left mouse button.
-		*/
-		case WM_LBUTTONDOWN:
-			Put_Mouse_Message(VK_LBUTTON, x, y);
-			processed = true;
-			break;
-
-		/*
-		**	Release of the left mouse button.
-		*/
-		case WM_LBUTTONUP:
-			Put_Mouse_Message(VK_LBUTTON, x, y, true);
-			processed = true;
-			break;
-
-		/*
-		**	Double click of the left mouse button. Fake this into being
-		**	just a rapid click of the left button twice.
-		*/
-		case WM_LBUTTONDBLCLK:
-			Put_Mouse_Message(VK_LBUTTON, x, y);
-			Put_Mouse_Message(VK_LBUTTON, x, y, true);
-			//Put_Mouse_Message(VK_LBUTTON, x, y);
-			//Put_Mouse_Message(VK_LBUTTON, x, y, true);
-			processed = true;
-			break;
-
-		/*
-		**	Press of the middle mouse button.
-		*/
-		case WM_MBUTTONDOWN:
-			Put_Mouse_Message(VK_MBUTTON, x, y);
-			processed = true;
-			break;
-
-		/*
-		**	Release of the middle mouse button.
-		*/
-		case WM_MBUTTONUP:
-			Put_Mouse_Message(VK_MBUTTON, x, y, true);
-			processed = true;
-			break;
-
-		/*
-		**	Middle button double click gets translated into two
-		**	regular middle button clicks.
-		*/
-		case WM_MBUTTONDBLCLK:
-			Put_Mouse_Message(VK_MBUTTON, x, y);
-			Put_Mouse_Message(VK_MBUTTON, x, y, true);
-			//Put_Mouse_Message(VK_MBUTTON, x, y);
-			//Put_Mouse_Message(VK_MBUTTON, x, y, true);
-			processed = true;
-			break;
-
-		/*
-		**	Right mouse button press.
-		*/
-		case WM_RBUTTONDOWN:
-			Put_Mouse_Message(VK_RBUTTON, x, y);
-			processed = true;
-			break;
-
-		/*
-		**	Right mouse button release.
-		*/
-		case WM_RBUTTONUP:
-			Put_Mouse_Message(VK_RBUTTON, x, y, true);
-			processed = true;
-			break;
-
-		/*
-		**	Translate a double click of the right button
-		**	into being just two regular right button clicks.
-		*/
-		case WM_RBUTTONDBLCLK:
-			Put_Mouse_Message(VK_RBUTTON, x, y);
-			Put_Mouse_Message(VK_RBUTTON, x, y, true);
-			//Put_Mouse_Message(VK_RBUTTON, x, y);
-			//Put_Mouse_Message(VK_RBUTTON, x, y, true);
-			processed = true;
-			break;
-
-		/*
-		**	If the message is not pertinant to the keyboard system,
-		**	then do nothing.
-		*/
-		default:
-			break;
-	}
-
-	/*
-	**	If this message has been processed, then pass it on to the system
-	**	directly.
-	*/
-	if (processed) {
-		DefWindowProc(window, message, wParam, lParam);
-		return(true);
-	}
-	return(false);
-}
-
-
-/***********************************************************************************************
  * WWKeyboardClass::Available_Buffer_Room -- Fetch the quantity of free elements in the keyboa *
  *                                                                                             *
  *    This examines the keyboard buffer queue and determine how many elements are available    *
@@ -800,4 +547,24 @@ int WWKeyboardClass::Available_Buffer_Room(void) const
 int WWKeyboardClass::Noop(void) const
 {
 	return(0);
+}
+
+
+/// <summary>
+/// Records a key the host reported.
+/// </summary>
+/// <returns>bool; Was there room in the keyboard buffer for it?</returns>
+bool WWKeyboardClass::Post_Key_Event(unsigned short vk_key, bool release)
+{
+	return(Put_Key_Message(vk_key, release));
+}
+
+
+/// <summary>
+/// Records a mouse button the host reported, at a position in the frame.
+/// </summary>
+/// <returns>bool; Was there room in the keyboard buffer for it?</returns>
+bool WWKeyboardClass::Post_Mouse_Event(unsigned short vk_key, int x, int y, bool release)
+{
+	return(Put_Mouse_Message(vk_key, x, y, release));
 }

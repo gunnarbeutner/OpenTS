@@ -37,6 +37,8 @@
 
 #include "always.h"
 
+#include <windows.h>
+
 #include "egos.h"
 
 #include "_keyboar.h"
