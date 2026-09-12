@@ -207,7 +207,6 @@
 #include "scrnsel.hh"
 
 #include <algorithm>
-#include <conio.h>
 #include <ctime>
 #include <dos.h>
 #include <string>

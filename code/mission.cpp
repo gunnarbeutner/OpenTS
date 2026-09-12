@@ -59,8 +59,6 @@
 
 #include "bench.hh"
 
-#include <intrin.h>
-
 
 /***********************************************************************************************
  * MissionClass::MissionClass -- Default constructor for the mission object type.              *

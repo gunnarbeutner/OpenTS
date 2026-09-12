@@ -60,8 +60,9 @@ class WWKeyboardClass
 		int To_ASCII(unsigned short num);
 		bool Down(unsigned short key);
 
-		/* Define the main hook for the message processing loop.					*/
-		int Message_Handler(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+		// The host posts virtual keys, and mouse buttons at positions in the frame.
+		bool Post_Key_Event(unsigned short vk_key, bool release);
+		bool Post_Mouse_Event(unsigned short vk_key, int x, int y, bool release);
 
 		/* Define the public access variables which are used with the			*/
 		/*   Keyboard Class.																	*/
@@ -71,12 +72,6 @@ class WWKeyboardClass
 		Point2D MousePos;
 
 	private:
-
-		/*
-		**	This is a keyboard state array that is used to aid in translating
-		**	KN_ keys into KA_ keys.
-		*/
-		unsigned char KeyState[256];
 
 		/*
 		**	This is the circular keyboard holding buffer. It holds the VK key and

@@ -23,12 +23,14 @@
 #include "conquer.h"
 #include "data.h"
 #include "dbgprint.h"
+#include "dialogresult.h"
 #include "globals.h"
 #include "goptions.h"
 #include "houstype.h"
 #include "init.h"
 #include "ipxmgr.h"
 #include "language/language.h"
+#include "lobbymsg.h"
 #include "mapgen.h"
 #include "mplayer.h"
 #include "msgbox.h"
@@ -39,6 +41,7 @@
 #include "rules.h"
 #include "scenario.h"
 #include "sendfile.h"
+#include "platform/registry.h"
 #include "srfcache.h"
 #include "stimer.h"
 #include "timer.h"
@@ -745,13 +748,8 @@ static void Get_Serial_From_Registry(char * serial, char const * reg_key)
 	if (reg_key && strlen(reg_key) != 0) {
 		HKEY rKey;
 		char keyname[256];
-		strcpy(keyname, reg_key);
-		if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, keyname, 0, KEY_READ, &rKey) == ERROR_SUCCESS) {
-			DWORD type;
-			DWORD sizeOfBuffer = ENCRYPTION_STRING_LENGTH;
-			RegQueryValueEx(rKey, "Serial", NULL, &type, (BYTE *)serial, &sizeOfBuffer);
-			RegCloseKey(rKey);
-		}
+		UTF8::Copy(keyname, reg_key);
+		Platform_Read_Machine_Registry(keyname, "Serial", serial, ENCRYPTION_STRING_LENGTH);
 	}
 	serial[SERIAL_MAX-1] = 0;
 }

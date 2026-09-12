@@ -27,8 +27,8 @@ set_target_properties(VQALib PROPERTIES
 target_compile_options(VQALib PRIVATE ${OPENTS_COMPILE_OPTIONS})
 
 target_compile_definitions(VQALib PRIVATE
-    WIN32
-    _WINDOWS
+    $<$<BOOL:${WIN32}>:WIN32>
+    $<$<BOOL:${WIN32}>:_WINDOWS>
     NOMINMAX
 )
 

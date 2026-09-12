@@ -11,6 +11,7 @@
 
 #include "syncrec.h"
 
+
 class Random2Class;
 class AbstractClass;
 class ObjectClass;

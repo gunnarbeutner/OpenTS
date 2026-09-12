@@ -35,6 +35,8 @@
 
 #include "always.h"
 
+#include <windows.h>
+
 #include "data.h"
 
 #include "utf8.h"

@@ -11,6 +11,7 @@
 
 #include "dict.h"
 #include "globals.h"
+#include "lobbymsg.h"
 #include "preview.h"
 #include "wstring.h"
 
@@ -57,20 +58,20 @@ constexpr int RANDOM_MAP_DIGEST_SIZE = 12;
 void CalcRandomMapDigest(char * digest, int bufsize);
 int CreateRandomMap(void);
 
-extern COLORREF PlayerColorTable[MAX_PLAYERS];
+extern std::uint32_t PlayerColorTable[MAX_PLAYERS];
 
 /*
  * These are the predefined colors that PMessagePrintf displays its messages in.
  */
-extern const COLORREF ColorSystem;
-extern const COLORREF ColorUser;
-extern const COLORREF ColorPriv;
-extern const COLORREF ColorPrivAction;
-extern const COLORREF ColorAction;
-extern const COLORREF ColorOp;
-extern const COLORREF ColorPaged;
-extern const COLORREF ColorMe;
-extern const COLORREF ColorNoJoin;
+extern const std::uint32_t ColorSystem;
+extern const std::uint32_t ColorUser;
+extern const std::uint32_t ColorPriv;
+extern const std::uint32_t ColorPrivAction;
+extern const std::uint32_t ColorAction;
+extern const std::uint32_t ColorOp;
+extern const std::uint32_t ColorPaged;
+extern const std::uint32_t ColorMe;
+extern const std::uint32_t ColorNoJoin;
 
 
 extern MapPreviewClass *MultiplayerMapPreview;
