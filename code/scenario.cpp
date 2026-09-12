@@ -134,6 +134,10 @@
 #include "overtype.h"
 #include "partsys.h"
 #include "pcx.h"
+#include "pgoprofile.h"
+#if defined(__EMSCRIPTEN__)
+#include "platform/filehint.h"
+#endif
 #include "preview.h"
 #include "progress.h"
 #include "psystype.h"
@@ -690,6 +694,19 @@ bool Read_Scenario(char const * fname)
 
 	UTF8::Copy(name, fname);
 
+#if defined(__EMSCRIPTEN__)
+	// Applied as soon as the mission has a name, so the profile's hints are in
+	// flight while the loading screen shows.
+	PGO_Profile_Apply(PGO_PROFILE_FIRST_MISSION);
+
+	// A mission reads speech, theater and local data a piece at a time, which
+	// no profile can name in advance; hinting the archives whole avoids a stall
+	// per read.
+	if (!Debug_PGO_Capture) {
+		Platform_Hint_File("TIBSUN.MIX", BLOCK_HINT_SOON, 0, 0);
+		Platform_Hint_File("EXPAND01.MIX", BLOCK_HINT_SOON, 0, 0);
+	}
+#endif
 
 	Frame = 0;
 
