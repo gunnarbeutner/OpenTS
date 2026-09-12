@@ -37,6 +37,7 @@
 #include "uimodel.h"
 #include "uirmlview.h"
 #include "uirunner.h"
+#include "uiscreens.h"
 #include "utf8.h"
 #include "voc.h"
 #include "win.h"
@@ -68,6 +69,8 @@ enum
 	UI_MISSION_LIST,
 	UI_MISSION_CHOOSE,
 	UI_MISSION_TEXT,
+	UI_MISSION_EXPORT,
+	UI_MISSION_IMPORT,
 };
 
 
@@ -100,6 +103,8 @@ class UIMissionPresenter : public UIPresenterClass
 		std::vector<UIMissionRow> Rows;
 		int Selected = -1;
 		bool AcceptEnabled = false;
+		bool ExportEnabled = false;
+		bool Transfer = false;
 
 		// Moves whenever Rows is rebuilt, so the view rebuilds the list only then.
 		int RowsSerial = 0;
@@ -302,10 +307,12 @@ FileEntryClass * UIMissionPresenter::Selected_Entry(void) const
 
 
 // What the dialog procedures did on a list notification: the save dialog copied the picked
-// game's description into its field.
+// game's description into its field, and the browser build's export follows the pick.
 void UIMissionPresenter::Selection_Changed(UIMissionFieldRequest request)
 {
 	FileEntryClass const * const entry = Selected_Entry();
+
+	ExportEnabled = (entry != nullptr && entry->Valid && entry->Filename[0] != '\0');
 
 	if (Request.Style != LoadOptionsClass::SAVE || entry == nullptr) {
 		return;
@@ -324,6 +331,9 @@ void UIMissionPresenter::Selection_Changed(UIMissionFieldRequest request)
 
 void UIMissionPresenter::Refresh(void)
 {
+#if defined(__EMSCRIPTEN__)
+	Transfer = (Request.Style != LoadOptionsClass::WWDELETE);
+#endif
 
 	Fill(UI_MISSION_FIELD_CARET_END);
 	AcceptEnabled = !Entries.empty();
@@ -377,6 +387,21 @@ void UIMissionPresenter::Execute(UIIntent const & intent)
 
 		case UI_MISSION_CANCEL:
 			Finish(UI_RESULT_CANCELLED, DIALOG_CANCEL);
+			break;
+
+		case UI_MISSION_EXPORT: {
+			FileEntryClass const * const entry = Selected_Entry();
+			if (ExportEnabled && entry != nullptr && Request.Export) {
+				Request.Export(entry->Filename);
+			}
+			break;
+		}
+
+		case UI_MISSION_IMPORT:
+			if (Request.Import && Request.Import()) {
+				Fill(UI_MISSION_FIELD_SELECT_ALL);
+				AcceptEnabled = !Entries.empty();
+			}
 			break;
 
 		default:
@@ -568,6 +593,10 @@ void UIMissionView::On_Action(Rml::DataModelHandle, Rml::Event & event, Rml::Var
 		// The new text is read from the event rather than from the field; see UISoundView.
 		intent.Action = UI_MISSION_TEXT;
 		intent.Text = event.GetParameter<Rml::String>("value", Mission.Field);
+	} else if (name == "export") {
+		intent.Action = UI_MISSION_EXPORT;
+	} else if (name == "import") {
+		intent.Action = UI_MISSION_IMPORT;
 	} else {
 		return;
 	}
@@ -599,6 +628,8 @@ bool UIMissionView::Bind_Model(void)
 	constructor.Bind("Rows", &Mission.Rows);
 	constructor.Bind("Selected", &Mission.Selected);
 	constructor.Bind("AcceptEnabled", &Mission.AcceptEnabled);
+	constructor.Bind("ExportEnabled", &Mission.ExportEnabled);
+	constructor.Bind("Transfer", &Mission.Transfer);
 
 	constructor.BindEventCallback("act", &UIMissionView::On_Action, this);
 
@@ -675,6 +706,7 @@ void UIMissionView::Sync(void)
 
 	Model.DirtyVariable("Selected");
 	Model.DirtyVariable("AcceptEnabled");
+	Model.DirtyVariable("ExportEnabled");
 
 	Apply_Field();
 }
@@ -743,3 +775,38 @@ int UI_Mission_Files_Screen(UIMissionFilesRequest const & request)
 			return(result.Code);
 	}
 }
+
+
+// Registered through the dialog drivers rather than through the screen, so a run exercises
+// the path a caller takes, the selector included.
+static bool Open_Load_Dialog(void)
+{
+	LoadOptionsClass().Load();
+	return(true);
+}
+
+
+// Primed as the in-game options prime it.
+static bool Open_Save_Dialog(void)
+{
+	char description[512];
+	description[0] = '\0';
+	if (Scen != nullptr) {
+		UTF8::Copy(description, Scen->Description);
+	}
+
+	LoadOptionsClass().Save(description);
+	return(true);
+}
+
+
+static bool Open_Delete_Dialog(void)
+{
+	LoadOptionsClass().Delete();
+	return(true);
+}
+
+
+static UIScreenRegistration _RegisterLoad("mission-load", Open_Load_Dialog);
+static UIScreenRegistration _RegisterSave("mission-save", Open_Save_Dialog);
+static UIScreenRegistration _RegisterDelete("mission-delete", Open_Delete_Dialog);
