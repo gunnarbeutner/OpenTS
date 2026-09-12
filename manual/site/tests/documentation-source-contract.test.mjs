@@ -494,6 +494,13 @@ test('A campaign spawn writes the game its own state and nothing more', () => {
 	], 'a spawned mission is named by the file and starts with the flags it carried');
 });
 
+// The Internet game's block of the in-game options screen.
+function internetOptions() {
+	const screen = source('ui/gameopt.rml');
+	const body = screen.slice(screen.indexOf('<div class="wol" data-if="Internet">'));
+	return body.slice(0, body.indexOf('<div class="mp"'));
+}
+
 test('A resume is judged before it is loaded, and the save answers for the rest', () => {
 	assertOrdered(functionBody(source('code/spawner.cpp'), 'static bool Spawner_Resume(bool & gameloaded)'), [
 		'SpawnConfig.SaveGameName.empty()',
@@ -683,8 +690,8 @@ test('A match against other machines is assembled whole and wired to its network
 
 	assertOrdered(functionBody(spawner, 'static void Spawner_Seat_Human(int index)'), [
 		'if (SpawnConfig.TunnelPort != 0) {',
-		'node->Address.Set_Address(0, htons((unsigned short)seat.Port));',
-		'inet_addr(seat.Address.c_str())',
+		'node->Address.Set_Address(0, Socket_Network_Port((unsigned short)seat.Port));',
+		'Socket_Parse_Address(seat.Address.c_str(), seat_address);',
 	], 'a tunnelled machine is named by its tunnel number before an address is read');
 
 	assertOrdered(functionBody(spawner, 'static void Spawner_Seat_Humans(void)'), [

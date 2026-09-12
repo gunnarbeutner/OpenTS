@@ -126,6 +126,7 @@
 #include "keyboard.h"
 #include "language/language.h"
 #include "logic.h"
+#include "mainwindow.h"
 #include "mixfile.h"
 #include "overtype.h"
 #include "palette.h"
@@ -3614,7 +3615,7 @@ char const * DisplayClass::Help_Text(int id)
 	/*
 	**	Give a generic help message when over shadow terrain.
 	*/
-	if (!Map[coord].IsMapped[PlayerPtr] && MainWindow) {
+	if (!Map[coord].IsMapped[PlayerPtr] && Has_Main_Window()) {
 		return(Fetch_String(TXT_SHADOW));
 	}
 

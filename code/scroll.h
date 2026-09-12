@@ -102,7 +102,8 @@ class ScrollClass: public TabClass
 
 		ActionType What_Action(Cell const & cell, ObjectClass * object, bool check_fog);
 
-		void Message_Handler(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+		void Pointer_Button(unsigned short button, Point2D const & position, bool release);
+		void Pointer_Capture_Lost(void);
 
 	protected:
 		virtual void Mouse_Right_Press(Point2D const & point = Point2D()) override;

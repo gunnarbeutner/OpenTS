@@ -19,6 +19,7 @@
 #include "dialogresult.h"
 #include "globals.h"
 #include "goptions.h"
+#include "hostwindow.h"
 #include "ipxmgr.h"
 #include "language/language.h"
 #include "lobbymsg.h"
@@ -64,15 +65,15 @@ const std::uint32_t ColorNoJoin     = Lobby_Color(128, 128, 128);            ///
  */
 int IsColorChangePending;
 
-COLORREF PlayerColorTable[MAX_PLAYERS] = {
-	RGB(255, 223, 94),	/// 0x005EDFFF
-	RGB(255, 26, 20),	/// 0x00141AFF
-	RGB(39, 60, 179),	/// 0x00B33C27
-	RGB(11, 148, 11),	/// 0x000B940B
-	RGB(218, 137, 26),	/// 0x001A89DA
-	RGB(20, 177, 255),	/// 0x00FFB114
-	RGB(185, 20, 255),	/// 0x00FF14B9
-	RGB(255, 70, 173)	/// 0x00AD46FF
+std::uint32_t PlayerColorTable[MAX_PLAYERS] = {
+	Lobby_Color(255, 223, 94),	/// 0x005EDFFF
+	Lobby_Color(255, 26, 20),	/// 0x00141AFF
+	Lobby_Color(39, 60, 179),	/// 0x00B33C27
+	Lobby_Color(11, 148, 11),	/// 0x000B940B
+	Lobby_Color(218, 137, 26),	/// 0x001A89DA
+	Lobby_Color(20, 177, 255),	/// 0x00FFB114
+	Lobby_Color(185, 20, 255),	/// 0x00FF14B9
+	Lobby_Color(255, 70, 173)	/// 0x00AD46FF
 };
 
 

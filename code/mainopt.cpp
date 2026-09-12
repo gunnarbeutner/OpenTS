@@ -22,6 +22,7 @@
 #include "dsurface.h"
 #include "gamedlg.h"
 #include "globals.h"
+#include "hostwindow.h"
 #include "init.h"
 #include "language/language.h"
 #include "misc.h"

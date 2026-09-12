@@ -35,7 +35,6 @@
  * Functions:                                                                                  *
  *   Assert_Failure -- display the line and source file where a failed assert occurred         *
  *   Check_For_Focus_Loss -- check for the end of the focus loss                               *
- *   Create_Main_Window -- opens the MainWindow for C&C                                        *
  *   Focus_Loss -- this function is called when a library function detects focus loss          *
  *   Memory_Error_Handler -- Handle a possibly fatal failure to allocate memory                *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -54,7 +53,6 @@
 #include "cctooltip.h"
 #include "conquer.h"
 #include "convert.h"
-#include "dbgprint.h"
 #include "draw.h"
 #include "dsurface.h"
 #include "except.h"

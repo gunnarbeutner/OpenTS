@@ -34,6 +34,7 @@
 #include "mapgen.h"
 #include "mplayer.h"
 #include "msgbox.h"
+#include "msgloop.h"
 #include "netdlg.h"
 #include "netshare.h"
 #include "nettiming.h"
@@ -1596,6 +1597,7 @@ static void Get_Join_Responses(void)
 				who->Game.Addon = Session.GPacket.GameInfo.IsFirestorm;
 				who->Game.LastTime = TickCount;
 				Session.Games.Add (who);
+				DebugString("Found game '%s'\n", who->Name);
 
 				//..................................................................
 				// If this player's in the Chat vector, remove him from there
@@ -2321,6 +2323,7 @@ static void Get_Join_Responses(void)
 				}
 				who->Player.Color = newcolor;
 				Session.Players.Add (who);
+				DebugString("Player '%s' joined\n", who->Name);
 
 				for (i = 0; i < Session.Players.Count(); i++) {
 					if (strcmp(Session.Players[i]->Name, Session.GameName)) {
