@@ -267,10 +267,11 @@ fixed_controls:
     description: Stops a VQA when the caller permits user breakout; in a game against other machines it casts this machine's vote to stop it.
     audience: player
     bindings: [Escape]
-    context: VQA playback
+    context: Full-screen movie playback
     availability: *all
     sites:
       - { file: code/movieskip.cpp, function: Idle, expression: KN_ESC }
+      - { file: code/vqa.cpp, function: VQAClass::Play_VQA, expression: KN_ESC }
       - { file: code/mp4.cpp, function: MP4Class::Play_VQA, expression: KN_ESC, guard: "defined(OPENTS_MP4_MOVIES)" }
   - id: fixed:skip-campaign-presentation
     title: Skip campaign presentation
@@ -446,6 +447,10 @@ fixed_exclusions:
     reason: Keeps Scroll Lock out of the keyboard buffer; it does not dispatch a game command.
   - site: { file: code/hostwindow_win32.cpp, function: Host_Create_Window, expression: VK_M, guard: "defined(_WIN32)" }
     reason: Registers a Windows hotkey that has no WM_HOTKEY handler in the current source tree.
+  - sites:
+      - { file: code/ui/uibrowser.cpp, function: Handle_Event, expression: VK_RBUTTON }
+      - { file: code/ui/uibrowser.cpp, function: Handle_Event, expression: VK_MBUTTON }
+    reason: Translates page mouse buttons for the UI shell, not a command.
   - sites:
       - { file: code/ui/uihotkey.cpp, function: UIHotkeyPresenter::Service, expression: VK_LBUTTON }
       - { file: code/ui/uihotkey.cpp, function: UIHotkeyPresenter::Service, expression: VK_RBUTTON }

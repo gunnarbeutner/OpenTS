@@ -407,6 +407,7 @@ bool Debug_PGO_Capture = false;
 bool PGO_Profile_In_Effect = false;
 bool Main_Menu_Is_Up = false;
 
+
 /***************************************************************************
 **	This class manages data specific to multiplayer games.
 */

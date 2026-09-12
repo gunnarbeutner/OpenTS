@@ -170,6 +170,12 @@ bool GraphicMenuItem::Is_Mouse_Over(Point2D const & mouse)
 }
 
 
+Rect GraphicMenuItem::Get_Active_Rect(void) const
+{
+	return(Rect(0, 0, 0, 0));
+}
+
+
 /// <summary>
 /// Does this menu item answer to the key specified?
 /// The base item claims no keys at all. Items that carry a keyboard shortcut override

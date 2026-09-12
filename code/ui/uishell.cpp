@@ -32,6 +32,7 @@
 #include "audio/audioengine.h"
 #include "mixfile.h"
 #include "mpload.h"
+#include "phase.h"
 
 #include <RmlUi/Core/Context.h>
 #include <RmlUi/Core/Core.h>
@@ -380,6 +381,10 @@ bool UI_Init(void)
 	}
 
 	Rml::Factory::RegisterElementInstancer("body", &_DocumentInstancer);
+
+	// A modal screen is what a dialog was to anything reading the phases, the harness's
+	// dialog wait among them.
+	Phase_Register_Layers("dialog", [](void) { return(_ModalDepth); });
 
 	Load_Fonts();
 
@@ -861,6 +866,7 @@ Rml::Context * UI_Context(void)
 void UI_Begin_Modal(void)
 {
 	_ModalDepth++;
+	Phase_Changed();
 
 	if (_ModalDepth == 1) {
 		Menu_Capture_Mouse();
@@ -878,6 +884,7 @@ void UI_End_Modal(void)
 	}
 
 	_ModalDepth--;
+	Phase_Changed();
 
 	if (_ModalDepth == 0) {
 		if (Keyboard != nullptr) {

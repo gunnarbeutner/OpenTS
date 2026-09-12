@@ -54,6 +54,28 @@ GraphicMenu * Do_Graphic_Menu(const char * ini, const char * name)
 }
 
 
+static GraphicMenu * _CurrentMenu = NULL;
+
+
+namespace {
+
+struct CurrentMenuGuard
+{
+	GraphicMenu * Previous;
+
+	explicit CurrentMenuGuard(GraphicMenu * menu) : Previous(_CurrentMenu) { _CurrentMenu = menu; }
+	~CurrentMenuGuard(void) { _CurrentMenu = Previous; }
+};
+
+}
+
+
+GraphicMenu * Current_Graphic_Menu(void)
+{
+	return(_CurrentMenu);
+}
+
+
 /// <summary>
 /// Creates a graphic menu from an INI section.
 /// This routine builds the menu, gives it whatever backdrop animation and music theme
@@ -72,6 +94,8 @@ GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name)
 	if (menu == NULL) {
 		return(NULL);
 	}
+
+	menu->Name = name;
 
 	bool has_background = ini.Get_String(name, "Background", "", buffer, sizeof(buffer)) > 0;
 	menu->BackgroundName.Replace_With_Extension(buffer, ".PCX", sizeof(".PCX") - 1);
@@ -194,7 +218,12 @@ void GraphicMenu::Set_Item_Visible(int id, bool visible)
 /// GMENU_REDISPLAY if the page must be rebuilt for a new frame size.</returns>
 int GraphicMenu::Presentation(void)
 {
-	Theme.Play_Song(Theme.From_Name(ThemeName.Peek()));
+	PhaseScope phase("menu", Name.c_str());
+	CurrentMenuGuard current(this);
+
+	if (!ThemeIsPlaying) {
+		Theme.Play_Song(Theme.From_Name(ThemeName.Peek()));
+	}
 
 	// The claim holds until Fill_Out_Shell, since the page stays behind
 	// whatever the choice opens.
@@ -304,6 +333,36 @@ int GraphicMenu::Presentation(void)
 	}
 
 	return(-1);
+}
+
+
+void GraphicMenu::Describe(std::string & out, char const * (*name)(int)) const
+{
+	char buffer[160];
+
+	out += '[';
+	for (int index = 0; index < Items.Count(); index++) {
+		GraphicMenuItem const * item = Items[index];
+		Rect const area = Shell_To_Screen(item->Get_Active_Rect());
+		char const * label = (name != nullptr) ? name(item->Get_ID()) : nullptr;
+
+		if (index > 0) out += ',';
+		snprintf(buffer, sizeof(buffer),
+			"{\"id\":%d,\"rect\":[%d,%d,%d,%d],\"enabled\":%s,\"visible\":%s,\"selected\":%s,\"name\":",
+			item->Get_ID(), area.X, area.Y, area.Width, area.Height,
+			item->Is_Enabled() ? "true" : "false",
+			item->Is_Visible() ? "true" : "false",
+			item->Is_Selected() ? "true" : "false");
+		out += buffer;
+		if (label != nullptr) {
+			out += '"';
+			out += label;
+			out += "\"}";
+		} else {
+			out += "null}";
+		}
+	}
+	out += ']';
 }
 
 
