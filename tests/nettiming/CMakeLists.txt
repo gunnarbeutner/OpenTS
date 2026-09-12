@@ -10,6 +10,7 @@ endif()
 # Compile the transport timing sources directly so this harness needs no game assets.
 add_executable(NetTiming
     "${CMAKE_CURRENT_SOURCE_DIR}/nettiming.cpp"
+    "${OPENTS_ROOT}/code/mstimer.cpp"
     "${OPENTS_ROOT}/code/nettime.cpp"
     "${OPENTS_ROOT}/code/nettiming.cpp"
 )
@@ -19,6 +20,7 @@ add_executable(NetConnection
     "${CMAKE_CURRENT_SOURCE_DIR}/connectionstubs.cpp"
     "${OPENTS_ROOT}/code/combuf.cpp"
     "${OPENTS_ROOT}/code/connect.cpp"
+    "${OPENTS_ROOT}/code/mstimer.cpp"
     "${OPENTS_ROOT}/code/netadmit.cpp"
     "${OPENTS_ROOT}/code/nettime.cpp"
     "${OPENTS_ROOT}/code/nettiming.cpp"
