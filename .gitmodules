@@ -4,3 +4,9 @@
 [submodule "thirdparty/miniaudio"]
 	path = thirdparty/miniaudio
 	url = https://github.com/mackron/miniaudio.git
+[submodule "thirdparty/RmlUi"]
+	path = thirdparty/RmlUi
+	url = https://github.com/mikke89/RmlUi.git
+[submodule "thirdparty/freetype"]
+	path = thirdparty/freetype
+	url = https://github.com/freetype/freetype.git

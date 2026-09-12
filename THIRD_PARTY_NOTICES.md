@@ -16,6 +16,10 @@ remains under its own license and copyright notices.
 | [miniaudio](https://github.com/mackron/miniaudio)                  | Audio device output, resampling, and WAV, FLAC, and MP3 decoding | MIT-0 or Unlicense |
 | [stb_vorbis](https://github.com/nothings/stb)                      | Ogg Vorbis decoding, bundled with miniaudio | MIT or Unlicense |
 | [LZO](https://www.oberhumer.com/opensource/lzo/)                   | LZO1X compression for maps, saves, and network blocks | GPL-2.0-or-later |
+| [RmlUi](https://github.com/mikke89/RmlUi)                          | User interface documents, styling, and layout | MIT |
+| [robin_hood](https://github.com/martinus/robin-hood-hashing)       | Hash containers bundled with RmlUi        | MIT |
+| [itlib](https://github.com/iboB/itlib)                             | Containers bundled with RmlUi             | MIT |
+| [FreeType](https://freetype.org/)                                  | Glyph rasterization for RmlUi             | FTL or GPL-2.0-or-later |
 | [ICU charset data](https://github.com/unicode-org/icu-data)        | The code page 437 table in `code/codepage.cpp` | Unicode-3.0 |
 | [Windows best fit tables](https://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/WindowsBestFit/) | The Windows-1252 table in `code/codepage.cpp` | Unicode data terms |
 
