@@ -58,6 +58,8 @@
 
 #include "always.h"
 
+#include <windowsx.h>
+
 #include "options.h"
 
 #include "_command.h"

@@ -31,7 +31,10 @@
  *   OptionsClass::Process -- Handles all the options graphic interface.                       *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "utf8.h"
 #include "always.h"
+
+#include <windowsx.h>
 
 #include "goptions.h"
 

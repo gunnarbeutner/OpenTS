@@ -11,6 +11,8 @@
 
 #include "win.h"
 
+#include <windowsx.h>
+
 
 BOOL Get_Display_Rect(HWND window, LPRECT rect);
 

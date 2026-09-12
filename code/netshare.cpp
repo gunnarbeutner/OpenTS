@@ -9,6 +9,8 @@
 
 #include "always.h"
 
+#include <windowsx.h>
+
 #include "netshare.h"
 
 #include "_rules.h"
@@ -640,9 +642,9 @@ void PumpGameopts(bool force, bool now)
 			_last_harvester_truce = Session.Options.HarvTruce;
 			_last_capture_the_flag = Session.Options.CTF;
 			_last_fog_of_war = Session.Options.FogOfWar;
-			strcpy(_last_scenario_description, Session.Options.ScenarioDescription);
-			strcpy(_last_scenario_digest, Session.ScenarioDigest);
-			strcpy(_last_scenario_file_name, Session.ScenarioFileName);
+			UTF8::Copy(_last_scenario_description, Session.Options.ScenarioDescription);
+			UTF8::Copy(_last_scenario_digest, Session.ScenarioDigest);
+			UTF8::Copy(_last_scenario_file_name, Session.ScenarioFileName);
 			_last_scenario_file_length = Session.ScenarioFileLength;
 			_last_scenario_is_official = Session.ScenarioIsOfficial;
 
@@ -960,7 +962,7 @@ bool DecodePubGameopt(char * options, char * name)
 			PMessagePrintf(-1, Fetch_String(TXT_HOST_CHANGED_OPTIONS));
 
 			char buffer[64];
-			sprintf(buffer, "A0");
+			snprintf(buffer, sizeof(buffer), "A0");
 			SendPublicGameopts(buffer);
 
 			EnableWindow(GetDlgItem(GameoptWindow(), IDC_ACCEPT), TRUE);
@@ -1100,7 +1102,7 @@ int RandomMapWaypointCount(int index)
 		int count = 0;
 
 		for (int i = 0; i < MAX_PLAYERS; i++) {
-			sprintf(wp, "%d", i);
+			snprintf(wp, sizeof(wp), "%d", i);
 			if (ini.Get_Int("Waypoints", wp, -1) != -1) {
 				count++;
 			}

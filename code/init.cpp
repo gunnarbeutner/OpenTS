@@ -54,7 +54,11 @@
  *   Load_Prolog_Page -- Loads the special pre-prolog "please wait" page.                      *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "utf8.h"
+#include "mstimer.h"
 #include "always.h"
+
+#include <windowsx.h>
 
 #include "init.h"
 
@@ -1647,7 +1651,7 @@ bool Parse_Command_Line(int argc, char * argv[])
 		// Matching is done on an upper case copy, so that an option carrying a directory
 		// can still take it in the case it was written.
 		char original[512];
-		strcpy(original, arg_string);
+		UTF8::Copy(original, arg_string);
 		strupr(string);
 
 		/*
@@ -1964,7 +1968,7 @@ void Init_Random(void)
 			Seed = CustomSeed;
 		} else {
 			CryptRandom.Get(&Seed, sizeof(Seed));
-			Seed = GetTickCount();
+			Seed = System_Milliseconds();
 			//srand(time(NULL));
 			//Seed = rand();
 		}
@@ -2292,7 +2296,7 @@ static void Init_Expand_Mixfiles(void)
 	MFCD * expand;
 
 	for (index = 99; index >= 0; index--) {
-		sprintf(name, "EXPAND%02d.MIX", index);
+		snprintf(name, sizeof(name), "EXPAND%02d.MIX", index);
 		// Searched for as a loose file wherever the game's files are kept, but never
 		// inside another archive.
 		if (CDFileClass(name).Is_Available()) {
@@ -2304,7 +2308,7 @@ static void Init_Expand_Mixfiles(void)
 	}
 
 	for (index = 99; index >= 0; index--) {
-		sprintf(name, "ECACHE%02d.MIX", index);
+		snprintf(name, sizeof(name), "ECACHE%02d.MIX", index);
 		if (CCFileClass(name).Is_Available()) {
 			expand = new MFCD(name, &FastKey);
 
@@ -3255,7 +3259,7 @@ void Draw_Version_Text(Surface * surface)
 	}
 
 	version[0] = '\0';
-	strcpy(version, Version_Name());
+	UTF8::Copy(version, Version_Name());
 
 	Cheat_Version_Suffix(version);
 
@@ -3323,18 +3327,18 @@ class CreateTeamCommandClass : public CommandClass
 		CreateTeamCommandClass(int team) : Team(team) {}
 
 		virtual char const * Get_Unique_Name(void) const {
-			sprintf(_cmd_buffer, "TeamCreate_%d", Team);
+			snprintf(_cmd_buffer, sizeof(_cmd_buffer), "TeamCreate_%d", Team);
 			return(_cmd_buffer);
 		}
 		virtual char const * Get_Display_Name(void) const {
-			sprintf(_cmd_buffer, Fetch_String(TXT_CREATE_TEAM), Team);
+			snprintf(_cmd_buffer, sizeof(_cmd_buffer), Fetch_String(TXT_CREATE_TEAM), Team);
 			return(_cmd_buffer);
 		}
 		virtual char const * Get_Category(void) const {
 			return(Fetch_String((TXT_TEAM)));
 		}
 		virtual char const * Get_Description(void) const {
-			sprintf(_cmd_buffer, Fetch_String(TXT_CREATE_TEAM_DESC), Team);
+			snprintf(_cmd_buffer, sizeof(_cmd_buffer), Fetch_String(TXT_CREATE_TEAM_DESC), Team);
 			return(_cmd_buffer);
 		}
 
@@ -3353,18 +3357,18 @@ class SelectTeamCommandClass : public CommandClass
 		SelectTeamCommandClass(int team) : Team(team) {}
 
 		virtual char const * Get_Unique_Name(void) const {
-			sprintf(_cmd_buffer, "TeamSelect_%d", Team);
+			snprintf(_cmd_buffer, sizeof(_cmd_buffer), "TeamSelect_%d", Team);
 			return(_cmd_buffer);
 		}
 		virtual char const * Get_Display_Name(void) const {
-			sprintf(_cmd_buffer, Fetch_String(TXT_SELECT_TEAM), Team);
+			snprintf(_cmd_buffer, sizeof(_cmd_buffer), Fetch_String(TXT_SELECT_TEAM), Team);
 			return(_cmd_buffer);
 		}
 		virtual char const * Get_Category(void) const {
 			return(Fetch_String((TXT_TEAM)));
 		}
 		virtual char const * Get_Description(void) const {
-			sprintf(_cmd_buffer, Fetch_String(TXT_SELECT_TEAM_DESC), Team);
+			snprintf(_cmd_buffer, sizeof(_cmd_buffer), Fetch_String(TXT_SELECT_TEAM_DESC), Team);
 			return(_cmd_buffer);
 		}
 
@@ -3410,18 +3414,18 @@ class AddTeamCommandClass : public CommandClass
 		AddTeamCommandClass(int team) : Team(team) {}
 
 		virtual char const * Get_Unique_Name(void) const {
-			sprintf(_cmd_buffer, "TeamAddSelect_%d", Team);
+			snprintf(_cmd_buffer, sizeof(_cmd_buffer), "TeamAddSelect_%d", Team);
 			return(_cmd_buffer);
 		}
 		virtual char const * Get_Display_Name(void) const {
-			sprintf(_cmd_buffer, Fetch_String(TXT_ADD_SELECT_TEAM), Team);
+			snprintf(_cmd_buffer, sizeof(_cmd_buffer), Fetch_String(TXT_ADD_SELECT_TEAM), Team);
 			return(_cmd_buffer);
 		}
 		virtual char const * Get_Category(void) const {
 			return(Fetch_String((TXT_TEAM)));
 		}
 		virtual char const * Get_Description(void) const {
-			sprintf(_cmd_buffer, Fetch_String(TXT_ADD_SELECT_TEAM_DESC), Team);
+			snprintf(_cmd_buffer, sizeof(_cmd_buffer), Fetch_String(TXT_ADD_SELECT_TEAM_DESC), Team);
 			return(_cmd_buffer);
 		}
 
@@ -3445,18 +3449,18 @@ class AddToTeamCommandClass : public CommandClass
 		AddToTeamCommandClass(int team) : Team(team) {}
 
 		virtual char const * Get_Unique_Name(void) const {
-			sprintf(_cmd_buffer, "TeamAddTo_%d", Team);
+			snprintf(_cmd_buffer, sizeof(_cmd_buffer), "TeamAddTo_%d", Team);
 			return(_cmd_buffer);
 		}
 		virtual char const * Get_Display_Name(void) const {
-			sprintf(_cmd_buffer, Fetch_String(TXT_ADD_TO_TEAM), Team);
+			snprintf(_cmd_buffer, sizeof(_cmd_buffer), Fetch_String(TXT_ADD_TO_TEAM), Team);
 			return(_cmd_buffer);
 		}
 		virtual char const * Get_Category(void) const {
 			return(Fetch_String((TXT_TEAM)));
 		}
 		virtual char const * Get_Description(void) const {
-			sprintf(_cmd_buffer, Fetch_String(TXT_ADD_TO_TEAM_DESC), Team);
+			snprintf(_cmd_buffer, sizeof(_cmd_buffer), Fetch_String(TXT_ADD_TO_TEAM_DESC), Team);
 			return(_cmd_buffer);
 		}
 
@@ -3482,18 +3486,18 @@ class CenterTeamCommandClass : public CommandClass
 		CenterTeamCommandClass(int team) : Team(team) {}
 
 		virtual char const * Get_Unique_Name(void) const {
-			sprintf(_cmd_buffer, "TeamCenter_%d", Team);
+			snprintf(_cmd_buffer, sizeof(_cmd_buffer), "TeamCenter_%d", Team);
 			return(_cmd_buffer);
 		}
 		virtual char const * Get_Display_Name(void) const {
-			sprintf(_cmd_buffer, Fetch_String(TXT_CENTER_TEAM), Team);
+			snprintf(_cmd_buffer, sizeof(_cmd_buffer), Fetch_String(TXT_CENTER_TEAM), Team);
 			return(_cmd_buffer);
 		}
 		virtual char const * Get_Category(void) const {
 			return(Fetch_String((TXT_TEAM)));
 		}
 		virtual char const * Get_Description(void) const {
-			sprintf(_cmd_buffer, Fetch_String(TXT_CENTER_TEAM_DESC), Team);
+			snprintf(_cmd_buffer, sizeof(_cmd_buffer), Fetch_String(TXT_CENTER_TEAM_DESC), Team);
 			return(_cmd_buffer);
 		}
 
@@ -4866,7 +4870,7 @@ class ScreenCaptureCommandClass : public CommandClass
 
 				do {
 					index++;
-					sprintf(fname, "SCRN%04d.pcx", index);
+					snprintf(fname, sizeof(fname), "SCRN%04d.pcx", index);
 				} while (CCFileClass(fname).Is_Available());
 
 				CCFileClass file(fname);
@@ -6329,7 +6333,7 @@ bool Prep_For_Side(SideType side)
 
 	if (Addon_Enabled(ADDON_ANY) == true) {
 		for (index = 99; index >= 0; index--) {
-			sprintf(name, "E%02dSC%02d.MIX", index, id);
+			snprintf(name, sizeof(name), "E%02dSC%02d.MIX", index, id);
 
 			if (CCFileClass(name).Is_Available()) {
 
@@ -6341,7 +6345,7 @@ bool Prep_For_Side(SideType side)
 		}
 	}
 
-	sprintf(name, "SIDEC%02d.MIX", id);
+	snprintf(name, sizeof(name), "SIDEC%02d.MIX", id);
 	DebugString("     Initializing %s\n", name);
 
 	if (CCFileClass(name).Is_Available()) {
@@ -6357,7 +6361,7 @@ bool Prep_For_Side(SideType side)
 
 	if (Addon_Enabled(ADDON_ANY) == true) {
 		for (index = 99; index >= 0; index--) {
-			sprintf(name, "E%02dSNC%02d.MIX", index, id);
+			snprintf(name, sizeof(name), "E%02dSNC%02d.MIX", index, id);
 
 			if (CCFileClass(name).Is_Available()) {
 
@@ -6368,7 +6372,7 @@ bool Prep_For_Side(SideType side)
 		}
 	}
 
-	sprintf(name, "SIDENC%02d.MIX", id);
+	snprintf(name, sizeof(name), "SIDENC%02d.MIX", id);
 	DebugString("     Initializing %s\n", name);
 
 	if (CCFileClass(name).Is_Available()) {
@@ -6378,9 +6382,9 @@ bool Prep_For_Side(SideType side)
 	if (Session.Type == GAME_NORMAL) {
 
 		if (Addon_Enabled(ADDON_ANY) == false) {
-			sprintf(name, "SIDECD%02d.MIX", id);
+			snprintf(name, sizeof(name), "SIDECD%02d.MIX", id);
 		} else {
-			sprintf(name, "E%02dSCD%02d.MIX", Get_Required_Addon(), id);
+			snprintf(name, sizeof(name), "E%02dSCD%02d.MIX", Get_Required_Addon(), id);
 		}
 
 		DebugString("     Initializing %s\n", name);
@@ -6436,7 +6440,7 @@ bool Prep_Speech_For_Side(SideType side)
 
 	for (AddonType addon = ADDON_COUNT; addon > 0; --addon) {
 		if (Addon_Enabled(addon) == true) {
-			sprintf(name, "E%02dVOX%02d.MIX", addon, id);
+			snprintf(name, sizeof(name), "E%02dVOX%02d.MIX", addon, id);
 
 			if (CCFileClass(name).Is_Available()) {
 				MFCD *mix = new MFCD(name, &FastKey);
@@ -6446,7 +6450,7 @@ bool Prep_Speech_For_Side(SideType side)
 		}
 	}
 
-	sprintf(name, "SPEECH%02d.MIX", id);
+	snprintf(name, sizeof(name), "SPEECH%02d.MIX", id);
 	DebugString("     Initializing %s\n", name);
 	if (CCFileClass(name).Is_Available()) {
 		SpeechMix = new MFCD(name, &FastKey);
