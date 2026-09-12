@@ -1,0 +1,63 @@
+<rml>
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * The template this replaces is 218 by 64 dialog units at MS Sans Serif 8, which is
+		 * 327 by 104 logical pixels, and it was centred on the frame.
+		 */
+		#waitbox
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -163dp;
+			margin-top: -52dp;
+			width: 327dp;
+			height: 104dp;
+			decorator: image(frame:327x104);
+		}
+
+		/* The template centred its message in a 261 by 37 box at the top. */
+		#message
+		{
+			position: absolute;
+			left: 33dp;
+			top: 20dp;
+			width: 261dp;
+			height: 37dp;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		#message p
+		{
+			display: block;
+			width: 100%;
+			text-align: center;
+		}
+
+		/* The cancel button sat hidden at 125, 62, 75 by 23, and was shown only on request. */
+		#cancel
+		{
+			position: absolute;
+			left: 125dp;
+			top: 62dp;
+			width: 75dp;
+			margin-left: 0;
+			decorator: image(button:u:75x24);
+		}
+
+		#cancel:active:hover
+		{
+			decorator: image(button:d:75x24);
+		}
+	</style>
+</head>
+<body>
+	<div id="waitbox" class="dialog" data-model="waitbox">
+		<div id="message"><p>{{Message}}</p></div>
+		<button id="cancel" data-if="HasCancel" data-event-click="cancel()">{{Cancel}}</button>
+	</div>
+</body>
+</rml>
