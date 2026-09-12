@@ -19,7 +19,7 @@ remains under its own license and copyright notices.
 | [RmlUi](https://github.com/mikke89/RmlUi)                          | User interface documents, styling, and layout | MIT |
 | [robin_hood](https://github.com/martinus/robin-hood-hashing)       | Hash map bundled with RmlUi               | MIT          |
 | [itlib](https://github.com/iboB/itlib)                             | Containers bundled with RmlUi             | MIT          |
-| [FreeType](https://freetype.org)                                   | Font rasterization used by RmlUi          | FTL          |
+| [FreeType](https://freetype.org/)                                  | Glyph rasterization for RmlUi             | FTL or GPL-2.0-or-later |
 | [zlib](https://zlib.net)                                           | Compressed font support, bundled with FreeType | zlib |
 | [Dear ImGui](https://github.com/ocornut/imgui)                     | Developer overlays                        | MIT          |
 | [stb](https://github.com/nothings/stb)                             | Rectangle packing, text editing, and TrueType headers bundled with Dear ImGui | MIT or Unlicense |
