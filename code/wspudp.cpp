@@ -79,6 +79,7 @@ UDPInterfaceClass::UDPInterfaceClass (void) :
 	DestinationPortSet(false),
 	UseBroadcast(false),
 	TunnelID(0),
+	TunnelBroadcast(0),
 	TunnelIP(0),
 	TunnelPort(0)
 {}
@@ -128,6 +129,16 @@ void UDPInterfaceClass::Configure_Tunnel(unsigned short local_id, unsigned long 
 	TunnelID = local_id;
 	TunnelIP = tunnel_ip;
 	TunnelPort = tunnel_port;
+}
+
+
+/// <summary>
+/// Names the recipient id that stands for every player at once, or zero where the
+/// carrier has no such thing.
+/// </summary>
+void UDPInterfaceClass::Set_Tunnel_Broadcast(unsigned short id)
+{
+	TunnelBroadcast = id;
 }
 
 
@@ -195,7 +206,9 @@ TransferResult UDPInterfaceClass::Receive_From(void * buffer, int length, IPXAdd
 	if (rc <= TUNNEL_HEADER_SIZE) return(TransferResult{SocketError::NONE, 0});
 	std::memcpy(header, tunnelled, sizeof(header));
 
-	if (header[1] != TunnelID) return(TransferResult{SocketError::NONE, 0});
+	bool const mine = (header[1] == TunnelID)
+		|| (TunnelBroadcast != 0 && header[1] == TunnelBroadcast);
+	if (!mine) return(TransferResult{SocketError::NONE, 0});
 
 	rc -= TUNNEL_HEADER_SIZE;
 	if (rc > length) return(TransferResult{SocketError::NONE, 0});
