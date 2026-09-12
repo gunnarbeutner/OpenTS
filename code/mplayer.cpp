@@ -43,6 +43,7 @@
 
 #include "_surface.h"
 #include "addon.h"
+#include "dialogresult.h"
 #include "init.h"
 #include "msgbox.h"
 #include "ownrdraw.h"

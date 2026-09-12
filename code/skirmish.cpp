@@ -7,6 +7,7 @@
  * See LICENSE.md for applicable additional terms and warranty disclaimers.
  ******************************************************************************/
 
+#include "dialogresult.h"
 #include "utf8.h"
 #include "always.h"
 

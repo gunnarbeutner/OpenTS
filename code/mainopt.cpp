@@ -9,8 +9,6 @@
 
 #include "always.h"
 
-#include <windowsx.h>
-
 #include "mainopt.h"
 
 #include "_map.h"
@@ -21,6 +19,7 @@
 #include "data.h"
 #include "dbgprint.h"
 #include "audio/audioengine.h"
+#include "dialogresult.h"
 #include "dsurface.h"
 #include "gamedlg.h"
 #include "globals.h"
