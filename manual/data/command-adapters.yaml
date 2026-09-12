@@ -267,10 +267,11 @@ fixed_controls:
     description: Stops a VQA when the caller permits user breakout; in a game against other machines it casts this machine's vote to stop it.
     audience: player
     bindings: [Escape]
-    context: VQA playback
+    context: Full-screen movie playback
     availability: *all
     sites:
       - { file: code/movieskip.cpp, function: Idle, expression: KN_ESC }
+      - { file: code/vqa.cpp, function: VQAClass::Play_VQA, expression: KN_ESC }
       - { file: code/mp4.cpp, function: MP4Class::Play_VQA, expression: KN_ESC, guard: "defined(OPENTS_MP4_MOVIES)" }
   - id: fixed:skip-campaign-presentation
     title: Skip campaign presentation
@@ -468,6 +469,8 @@ fixed_exclusions:
       - { file: code/ui/uishell.cpp, function: UIShellClass::Key_Modifiers, expression: VK_CAPITAL }
       - { file: code/ui/uishell.cpp, function: UIShellClass::Key_Modifiers, expression: VK_NUMLOCK }
     reason: UI shell modifier-state encoding for RmlUi, not separate controls.
+      - { file: code/ui/uibrowser.cpp, function: Handle_Event, expression: VK_RBUTTON }
+      - { file: code/ui/uibrowser.cpp, function: Handle_Event, expression: VK_MBUTTON }
   - sites:
       - { file: code/ui/uishell.cpp, function: Modifier_Key, expression: VK_SHIFT }
       - { file: code/ui/uishell.cpp, function: Modifier_Key, expression: VK_CONTROL }
