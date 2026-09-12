@@ -1,0 +1,317 @@
+<rml>
+<!--
+	The three templates this replaces, IDD_MAPGEN, IDD_MAPGEN_FS and IDD_MAPGEN_WDT, place the
+	same controls differently, so the placement below is one rule per control and template,
+	taken from each template's dialog units at MS Sans Serif 8's base units. The labels were
+	literal control text in the templates and stay literal here.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		#mapgen
+		{
+			left: 50%;
+			top: 50%;
+			margin-top: -196dp;
+			height: 393dp;
+		}
+
+		#mapgen.ts { margin-left: -318dp; width: 636dp; decorator: image(frame:636x393); }
+		#mapgen.fs, #mapgen.wdt { margin-left: -319dp; width: 639dp; decorator: image(frame:639x393); }
+
+		#mapgen .label, #mapgen select, #mapgen .numbered, #mapgen button, #mapgen .check, #frame
+		{
+			position: absolute;
+			margin: 0;
+		}
+
+		#mapgen .label
+		{
+			display: block;
+			line-height: 23dp;
+			white-space: nowrap;
+		}
+
+		/* The preview label was centred in its box. */
+		#frame-label
+		{
+			text-align: center;
+		}
+
+		#mapgen .check span
+		{
+			margin-left: 4dp;
+			vertical-align: top;
+		}
+
+		#frame
+		{
+			box-sizing: border-box;
+			border: 1dp #4eb6dcff;
+		}
+
+		/* The dialog scaled the preview to fit its frame, keeping its shape, and centred it. */
+		#map
+		{
+			position: absolute;
+			left: 0;
+			top: 0;
+			width: 100%;
+			height: 100%;
+			decorator: image(surface:mapgen-preview contain center center);
+		}
+
+		/*
+		 * The painter took the 24 pixel skin for a button 23 pixels tall and let it run a
+		 * pixel past the bottom, so the buttons are 24 tall here.
+		 */
+		#ok, #cancel, #load, #save, #delete
+		{
+			height: 24dp;
+			decorator: image(button:u:98x24);
+		}
+
+		#ok:active:hover, #cancel:active:hover, #load:active:hover, #save:active:hover, #delete:active:hover
+		{
+			decorator: image(button:d:98x24);
+		}
+
+		#preview, #surprise
+		{
+			height: 24dp;
+			decorator: image(button:u:132x24);
+		}
+
+		#preview:active:hover, #surprise:active:hover
+		{
+			decorator: image(button:d:132x24);
+		}
+
+		#mapgen.ts #ok { left: 398dp; top: 358dp; width: 98dp; height: 23dp; }
+		#mapgen.ts #cancel { left: 506dp; top: 358dp; width: 98dp; height: 23dp; }
+		#mapgen.ts #biome { left: 142dp; top: 13dp; width: 150dp; }
+		#mapgen.ts #hills { left: 142dp; top: 169dp; width: 150dp; height: 23dp; }
+		#mapgen.ts #label-hills { left: 33dp; top: 169dp; width: 111dp; height: 23dp; }
+		#mapgen.ts #water { left: 142dp; top: 262dp; width: 150dp; height: 23dp; }
+		#mapgen.ts #label-players { left: 33dp; top: 76dp; width: 111dp; height: 23dp; }
+		#mapgen.ts #label-mapwidth { left: 309dp; top: 13dp; width: 98dp; height: 20dp; }
+		#mapgen.ts #label-mapheight { left: 308dp; top: 41dp; width: 98dp; height: 20dp; }
+		#mapgen.ts #vegetation { left: 142dp; top: 292dp; width: 150dp; height: 23dp; }
+		#mapgen.ts #cities { left: 142dp; top: 323dp; width: 150dp; height: 23dp; }
+		#mapgen.ts #fields { left: 142dp; top: 231dp; width: 150dp; height: 23dp; }
+		#mapgen.ts #label-tiberiumfields { left: 33dp; top: 231dp; width: 111dp; height: 23dp; }
+		#mapgen.ts #accessibility { left: 142dp; top: 138dp; width: 150dp; height: 23dp; }
+		#mapgen.ts #label-environment { left: 33dp; top: 13dp; width: 99dp; height: 23dp; }
+		#mapgen.ts #load { left: 150dp; top: 358dp; width: 98dp; height: 23dp; }
+		#mapgen.ts #save { left: 33dp; top: 358dp; width: 98dp; height: 23dp; }
+		#mapgen.ts #time { left: 142dp; top: 41dp; width: 150dp; }
+		#mapgen.ts #label-water { left: 33dp; top: 262dp; width: 111dp; height: 23dp; }
+		#mapgen.ts #label-timeofday { left: 33dp; top: 44dp; width: 99dp; height: 23dp; }
+		#mapgen.ts #label-vegetation { left: 33dp; top: 292dp; width: 111dp; height: 23dp; }
+		#mapgen.ts #label-cities { left: 33dp; top: 323dp; width: 111dp; height: 23dp; }
+		#mapgen.ts #label-accessability { left: 33dp; top: 138dp; width: 111dp; height: 23dp; }
+		#mapgen.ts #preview { left: 471dp; top: 314dp; width: 132dp; height: 23dp; }
+		#mapgen.ts #frame { left: 308dp; top: 76dp; width: 296dp; height: 218dp; }
+		#mapgen.ts #frame-label { left: 312dp; top: 164dp; width: 291dp; height: 26dp; }
+		#mapgen.ts #surprise { left: 308dp; top: 314dp; width: 132dp; height: 23dp; }
+		#mapgen.ts #delete { left: 267dp; top: 358dp; width: 98dp; height: 23dp; }
+		#mapgen.ts #cliffs { left: 142dp; top: 107dp; width: 150dp; height: 23dp; }
+		#mapgen.ts #label-cliffs { left: 33dp; top: 107dp; width: 111dp; height: 23dp; }
+		#mapgen.ts #players { left: 142dp; top: 76dp; width: 150dp; height: 23dp; }
+		#mapgen.ts #tiberium { left: 142dp; top: 200dp; width: 150dp; height: 23dp; }
+		#mapgen.ts #label-tiberiumamount { left: 33dp; top: 200dp; width: 111dp; height: 23dp; }
+		#mapgen.ts #width { left: 416dp; top: 13dp; width: 94dp; }
+		#mapgen.ts #height { left: 416dp; top: 41dp; width: 94dp; }
+		#mapgen.fs #ok { left: 398dp; top: 358dp; width: 98dp; height: 23dp; }
+		#mapgen.fs #cancel { left: 506dp; top: 358dp; width: 98dp; height: 23dp; }
+		#mapgen.fs #biome { left: 118dp; top: 13dp; width: 150dp; }
+		#mapgen.fs #hills { left: 142dp; top: 150dp; width: 150dp; height: 23dp; }
+		#mapgen.fs #label-hills { left: 33dp; top: 150dp; width: 111dp; height: 23dp; }
+		#mapgen.fs #water { left: 142dp; top: 232dp; width: 150dp; height: 23dp; }
+		#mapgen.fs #label-players { left: 33dp; top: 67dp; width: 111dp; height: 23dp; }
+		#mapgen.fs #label-mapwidth { left: 280dp; top: 13dp; width: 80dp; height: 20dp; }
+		#mapgen.fs #label-mapheight { left: 279dp; top: 41dp; width: 80dp; height: 20dp; }
+		#mapgen.fs #vegetation { left: 142dp; top: 260dp; width: 150dp; height: 23dp; }
+		#mapgen.fs #cities { left: 142dp; top: 288dp; width: 150dp; height: 23dp; }
+		#mapgen.fs #fields { left: 142dp; top: 205dp; width: 150dp; height: 23dp; }
+		#mapgen.fs #label-tiberiumfields { left: 33dp; top: 205dp; width: 111dp; height: 23dp; }
+		#mapgen.fs #accessibility { left: 142dp; top: 122dp; width: 150dp; height: 23dp; }
+		#mapgen.fs #label-environment { left: 33dp; top: 11dp; width: 80dp; height: 23dp; }
+		#mapgen.fs #load { left: 150dp; top: 358dp; width: 98dp; height: 23dp; }
+		#mapgen.fs #save { left: 33dp; top: 358dp; width: 98dp; height: 23dp; }
+		#mapgen.fs #time { left: 118dp; top: 41dp; width: 150dp; }
+		#mapgen.fs #label-water { left: 33dp; top: 232dp; width: 111dp; height: 23dp; }
+		#mapgen.fs #label-timeofday { left: 33dp; top: 39dp; width: 80dp; height: 23dp; }
+		#mapgen.fs #label-vegetation { left: 33dp; top: 260dp; width: 111dp; height: 23dp; }
+		#mapgen.fs #label-cities { left: 33dp; top: 288dp; width: 111dp; height: 23dp; }
+		#mapgen.fs #label-accessability { left: 33dp; top: 122dp; width: 111dp; height: 23dp; }
+		#mapgen.fs #preview { left: 474dp; top: 325dp; width: 132dp; height: 23dp; }
+		#mapgen.fs #frame { left: 310dp; top: 93dp; width: 296dp; height: 218dp; }
+		#mapgen.fs #frame-label { left: 315dp; top: 200dp; width: 291dp; height: 26dp; }
+		#mapgen.fs #surprise { left: 308dp; top: 325dp; width: 132dp; height: 23dp; }
+		#mapgen.fs #delete { left: 267dp; top: 358dp; width: 98dp; height: 23dp; }
+		#mapgen.fs #cliffs { left: 142dp; top: 94dp; width: 150dp; height: 23dp; }
+		#mapgen.fs #label-cliffs { left: 33dp; top: 94dp; width: 111dp; height: 23dp; }
+		#mapgen.fs #players { left: 142dp; top: 67dp; width: 150dp; height: 23dp; }
+		#mapgen.fs #tiberium { left: 142dp; top: 177dp; width: 150dp; height: 23dp; }
+		#mapgen.fs #label-tiberiumamount { left: 33dp; top: 177dp; width: 111dp; height: 23dp; }
+		#mapgen.fs #width { left: 372dp; top: 13dp; width: 94dp; }
+		#mapgen.fs #height { left: 372dp; top: 42dp; width: 94dp; }
+		#mapgen.fs #transitions { left: 480dp; top: 42dp; width: 126dp; height: 16dp; }
+		#mapgen.fs #ionstorms { left: 480dp; top: 13dp; width: 126dp; height: 16dp; }
+		#mapgen.fs #veinholes { left: 142dp; top: 315dp; width: 150dp; height: 23dp; }
+		#mapgen.fs #label-veinholes { left: 33dp; top: 315dp; width: 111dp; height: 23dp; }
+		#mapgen.fs #lifeforms { left: 480dp; top: 72dp; width: 126dp; height: 16dp; }
+		#mapgen.wdt #ok { left: 398dp; top: 358dp; width: 98dp; height: 23dp; }
+		#mapgen.wdt #cancel { left: 506dp; top: 358dp; width: 98dp; height: 23dp; }
+		#mapgen.wdt #biome { left: 118dp; top: 13dp; width: 150dp; }
+		#mapgen.wdt #hills { left: 142dp; top: 150dp; width: 150dp; height: 23dp; }
+		#mapgen.wdt #label-hills { left: 33dp; top: 150dp; width: 111dp; height: 23dp; }
+		#mapgen.wdt #water { left: 142dp; top: 232dp; width: 150dp; height: 23dp; }
+		#mapgen.wdt #label-mapwidth { left: 280dp; top: 13dp; width: 80dp; height: 20dp; }
+		#mapgen.wdt #label-mapheight { left: 279dp; top: 41dp; width: 80dp; height: 20dp; }
+		#mapgen.wdt #vegetation { left: 142dp; top: 260dp; width: 150dp; height: 23dp; }
+		#mapgen.wdt #cities { left: 142dp; top: 288dp; width: 150dp; height: 23dp; }
+		#mapgen.wdt #fields { left: 142dp; top: 205dp; width: 150dp; height: 23dp; }
+		#mapgen.wdt #label-tiberiumfields { left: 33dp; top: 205dp; width: 111dp; height: 23dp; }
+		#mapgen.wdt #accessibility { left: 142dp; top: 122dp; width: 150dp; height: 23dp; }
+		#mapgen.wdt #label-environment { left: 33dp; top: 11dp; width: 80dp; height: 23dp; }
+		#mapgen.wdt #load { left: 150dp; top: 358dp; width: 98dp; height: 23dp; }
+		#mapgen.wdt #save { left: 33dp; top: 358dp; width: 98dp; height: 23dp; }
+		#mapgen.wdt #time { left: 118dp; top: 41dp; width: 150dp; }
+		#mapgen.wdt #label-water { left: 33dp; top: 232dp; width: 111dp; height: 23dp; }
+		#mapgen.wdt #label-timeofday { left: 33dp; top: 39dp; width: 80dp; height: 23dp; }
+		#mapgen.wdt #label-vegetation { left: 33dp; top: 260dp; width: 111dp; height: 23dp; }
+		#mapgen.wdt #label-cities { left: 33dp; top: 288dp; width: 111dp; height: 23dp; }
+		#mapgen.wdt #label-accessability { left: 33dp; top: 122dp; width: 111dp; height: 23dp; }
+		#mapgen.wdt #preview { left: 474dp; top: 322dp; width: 132dp; height: 23dp; }
+		#mapgen.wdt #frame { left: 310dp; top: 91dp; width: 296dp; height: 218dp; }
+		#mapgen.wdt #frame-label { left: 315dp; top: 198dp; width: 291dp; height: 26dp; }
+		#mapgen.wdt #surprise { left: 308dp; top: 322dp; width: 132dp; height: 23dp; }
+		#mapgen.wdt #delete { left: 267dp; top: 358dp; width: 98dp; height: 23dp; }
+		#mapgen.wdt #cliffs { left: 142dp; top: 94dp; width: 150dp; height: 23dp; }
+		#mapgen.wdt #label-cliffs { left: 33dp; top: 94dp; width: 111dp; height: 23dp; }
+		#mapgen.wdt #tiberium { left: 142dp; top: 177dp; width: 150dp; height: 23dp; }
+		#mapgen.wdt #label-tiberiumamount { left: 33dp; top: 177dp; width: 111dp; height: 23dp; }
+		#mapgen.wdt #width { left: 372dp; top: 13dp; width: 94dp; }
+		#mapgen.wdt #height { left: 372dp; top: 42dp; width: 94dp; }
+		#mapgen.wdt #transitions { left: 480dp; top: 41dp; width: 126dp; height: 16dp; }
+		#mapgen.wdt #ionstorms { left: 480dp; top: 13dp; width: 126dp; height: 16dp; }
+		#mapgen.wdt #veinholes { left: 144dp; top: 315dp; width: 150dp; height: 23dp; }
+		#mapgen.wdt #label-veinholes { left: 33dp; top: 315dp; width: 111dp; height: 23dp; }
+		#mapgen.wdt #onvone { left: 33dp; top: 72dp; width: 110dp; height: 16dp; }
+		#mapgen.wdt #twovtwo { left: 153dp; top: 72dp; width: 110dp; height: 16dp; }
+		#mapgen.wdt #lifeforms { left: 480dp; top: 68dp; width: 126dp; height: 16dp; }
+		#mapgen.ts #ionstorms { display: none; }
+		#mapgen.ts #label-veinholes { display: none; }
+		#mapgen.ts #lifeforms { display: none; }
+		#mapgen.ts #onvone { display: none; }
+		#mapgen.ts #transitions { display: none; }
+		#mapgen.ts #twovtwo { display: none; }
+		#mapgen.ts #veinholes { display: none; }
+		#mapgen.fs #onvone { display: none; }
+		#mapgen.fs #twovtwo { display: none; }
+		#mapgen.wdt #label-players { display: none; }
+		#mapgen.wdt #players { display: none; }
+	</style>
+</head>
+<body>
+	<div id="mapgen" class="dialog" data-model="mapgen" data-attr-class="'dialog ' + Variant">
+		<p id="label-environment" class="label">Environment:</p>
+		<p id="label-timeofday" class="label">Time of Day:</p>
+		<p id="label-mapwidth" class="label">Map Width:</p>
+		<p id="label-mapheight" class="label">Map Height:</p>
+		<p id="label-players" class="label">Players:</p>
+		<p id="label-cliffs" class="label">Cliffs:</p>
+		<p id="label-accessability" class="label">Accessability:</p>
+		<p id="label-hills" class="label">Hills:</p>
+		<p id="label-tiberiumamount" class="label">Tiberium Amount:</p>
+		<p id="label-tiberiumfields" class="label">Tiberium Fields:</p>
+		<p id="label-water" class="label">Water:</p>
+		<p id="label-vegetation" class="label">Vegetation:</p>
+		<p id="label-cities" class="label">Cities:</p>
+		<p id="label-veinholes" class="label">Veinholes:</p>
+		<select id="biome" data-value="Biome" data-attrif-disabled="!BiomeOn" data-event-change="act('set', 'biome')">
+			<option data-for="o : Biomes" data-attr-value="o.Value">{{o.Name}}</option>
+		</select>
+		<select id="time" data-value="Time" data-attrif-disabled="!TimeOn" data-event-change="act('set', 'time')">
+			<option data-for="o : Times" data-attr-value="o.Value">{{o.Name}}</option>
+		</select>
+		<select id="width" data-value="Width" data-attrif-disabled="!WidthOn" data-event-change="act('set', 'width')">
+			<option data-for="o : Sizes" data-attr-value="o.Value">{{o.Name}}</option>
+		</select>
+		<select id="height" data-value="Height" data-attrif-disabled="!HeightOn" data-event-change="act('set', 'height')">
+			<option data-for="o : Sizes" data-attr-value="o.Value">{{o.Name}}</option>
+		</select>
+		<div id="players" class="numbered">
+			<input type="range" class="slider" data-attr-min="Players.Min" data-attr-max="Players.Max" step="1"
+			data-value="Players.Value" data-attrif-disabled="!Players.On" data-event-change="act('set', 'players')"/>
+			<span class="number">{{Players.Value}}</span>
+		</div>
+		<div id="cliffs" class="numbered">
+			<input type="range" class="slider" data-attr-min="Cliffs.Min" data-attr-max="Cliffs.Max" step="1"
+			data-value="Cliffs.Value" data-attrif-disabled="!Cliffs.On" data-event-change="act('set', 'cliffs')"/>
+			<span class="number">{{Cliffs.Value}}</span>
+		</div>
+		<div id="accessibility" class="numbered">
+			<input type="range" class="slider" data-attr-min="Accessibility.Min" data-attr-max="Accessibility.Max" step="1"
+			data-value="Accessibility.Value" data-attrif-disabled="!Accessibility.On" data-event-change="act('set', 'accessibility')"/>
+			<span class="number">{{Accessibility.Value}}</span>
+		</div>
+		<div id="hills" class="numbered">
+			<input type="range" class="slider" data-attr-min="Hills.Min" data-attr-max="Hills.Max" step="1"
+			data-value="Hills.Value" data-attrif-disabled="!Hills.On" data-event-change="act('set', 'hills')"/>
+			<span class="number">{{Hills.Value}}</span>
+		</div>
+		<div id="tiberium" class="numbered">
+			<input type="range" class="slider" data-attr-min="Tiberium.Min" data-attr-max="Tiberium.Max" step="1"
+			data-value="Tiberium.Value" data-attrif-disabled="!Tiberium.On" data-event-change="act('set', 'tiberium')"/>
+			<span class="number">{{Tiberium.Value}}</span>
+		</div>
+		<div id="fields" class="numbered">
+			<input type="range" class="slider" data-attr-min="Fields.Min" data-attr-max="Fields.Max" step="1"
+			data-value="Fields.Value" data-attrif-disabled="!Fields.On" data-event-change="act('set', 'fields')"/>
+			<span class="number">{{Fields.Value}}</span>
+		</div>
+		<div id="water" class="numbered">
+			<input type="range" class="slider" data-attr-min="Water.Min" data-attr-max="Water.Max" step="1"
+			data-value="Water.Value" data-attrif-disabled="!Water.On" data-event-change="act('set', 'water')"/>
+			<span class="number">{{Water.Value}}</span>
+		</div>
+		<div id="vegetation" class="numbered">
+			<input type="range" class="slider" data-attr-min="Vegetation.Min" data-attr-max="Vegetation.Max" step="1"
+			data-value="Vegetation.Value" data-attrif-disabled="!Vegetation.On" data-event-change="act('set', 'vegetation')"/>
+			<span class="number">{{Vegetation.Value}}</span>
+		</div>
+		<div id="cities" class="numbered">
+			<input type="range" class="slider" data-attr-min="Cities.Min" data-attr-max="Cities.Max" step="1"
+			data-value="Cities.Value" data-attrif-disabled="!Cities.On" data-event-change="act('set', 'cities')"/>
+			<span class="number">{{Cities.Value}}</span>
+		</div>
+		<div id="veinholes" class="numbered">
+			<input type="range" class="slider" data-attr-min="Veinholes.Min" data-attr-max="Veinholes.Max" step="1"
+			data-value="Veinholes.Value" data-attrif-disabled="!Veinholes.On" data-event-change="act('set', 'veinholes')"/>
+			<span class="number">{{Veinholes.Value}}</span>
+		</div>
+		<div id="lifeforms" class="check"><input type="checkbox" data-checked="Lifeforms" data-attrif-disabled="!LifeformsOn"
+			data-event-change="act('set', 'lifeforms')"/><span>Lifeforms</span></div>
+		<div id="transitions" class="check"><input type="checkbox" data-checked="Transitions" data-attrif-disabled="!TransitionsOn"
+			data-event-change="act('set', 'transitions')"/><span>Transitions</span></div>
+		<div id="ionstorms" class="check"><input type="checkbox" data-checked="IonStorms"
+			data-event-change="act('set', 'ionstorms')"/><span>Ion Storms</span></div>
+		<div id="onvone" class="check"><input type="checkbox" disabled/><span>1 on 1</span></div>
+		<div id="twovtwo" class="check"><input type="checkbox" checked disabled/><span>2 on 2</span></div>
+		<div id="frame">
+			<div id="map" data-if="HasPreview"></div>
+		</div>
+		<p id="frame-label" class="label" data-if="!HasPreview">Preview</p>
+		<button id="surprise" data-event-click="act('surprise')" data-attrif-disabled="!SurpriseOn">Surprise Me</button>
+		<button id="preview" data-event-click="act('preview')" data-attrif-disabled="!PreviewOn">Preview Map</button>
+		<button id="save" data-event-click="act('save')">Save Map</button>
+		<button id="load" data-event-click="act('load')" data-attrif-disabled="!LoadOn">Load Map</button>
+		<button id="delete" data-event-click="act('delete')" data-attrif-disabled="!DeleteOn">Delete Map</button>
+		<button id="ok" data-event-click="act('accept')">OK</button>
+		<button id="cancel" data-event-click="act('cancel')">Cancel</button>
+	</div>
+</body>
+</rml>
