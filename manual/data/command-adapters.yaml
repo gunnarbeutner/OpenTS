@@ -361,18 +361,6 @@ fixed_exclusions:
       - { file: code/keyboard.cpp, function: WWKeyboardClass::Is_Mouse_Key, expression: VK_RBUTTON }
     reason: Keyboard-backend classification of mouse virtual keys.
   - sites:
-      - { file: code/keyboard.cpp, function: WWKeyboardClass::Put_Key_Message, expression: VK_SHIFT }
-      - { file: code/keyboard.cpp, function: WWKeyboardClass::Put_Key_Message, expression: VK_CONTROL }
-      - { file: code/keyboard.cpp, function: WWKeyboardClass::Put_Key_Message, expression: VK_MENU }
-    reason: Keyboard-backend modifier-state encoding, not separate controls.
-  - sites:
-      - { file: code/keyboard.cpp, function: WWKeyboardClass::Down, expression: VK_LBUTTON }
-      - { file: code/keyboard.cpp, function: WWKeyboardClass::Down, expression: VK_RBUTTON }
-      - { file: code/keyboard.cpp, function: WWKeyboardClass::Down, expression: VK_LBUTTON+VK_RBUTTON }
-    reason: Keyboard-backend normalization for the Windows swapped-button setting.
-  - site: { file: code/keyboard.cpp, function: WWKeyboardClass::Message_Handler, expression: VK_SCROLL }
-    reason: Synchronizes the backend Scroll Lock state; it does not dispatch a game command.
-  - sites:
       - { file: code/list.cpp, function: ListClass::Action, expression: KN_UP }
       - { file: code/list.cpp, function: ListClass::Action, expression: KN_DOWN }
       - { file: code/list.h, function: Action, expression: KN_UP }
@@ -415,8 +403,27 @@ fixed_exclusions:
       - { file: code/wdtsel.cpp, function: Selection::Pick_Territory, expression: KN_NONE }
       - { file: code/wdtsel.cpp, function: Selection::Pick_Territory, expression: KN_LMOUSE }
     reason: World Domination Tour territory-screen polling and hit-testing.
-  - site: { file: code/winstub.cpp, function: Create_Main_Window, expression: VK_M }
+  - sites:
+      - { file: code/scroll.cpp, function: ScrollClass::Pointer_Button, expression: VK_LBUTTON }
+      - { file: code/scroll.cpp, function: ScrollClass::Pointer_Button, expression: VK_RBUTTON }
+    reason: Routes tactical-map button presses and releases to the map's pointer handlers; the actions they take are not fixed bindings.
+  - site: { file: code/gamewindow.cpp, function: Game_Window_Mouse_Button, expression: VK_RBUTTON }
+    reason: Stops scroll coasting when the right button is released; the tactical map and the keyboard buffer own the button's actions.
+  - sites:
+      - { file: code/hostwindow_win32.cpp, function: Host_Key_Modifiers, expression: VK_SHIFT, guard: "defined(_WIN32)" }
+      - { file: code/hostwindow_win32.cpp, function: Host_Key_Modifiers, expression: VK_CONTROL, guard: "defined(_WIN32)" }
+      - { file: code/hostwindow_win32.cpp, function: Host_Key_Modifiers, expression: VK_MENU, guard: "defined(_WIN32)" }
+    reason: Host-window modifier-state encoding, not separate controls.
+  - sites:
+      - { file: code/hostwindow_win32.cpp, function: Host_Key_Is_Down, expression: VK_LBUTTON, guard: "defined(_WIN32)" }
+      - { file: code/hostwindow_win32.cpp, function: Host_Key_Is_Down, expression: VK_RBUTTON, guard: "defined(_WIN32)" }
+      - { file: code/hostwindow_win32.cpp, function: Host_Key_Is_Down, expression: VK_LBUTTON+VK_RBUTTON, guard: "defined(_WIN32)" }
+    reason: Host-window normalization for the Windows swapped-button setting.
+  - site: { file: code/hostwindow_win32.cpp, function: Handle_Input_Message, expression: VK_SCROLL, guard: "defined(_WIN32)" }
+    reason: Keeps Scroll Lock out of the keyboard buffer; it does not dispatch a game command.
+  - site: { file: code/hostwindow_win32.cpp, function: Host_Create_Window, expression: VK_M, guard: "defined(_WIN32)" }
     reason: Registers a Windows hotkey that has no WM_HOTKEY handler in the current source tree.
+  - sites:
       - { file: code/ui/uihotkey.cpp, function: UIHotkeyPresenter::Service, expression: VK_LBUTTON }
       - { file: code/ui/uihotkey.cpp, function: UIHotkeyPresenter::Service, expression: VK_RBUTTON }
       - { file: code/ui/uihotkey.cpp, function: UIHotkeyPresenter::Service, expression: VK_MBUTTON }

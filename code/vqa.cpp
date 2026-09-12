@@ -46,6 +46,8 @@ intptr_t __cdecl VQAMemoryHandler(VQAHandle * vqa, long action, void * buffer, l
 
 bool VQA_Message_Handler(void)
 {
+#if defined(_WIN32)
+
 	MSG msg;
 
 	if (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE)) {
@@ -57,6 +59,9 @@ bool VQA_Message_Handler(void)
 		}
 	}
 	return(true);
+#else
+	return(true);
+#endif
 }
 
 
@@ -530,7 +535,7 @@ int VQAClass::Play_VQA(int last_frame_to_play, bool nobreakout)
 
 		if (sleeping == true) {
 			if (!GameInFocus) {
-				Sleep((1000/30));
+				Platform_Sleep((1000/30));
 				continue;
 			} else {
 				sleeping = false;

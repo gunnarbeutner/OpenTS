@@ -17,7 +17,7 @@ option(OPENTS_EXPERIMENTAL_CLANG_CL "Build with clang-cl using the MSVC ABI" OFF
 # this as well, so declare it here rather than inherit it from a vendored build.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-
+# Visual Studio 2022 is the supported toolchain.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
    AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
     if(NOT OPENTS_EXPERIMENTAL_CLANG_CL)
@@ -25,6 +25,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
             "The unsupported clang-cl experiment must be configured with "
             "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/clang-cl-msvc.cmake.")
     endif()
+elseif(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # The native macOS target is in progress and unsupported; docs/BUILDING.md records
+    # its state.
+    set(OPENTS_MACOS ON)
 elseif(MSVC)
     if(MSVC_VERSION LESS 1930)
         message(FATAL_ERROR "OpenTS requires MSVC 19.30 or newer.")
@@ -54,7 +58,10 @@ if(NOT OPENTS_ARCH)
     endif()
 endif()
 
-enable_language(RC)
+# Only the Windows toolchains have a resource compiler.
+if(NOT OPENTS_MACOS)
+    enable_language(RC)
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -121,8 +128,13 @@ add_custom_command(
 add_custom_target(OpenTSStringNames DEPENDS "${OPENTS_STRING_NAME_HEADER}")
 
 # macOS builds with clang against POSIX rather than the Windows SDK.
+if(OPENTS_MACOS)
+    set(OPENTS_POSIX ON)
+endif()
+
 add_subdirectory(thirdparty)
 add_subdirectory(code)
 
 enable_testing()
+
 add_subdirectory(tests)

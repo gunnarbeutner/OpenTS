@@ -158,12 +158,7 @@
 #include "wwmouse.h"
 #include "zbuffer.h"
 
-#include <lzo/lzoconf.h>
 
-#include <shellapi.h>
-
-#include <conio.h>
-#include <io.h>
 #include <cfloat>
 #include <filesystem>
 #include <lzo/lzo1x.h>
@@ -298,50 +293,6 @@ static void RegisterClasses(void)
 	REGISTER_CLASS(AlphaShapeClass, ClassID_AlphaShapeClass);
 }
 
-/// <summary>
-/// Builds the argument list the game parses from the command line the shell handed over.
-/// The shell's own quoting decides where one argument ends and the next begins, so a
-/// directory whose name holds spaces arrives as the single argument it was written as.
-/// </summary>
-/// <param name="path_to_exe">Full path to the running executable, which becomes the first
-/// argument the way a DOS program received it.</param>
-/// <param name="argv">Receives the argument array, which lasts as long as the process.</param>
-/// <returns>The number of arguments, which is never less than one.</returns>
-static int Build_Arguments(char const * path_to_exe, char ** & argv)
-{
-	static std::vector<std::string> arguments;
-	static std::vector<char *> pointers;
-
-	arguments.clear();
-	pointers.clear();
-	arguments.push_back(path_to_exe);
-
-	int wide_count = 0;
-	LPWSTR * wide_argv = CommandLineToArgvW(GetCommandLineW(), &wide_count);
-
-	if (wide_argv != NULL) {
-		// Index zero names the executable, which the caller has already established.
-		for (int index = 1; index < wide_count; index++) {
-			int length = WideCharToMultiByte(CP_ACP, 0, wide_argv[index], -1, NULL, 0, NULL, NULL);
-			if (length <= 1) continue;
-
-			std::string argument(length - 1, '\0');
-			WideCharToMultiByte(CP_ACP, 0, wide_argv[index], -1, argument.data(), length, NULL, NULL);
-			arguments.push_back(argument);
-		}
-
-		LocalFree(wide_argv);
-	}
-
-	for (std::string & argument : arguments) {
-		pointers.push_back(argument.data());
-	}
-
-	argv = pointers.data();
-	return((int)pointers.size());
-}
-
-
 /***********************************************************************************************
  * main -- Initial startup routine (preps library systems).                                    *
  *                                                                                             *
@@ -359,7 +310,7 @@ static int Build_Arguments(char const * path_to_exe, char ** & argv)
  * HISTORY:                                                                                    *
  *   03/20/1995 JLB : Created.                                                                 *
  *=============================================================================================*/
-int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_show )
+int main(int argc, char * argv[])
 {
 	char	buffer[512];
 
@@ -484,10 +435,13 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 			exit(EXIT_FAILURE);
 		}
 
+		// Only the Windows host reports focus.
+#if defined(_WIN32)
 		do {
 			Windows_Message_Handler();
 		}
 		while (!GameInFocus);
+#endif
 
 		VisibleSurface->Fill(0);
 
@@ -572,6 +526,57 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 
 	return(error_code);
 }
+
+
+#if defined(_WIN32)
+
+/// <summary>
+/// The Windows entry point. Builds the argument list main receives from the command line the
+/// shell handed over, following the shell's own quoting, so a directory whose name holds spaces
+/// arrives as the single argument it was written as. The first argument is the executable's
+/// full path, whatever the shell was given.
+/// </summary>
+int WINAPI WinMain(HINSTANCE instance, HINSTANCE, char *, int command_show)
+{
+	// First, so that everything after it is covered, including the rest of startup.
+	Install_Exception_Handler();
+
+	ProgramInstance = instance;
+	ShowCommand = command_show;
+
+	// The list lasts as long as the process, as a C runtime's argv does.
+	static std::vector<std::string> arguments;
+	static std::vector<char *> pointers;
+
+	arguments.push_back(Executable_Path());
+
+	int wide_count = 0;
+	LPWSTR * const wide_argv = CommandLineToArgvW(GetCommandLineW(), &wide_count);
+
+	if (wide_argv != nullptr) {
+		// Index zero names the executable, which is already in place. The arguments name paths
+		// the narrow file API opens, so they take its code page, which the manifest makes UTF-8.
+		for (int index = 1; index < wide_count; index++) {
+			int const length = WideCharToMultiByte(CP_ACP, 0, wide_argv[index], -1, nullptr, 0, nullptr, nullptr);
+			if (length <= 1) continue;
+
+			std::string argument(length - 1, '\0');
+			WideCharToMultiByte(CP_ACP, 0, wide_argv[index], -1, argument.data(), length, nullptr, nullptr);
+			arguments.push_back(argument);
+		}
+
+		LocalFree(wide_argv);
+	}
+
+	for (std::string & argument : arguments) {
+		pointers.push_back(argument.data());
+	}
+	pointers.push_back(nullptr);
+
+	return(main(int(arguments.size()), pointers.data()));
+}
+
+#endif	// _WIN32
 
 /***********************************************************************************************
  * Prog_End -- Cleans up library systems in prep for game exit.                                *
@@ -893,18 +898,7 @@ void __cdecl Prog_End(void)
 
 	Unregister_Classes();
 
-	if (LanguageResources) {
-		FreeLibrary(LanguageResources);
-	}
-
-	if (AutoPlayMutex != NULL) {
-		CloseHandle(AutoPlayMutex);
-		AutoPlayMutex = NULL;
-	}
-	if (AppMutex != NULL) {
-		CloseHandle(AppMutex);
-		AppMutex = NULL;
-	}
+	Release_Single_Instance();
 }
 
 /***********************************************************************************************
