@@ -1230,6 +1230,12 @@ bool Load_Game(const char *file_name)
 {
 	DebugString("\nLOADING GAME [%s]\n", file_name);
 
+	// A save restored straight from the main menu reaches the map without passing through
+	// Start_Scenario, so the bulk data is asked for here as well.
+	if (!Init_Bulk_Data()) {
+		return(false);
+	}
+
 	// The whole file is checked before the running game is torn down, so a damaged
 	// save costs nothing. The listing fields come back with it, so the version this
 	// build will not read is judged on the same read rather than on a second one.
