@@ -102,6 +102,7 @@
  *   BuildingClass::~BuildingClass -- Destructor for building type objects.                    *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "utf8.h"
 #include "always.h"
 
 #include "building.h"
@@ -148,6 +149,7 @@
 #include "isotype.h"
 #include "light.h"
 #include "lightcon.h"
+#include "mainwindow.h"
 #include "mono.h"
 #include "overlay.h"
 #include "overtype.h"
@@ -688,7 +690,7 @@ void BuildingClass::Debug_Dump(MonoClass * mono) const
 /// <returns>bool; Was anything drawn?</returns>
 bool BuildingClass::Render(Rect & rect, bool forced, bool extras_only) const
 {
-	if (Debug_Map || !MainWindow || ((forced || IsToDisplay) && IsDown && !IsInLimbo)) {
+	if (Debug_Map || !Has_Main_Window() || ((forced || IsToDisplay) && IsDown && !IsInLimbo)) {
 		IsToDisplay = false;
 		rect = Intersect(rect, TacticalRect);
 
@@ -933,7 +935,7 @@ void BuildingClass::Draw_Extras(Point2D & xy, Rect & rect)
 			Coord coord = techno->Destination_Coord();
 			coord.Z = techno->PositionCoord.Z;
 
-			if (!MainWindow || Debug_Map || !Scen->Special.IsFogOfWar || (!Map.Is_Fogged(techno->PositionCoord) && !Map.Is_Fogged(coord))) {
+			if (!Has_Main_Window() || Debug_Map || !Scen->Special.IsFogOfWar || (!Map.Is_Fogged(techno->PositionCoord) && !Map.Is_Fogged(coord))) {
 				Point2D point;
 				TacticalMap->Coord_To_Pixel(techno->Render_Coord(), point);
 				techno->Draw_It(point, rect);
@@ -1361,8 +1363,8 @@ void BuildingClass::Set_Turret_Index(int index)
 	if (index != TurretIndex && !Class->IsTurretAnimAVoxel) {
 		End_Anim(BANIM_TURRET);
 		if (index != -1) {
-			strcpy(buffer, Class->GraphicName);
-			strcat(buffer, "_");
+			UTF8::Copy(buffer, Class->GraphicName);
+			UTF8::Append(buffer, "_");
 			int len = strlen(buffer);
 			buffer[len] = index + 'B';
 			buffer[len + 1] = '\0';
@@ -7120,7 +7122,7 @@ void BuildingClass::Write_INI(CCINIClass & ini)
 	char	uname[10];
 	char	buf[127];
 
-	sprintf(uname, "%d", Fetch_ID());
+	snprintf(uname, sizeof(uname), "%d", Fetch_ID());
 	int behavior;
 	if (BuildingLight != NULL) {
 		behavior = BuildingLight->Behavior;
@@ -7135,7 +7137,7 @@ void BuildingClass::Write_INI(CCINIClass & ini)
 		tag_name = "None";
 	}
 	Dir256 facing = PrimaryFacing.Current().As_Dir256();
-	sprintf(buf, "%s,%s,%d,%d,%d,%d,%s,%d,%d,%d,%d,%d",
+	snprintf(buf, sizeof(buf), "%s,%s,%d,%d,%d,%d,%s,%d,%d,%d,%d,%d",
 		(char const *)House->Class->IniName,
 		(char const *)Class->IniName,
 		(int)(HealthRatio*256 + .5),
@@ -9009,7 +9011,7 @@ VisualType BuildingClass::Visual_Character(bool raw, HouseClass const * house) c
 					}
 				}
 			} else {
-				if (IsOwnedByPlayer || Is_Sensed_By_Player() || !MainWindow || (Session.Type != GAME_NORMAL && House != NULL && PlayerPtr != NULL && PlayerPtr->Shares_View_With(House) && House->Shares_View_With(PlayerPtr))) {
+				if (IsOwnedByPlayer || Is_Sensed_By_Player() || !Has_Main_Window() || (Session.Type != GAME_NORMAL && House != NULL && PlayerPtr != NULL && PlayerPtr->Shares_View_With(House) && House->Shares_View_With(PlayerPtr))) {
 					return(VISUAL_SHADOWY);
 				}
 			}
@@ -9993,7 +9995,7 @@ bool BuildingClass::Is_Radar_Visible(DetectedType & detected) const
 
 		int height = Class->Height() * CELL_LEPTON_H - CELL_LEPTON;
 		int width = Class->Width() * CELL_LEPTON_W - CELL_LEPTON;
-		bool shrouded = Map.Is_Shrouded(PositionCoord) && Map.Is_Shrouded(PositionCoord + Coord(width, height)) && MainWindow;
+		bool shrouded = Map.Is_Shrouded(PositionCoord) && Map.Is_Shrouded(PositionCoord + Coord(width, height)) && Has_Main_Window();
 
 		if (Cloak != CLOAKED && TranslucencyLevel != 15 && !IsFogged && !shrouded) {
 			return(true);

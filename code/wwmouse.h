@@ -31,7 +31,6 @@
 
 #pragma once
 
-#include "win.h"
 #include "xmouse.h"
 
 class ShapeSet;
@@ -47,7 +46,7 @@ class WWMouseClass : public Mouse {
 		/*
 		**	Private constructor.
 		*/
-		WWMouseClass(HWND window);
+		WWMouseClass(void);
 
 		/*
 		**	Sets the game-drawn mouse imagery.
@@ -92,14 +91,10 @@ class WWMouseClass : public Mouse {
 		virtual Point2D Get_Mouse_Point(void) const override {int x; int y; Get_Bounded_Position(x, y); return(Point2D(x, y));}
 
 		/*
-		**	Converts O/S screen coordinates into game coordinates.
+		**	Converts window client coordinates into game coordinates.
 		*/
 		virtual void Convert_Coordinate(int & x, int & y) const override;
 
-		/*
-		**	Recalculate the confining rectangle from the window.
-		*/
-		void Calc_Confining_Rect(void);
 
 	private:
 
@@ -117,19 +112,15 @@ class WWMouseClass : public Mouse {
 		*/
 		bool IsCaptured;
 
-		/*
-		**	This is the window handle that is used to bind and bias the mouse
-		**	position.
-		*/
-		HWND Window;
-
-		/*
-		 * The screen rectangle that the mouse is confined to while it is captured.
-		 * It tracks the game window's client area.
-		 */
-		Rect ConfiningRect;
 
 		void Get_Bounded_Position(int & x, int & y) const;
 
 		virtual bool Is_Hidden(void) const override {return(MouseState < 0);}
 };
+
+
+// Frees the pointer from the game's capture for a menu that works with it, and gives it back
+// when the last such menu is done. Each call to Menu_Capture_Mouse is matched by one to
+// Menu_Release_Mouse; both answer with the number still outstanding.
+int Menu_Capture_Mouse(void);
+int Menu_Release_Mouse(void);

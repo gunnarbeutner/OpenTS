@@ -22,4 +22,4 @@ Both are gated on the structure belonging to a player-controlled house, so the s
 
 ## In dialogs
 
-The owner-drawn dialog controls play it without a position when the player operates them: pressing a button, ticking a check box, clicking a combo box or an item in its open drop-down list, selecting an item in a list box, and moving a track bar far enough to change its value. The mission restatement screen's "More" button plays it on the frame it first draws pressed.
+The menus and dialogs play it without a position when the player presses a button or moves a track bar to another step. The sound options' volume bars are silent. Pressing a check box or a drop-down list, or picking an item from the drop-down, plays it too. Clicking an entry in a list plays it whether or not the selection changes, and in the save, load, and delete lists a click anywhere in the list does. The mission restatement screen's "More" button plays it on the frame it first draws pressed.

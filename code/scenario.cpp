@@ -57,6 +57,7 @@
  *   ScenarioClass::Do_Fade_AI -- Process the palette fading effect.                           *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "hostwindow.h"
 #include "utf8.h"
 #include "always.h"
 
@@ -1011,7 +1012,7 @@ void Post_Load_Game(void)
 	AnimClass::Post_Load_Game();
 
 	Map.Flag_To_Redraw(GS_REDRAW_ALL);
-	InvalidateRect(MainWindow, NULL, FALSE);
+	Host_Invalidate_Window();
 }
 
 

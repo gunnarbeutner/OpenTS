@@ -30,6 +30,7 @@
 #include "house.h"
 #include "houstype.h"
 #include "inline.h"
+#include "mainwindow.h"
 #include "mouse.h"
 #include "partsys.h"
 #include "psystype.h"
@@ -661,7 +662,7 @@ void ParticleClass::Behavior_AI(void)
 void ParticleClass::Draw_It(Point2D const & point, Rect const & cliprect) const
 {
 	if (Options.DetailLevel != 0 || Class->BehavesLike != BEHAVIOR_SMOKE && Class->BehavesLike != BEHAVIOR_SPARK) {
-		if (Debug_Map || MainWindow == 0 || !Scen->Special.IsFogOfWar || !Map.Is_Fogged((Coord const &)PositionCoord)) {
+		if (Debug_Map || !Has_Main_Window() || !Scen->Special.IsFogOfWar || !Map.Is_Fogged((Coord const &)PositionCoord)) {
 
 			if (Class->BehavesLike != BEHAVIOR_SPARK && Class->BehavesLike != BEHAVIOR_RAILGUN) {
 				int height_offset = -15 - TacticalMap->Z_Lepton_To_Pixel(Height);
