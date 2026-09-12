@@ -51,6 +51,8 @@
 #include "savemgr.h"
 #include "scenario.h"
 #include "stats.h"
+#include "ui/uiabort.h"
+#include "ui/uigameopt.h"
 
 #include "special.hh"
 

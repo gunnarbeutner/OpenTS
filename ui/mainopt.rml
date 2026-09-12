@@ -1,0 +1,60 @@
+<rml>
+<!--
+	The template this replaces carried its captions as literal control text rather than as
+	string identifiers, so they stay literal here and a localized build ships a translated
+	copy of this document.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * The template is 200 by 148 dialog units at MS Sans Serif 8, which comes to 300 by
+		 * 240 logical pixels. The driver did not centre it: it moved its top to 147 pixels
+		 * below the top of a 640 by 400 picture centred on the frame, which is 53 pixels
+		 * above the frame's middle whatever the frame's height.
+		 */
+		#mainopt
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -150dp;
+			margin-top: -53dp;
+			width: 300dp;
+			height: 240dp;
+			decorator: image(frame:300x240@170,147);
+		}
+
+		/* The buttons are 126 by 18 dialog units, which the painter drew with its tall set. */
+		#mainopt button
+		{
+			position: absolute;
+			left: 55dp;
+			width: 189dp;
+			height: 30dp;
+			line-height: 30dp;
+			margin-left: 0;
+			decorator: image(button:u:189x30);
+		}
+
+		#mainopt button:active:hover
+		{
+			decorator: image(button:d:189x30);
+		}
+
+		#game { top: 16dp; }
+		#display { top: 52dp; }
+		#sound { top: 88dp; }
+		#keyboard { top: 123dp; }
+		#mainmenu { top: 195dp; }
+	</style>
+</head>
+<body>
+	<div id="mainopt" class="dialog" data-model="mainopt">
+		<button id="game" data-event-click="act('game')">Game Settings</button>
+		<button id="display" data-event-click="act('display')">Display</button>
+		<button id="sound" data-attrif-disabled="!SoundEnabled" data-event-click="act('sound')">Sound</button>
+		<button id="keyboard" data-event-click="act('keyboard')">Keyboard</button>
+		<button id="mainmenu" data-event-click="act('mainmenu')">Main Menu</button>
+	</div>
+</body>
+</rml>

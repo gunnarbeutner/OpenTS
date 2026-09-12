@@ -9,8 +9,11 @@
 
 #pragma once
 
-bool Change_Display_Mode(int width, int height);
-void Main_Options_Dialog(void);
 
-// Asks the player to keep a display mode just set, and puts the old one back unless they do.
-bool Test_Display_Mode_Dialog(int width, int height);
+// Shows the keyboard configuration and does not return until the player leaves it. A key
+// is assigned as the player works; OK writes the assignments to KEYBOARD.INI and Cancel
+// reloads them from the files, as the dialog did. A session that ends under the screen
+// leaves the assignments as they stand, unsaved.
+//
+// False means the screen could not be prepared.
+bool UI_Hotkey_Screen(void);

@@ -1,0 +1,66 @@
+<rml>
+<!--
+	The template this replaces carried its text as literal control text rather than as string
+	identifiers, so it stays literal here and a localized build ships a translated copy of this
+	document. The surrender caption is a string identifier and comes from the presenter.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * The template is 256 by 63 dialog units at MS Sans Serif 8, which comes to 384 by
+		 * 102 logical pixels, and it was centred on the frame.
+		 */
+		#abort
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -192dp;
+			margin-top: -51dp;
+			width: 384dp;
+			height: 102dp;
+			decorator: image(frame:384x102);
+		}
+
+		/* Centred text, centred on its own lines. */
+		#text
+		{
+			position: absolute;
+			left: 33dp;
+			top: 19dp;
+			width: 318dp;
+			height: 31dp;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			text-align: center;
+		}
+
+		#abort button
+		{
+			position: absolute;
+			top: 60dp;
+			width: 90dp;
+			margin-left: 0;
+			decorator: image(button:u:90x24);
+		}
+
+		#abort button:active:hover
+		{
+			decorator: image(button:d:90x24);
+		}
+
+		#quit { left: 33dp; }
+		#restart { left: 147dp; }
+		#cancel { left: 261dp; }
+	</style>
+</head>
+<body>
+	<div id="abort" class="dialog" data-model="abort">
+		<div id="text"><p>Do you want to abort the mission?</p></div>
+		<button id="quit" data-event-click="act('abort')">Abort</button>
+		<button id="restart" data-attrif-disabled="!RestartEnabled" data-event-click="act('restart')">{{RestartText}}</button>
+		<button id="cancel" data-event-click="act('cancel')">[[TXT_CANCEL]]</button>
+	</div>
+</body>
+</rml>

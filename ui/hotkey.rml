@@ -1,0 +1,223 @@
+<rml>
+<!--
+	The template this replaces carried its labels as literal control text rather than as
+	string identifiers, so they stay literal here and a localized build ships a translated
+	copy of this document.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * The template is 336 by 208 dialog units at MS Sans Serif 8, which comes to 504 by
+		 * 338 logical pixels, and it was centred on the frame.
+		 */
+		#hotkey
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -252dp;
+			margin-top: -169dp;
+			width: 504dp;
+			height: 338dp;
+			decorator: image(frame:504x338);
+		}
+
+		/* The labels were centred on lines of 9 to 11 dialog units, 15 to 18 pixels. */
+		.at
+		{
+			position: absolute;
+			display: block;
+			line-height: 15dp;
+			white-space: nowrap;
+		}
+
+		#title
+		{
+			left: 33dp;
+			top: 19dp;
+			width: 438dp;
+			height: 18dp;
+			line-height: 18dp;
+			text-align: center;
+		}
+
+		/* The combo box's closed height on the dialog was 24 pixels. */
+		#category
+		{
+			position: absolute;
+			left: 33dp;
+			top: 68dp;
+			width: 207dp;
+			height: 24dp;
+		}
+
+		/* The list and the scroll bar the painter attached to it share the template's width. */
+		#commands
+		{
+			position: absolute;
+			left: 252dp;
+			top: 66dp;
+			width: 219dp;
+			height: 170dp;
+		}
+
+		/*
+		 * The description's group box. The painter drew its top edge through the middle of
+		 * the caption's line, broken for the caption: eight pixels of line, the caption two
+		 * pixels further in, and the line again twelve pixels past its end.
+		 */
+		#describe
+		{
+			position: absolute;
+			left: 33dp;
+			top: 92dp;
+			width: 207dp;
+			height: 93dp;
+		}
+
+		.group .frame
+		{
+			position: absolute;
+			left: 0;
+			right: 0;
+			top: 7dp;
+			bottom: 0;
+			border: 1dp #4eb6dcff;
+			border-top-width: 0;
+		}
+
+		.group .head
+		{
+			position: absolute;
+			left: 0;
+			right: 0;
+			top: 0;
+			height: 14dp;
+			display: flex;
+			align-items: center;
+		}
+
+		.group .head .edge
+		{
+			width: 9dp;
+			height: 0;
+			border-top: 1dp #4eb6dcff;
+		}
+
+		/* The painter wrote a group box caption through the device context, not from the sheets. */
+		.group .head .legend
+		{
+			display: block;
+			font-family: opents-sans;
+			font-size: 14dp;
+			margin-left: 1dp;
+			margin-right: 2dp;
+		}
+
+		.group .head .rest
+		{
+			flex: 1;
+			height: 0;
+			border-top: 1dp #4eb6dcff;
+		}
+
+		#description
+		{
+			left: 43dp;
+			top: 110dp;
+			width: 190dp;
+			height: 68dp;
+			line-height: 18dp;
+			white-space: normal;
+			overflow: hidden;
+		}
+
+		/*
+		 * The key box: the key named inside a frame in the common frame colour, four pixels
+		 * in and centred on the line, and named through the device context rather than from
+		 * the sheets.
+		 */
+		#keybox
+		{
+			position: absolute;
+			left: 33dp;
+			top: 213dp;
+			width: 128dp;
+			height: 23dp;
+			box-sizing: border-box;
+			border: 1dp #4eb6dcff;
+			font-family: opents-sans;
+			font-size: 14dp;
+			padding: 0 4dp;
+			line-height: 21dp;
+			white-space: nowrap;
+			overflow: hidden;
+		}
+
+		#hotkey button
+		{
+			position: absolute;
+			margin-left: 0;
+		}
+
+		#assign
+		{
+			left: 165dp;
+			top: 215dp;
+			width: 75dp;
+			decorator: image(button:u:75x24);
+		}
+
+		#ok { left: 280dp; top: 294dp; width: 75dp; decorator: image(button:u:75x24); }
+		#cancel { left: 396dp; top: 294dp; width: 75dp; decorator: image(button:u:75x24); }
+		#reset { left: 33dp; top: 294dp; width: 81dp; decorator: image(button:u:81x24); }
+
+		#assign:active:hover,
+		#ok:active:hover,
+		#cancel:active:hover
+		{
+			decorator: image(button:d:75x24);
+		}
+
+		#reset:active:hover
+		{
+			decorator: image(button:d:81x24);
+		}
+	</style>
+</head>
+<body>
+	<div id="hotkey" class="dialog" data-model="hotkey">
+		<div id="title" class="at">Customize Keyboard</div>
+
+		<div class="at" style="left: 33dp; top: 44dp;">Category:</div>
+		<select id="category" data-attr-value="Category" data-event-change="act('category')">
+			<option data-for="category : Categories" data-attr-value="it_index">{{category.Name}}</option>
+		</select>
+
+		<div class="at" style="left: 252dp; top: 44dp;">Commands:</div>
+		<div id="commands" class="list">
+			<p data-for="command : Commands" data-class-picked="it_index == Selected"
+				data-event-click="act('select', it_index)">{{command.Name}}</p>
+		</div>
+
+		<div id="describe" class="group">
+			<div class="frame"/>
+			<div class="head"><div class="edge"/><div class="legend">Description:</div><div class="rest"/></div>
+		</div>
+		<div id="description" class="at">{{Description}}</div>
+
+		<div class="at" style="left: 33dp; top: 194dp;">Press new shortcut key:</div>
+		<div id="keybox">{{HotKeyText}}</div>
+		<button id="assign" data-event-click="act('assign')">Assign</button>
+
+		<div class="at" style="left: 33dp; top: 246dp;">Currently assigned to:</div>
+		<div class="at" style="left: 252dp; top: 246dp;">Current shortcut:</div>
+		<div class="at" style="left: 33dp; top: 270dp;">{{AssignedTo}}</div>
+		<div class="at" style="left: 252dp; top: 270dp;">{{CurrentShortcut}}</div>
+
+		<button id="reset" data-event-click="act('reset')">Reset All</button>
+		<button id="ok" data-event-click="act('accept')">[[TXT_OK]]</button>
+		<button id="cancel" data-event-click="act('cancel')">[[TXT_CANCEL]]</button>
+	</div>
+</body>
+</rml>

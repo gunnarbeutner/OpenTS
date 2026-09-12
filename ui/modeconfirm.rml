@@ -1,0 +1,59 @@
+<rml>
+<!--
+	The template this replaces carried its text as literal control text rather than as a
+	string identifier, so it stays literal here and a localized build ships a translated copy
+	of this document.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * The template is 239 by 70 dialog units at MS Sans Serif 8, which comes to 358 by
+		 * 114 logical pixels, and it was centred on the frame.
+		 */
+		#modeconfirm
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -179dp;
+			margin-top: -57dp;
+			width: 358dp;
+			height: 114dp;
+			decorator: image(frame:358x114);
+		}
+
+		#text
+		{
+			position: absolute;
+			left: 33dp;
+			top: 19dp;
+			width: 293dp;
+			height: 42dp;
+		}
+
+		#modeconfirm button
+		{
+			position: absolute;
+			top: 71dp;
+			width: 75dp;
+			margin-left: 0;
+			decorator: image(button:u:75x24);
+		}
+
+		#modeconfirm button:active:hover
+		{
+			decorator: image(button:d:75x24);
+		}
+
+		#ok { left: 166dp; }
+		#cancel { left: 250dp; }
+	</style>
+</head>
+<body>
+	<div id="modeconfirm" class="dialog" data-model="modeconfirm">
+		<p id="text">Click OK to keep this display mode or wait and your old display settings will be restored.</p>
+		<button id="ok" data-event-click="act('accept')">[[TXT_OK]]</button>
+		<button id="cancel" data-event-click="act('cancel')">[[TXT_CANCEL]]</button>
+	</div>
+</body>
+</rml>
