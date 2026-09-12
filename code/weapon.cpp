@@ -180,7 +180,7 @@ bool WeaponTypeClass::Read_INI(CCINIClass const & ini)
 
 		for (int i = 0; i < ARRAY_SIZE(BurstDelay); i++) {
 			char buf[20];
-			sprintf(buf, "BurstDelay%d", i);
+			snprintf(buf, sizeof(buf), "BurstDelay%d", i);
 			BurstDelay[i] = ini.Get_Int(IniName, buf, BurstDelay[i]);
 		}
 

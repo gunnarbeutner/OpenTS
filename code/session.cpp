@@ -44,6 +44,7 @@
  *   SessionClass::Compute_Unique_ID -- computes unique local ID number                        *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "utf8.h"
 #include "netsocket.h"
 #include "mstimer.h"
 #include "always.h"
@@ -922,7 +923,7 @@ void SessionClass::Read_Scenario_Descriptions(void)
 	*/
 	for (AddonType addon = ADDON_COUNT; addon > ADDON_BASE_GAME; --addon) {
 		if (Addon_Enabled(addon) == true) {
-			sprintf(name_buffer, "MULTI%02d.PKT", addon);
+			snprintf(name_buffer, sizeof(name_buffer), "MULTI%02d.PKT", addon);
 			file.Close();
 			file.Set_Name(name_buffer);
 			if (CCFileClass(name_buffer).Is_Available()) {

@@ -11,6 +11,7 @@
  * disclaimers apply; see LICENSE.md.
  ******************************************************************************/
 
+#include "utf8.h"
 #include "always.h"
 
 #include "_keyboar.h"
@@ -117,7 +118,7 @@ class MyButton : public TextButtonClass {
 			Rect rect;
 			char buffer[40];
 
-			sprintf(buffer, "b%ce_li%d.pcx", IsPressed != false ? 'd' : 'u', height);
+			snprintf(buffer, sizeof(buffer), "b%ce_li%d.pcx", IsPressed != false ? 'd' : 'u', height);
 			Surface * image = SurfaceCache.GetSurface(buffer);
 			origin.Height = image->Get_Height();
 			dest_rect = origin;
@@ -129,7 +130,7 @@ class MyButton : public TextButtonClass {
 			source_rect.Height = height;
 			HiddenSurface->Blit_From(dest_rect, *image, source_rect);
 
-			sprintf(buffer, "b%ce_mi%d.pcx", IsPressed != false ? 'd' : 'u', height);
+			snprintf(buffer, sizeof(buffer), "b%ce_mi%d.pcx", IsPressed != false ? 'd' : 'u', height);
 			image = SurfaceCache.GetSurface(buffer);
 			rect = origin;
 			rect.X += small_width;
@@ -137,7 +138,7 @@ class MyButton : public TextButtonClass {
 			rect.Height = image->Get_Height();
 			SurfaceCache.Draw(rect, *HiddenSurface, *image, 0, 0);
 
-			sprintf(buffer, "b%ce_ri%d.pcx", IsPressed != false ? 'd' : 'u', height);
+			snprintf(buffer, sizeof(buffer), "b%ce_ri%d.pcx", IsPressed != false ? 'd' : 'u', height);
 			image = SurfaceCache.GetSurface(buffer);
 			dest_rect = origin;
 			dest_rect.X += origin.Width - width;
@@ -401,11 +402,11 @@ bool RestateMission::Init(ScenarioClass * scen)
 
 	if (strlen(Scenario->BriefingText)) {
 		DebugString("Restate: Fetching breifing text from %s\n", Scenario->ScenarioName);
-		strcpy(BriefingText, Scenario->BriefingText);
+		UTF8::Copy(BriefingText, Scenario->BriefingText);
 
 	} else {
 	if (Scenario->RequiredAddOn > ADDON_BASE_GAME) {
-		sprintf(buffer, "MISSION%1d.INI",  Scenario->RequiredAddOn);
+		snprintf(buffer, sizeof(buffer), "MISSION%1d.INI",  Scenario->RequiredAddOn);
 		file.Set_Name(buffer);
 	} else {
 		file.Set_Name("MISSION.INI");

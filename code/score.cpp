@@ -259,7 +259,7 @@ void ScoreClass::Presentation(void)
 	*/
 	total = Do_Calc(PlayerPtr);
 	char Dest[56];
-	sprintf(Dest, "%3d%%", total);
+	snprintf(Dest, sizeof(Dest), "%3d%%", total);
 	Alloc_Object(obj = new ScorePrintClass(Dest, XPos + 520, YPos + 60, BigFont, false));
 
 	Wait_For_Print(obj);
@@ -794,7 +794,7 @@ void ScoreClass::Show_Credits(void)
 {
 	char str[20];
 
-	sprintf(str, "%d", PlayerPtr->Available_Money());
+	snprintf(str, sizeof(str), "%d", PlayerPtr->Available_Money());
 
 	int x = 590 - (12 * strlen(str));
 
@@ -835,7 +835,7 @@ void ScoreClass::Print_Minutes(int time)
 	time		-= minutes * 60;
 	int seconds	 = (unsigned)time;
 
-	sprintf(str, "%02ld:%02ld:%02ld", hours, minutes, seconds);
+	snprintf(str, sizeof(str), "%02ld:%02ld:%02ld", hours, minutes, seconds);
 
 	int x = XPos - (BigFont->String_Width(str) / 2) + 542;
 
@@ -870,7 +870,7 @@ Rect ScoreClass::Count_Up_Print(Surface * surf, char *str, int percent, int maxv
 {
 	char destbuf[64];
 
-	sprintf(destbuf, str, percent >= maxval ? maxval : percent);
+	snprintf(destbuf, sizeof(destbuf), str, percent >= maxval ? maxval : percent);
 	ScoreFontClass * font = FullFont;
 	ypos = ypos - FullFont->Get_Height();
 	FullFont->Print_String(surf, destbuf, xpos, ypos, 2);

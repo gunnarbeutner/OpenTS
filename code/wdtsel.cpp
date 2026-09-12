@@ -7,6 +7,7 @@
  * See LICENSE.md for applicable additional terms and warranty disclaimers.
  ******************************************************************************/
 
+#include "utf8.h"
 #include "always.h"
 #include "language/language.h"
 
@@ -93,13 +94,13 @@ Selection::Selection(Campaign * campaign, bool vq_anim) :
 	char entry[4];
 
 	char layout[64];
-	sprintf(entry, "%d", campaign->Get_Campaign_Properties().Get_Layout());
+	snprintf(entry, sizeof(entry), "%d", campaign->Get_Campaign_Properties().Get_Layout());
 	ini.Get_String("LAYOUTS", entry, "", layout, sizeof(layout));
 
 	Init_Dimensions(ini, layout);
 
 	char region[64];
-	sprintf(entry, "%d", campaign->Get_Campaign_Properties().Get_Map_ID());
+	snprintf(entry, sizeof(entry), "%d", campaign->Get_Campaign_Properties().Get_Map_ID());
 	ini.Get_String("MAPS", entry, "", region, sizeof(region));
 
 	Init_Art(ini, layout);
@@ -223,7 +224,7 @@ void Selection::Init_Regions(INIClass const & ini, const char * section, bool vq
 	ini.Get_String(section, "RegionName", NULL, region_name, sizeof(region_name));
 
 	char buffer[64];
-	sprintf(buffer, "%s%s.vqa", faction_name, region_name);
+	snprintf(buffer, sizeof(buffer), "%s%s.vqa", faction_name, region_name);
 	if (vq_anim) {
 		RegionAnim = new MSVQAnim(buffer, AlternateSurface, &Anims, true);
 	} else {
@@ -232,7 +233,7 @@ void Selection::Init_Regions(INIClass const & ini, const char * section, bool vq
 
 	Add_Animation(RegionAnim);
 
-	sprintf(buffer, "%s%s.pal", faction_name, region_name);
+	snprintf(buffer, sizeof(buffer), "%s%s.pal", faction_name, region_name);
 	RegionDrawer = Create_Drawer(buffer);
 	TerritoryDrawer = Create_Drawer(buffer);
 
@@ -247,17 +248,17 @@ void Selection::Init_Regions(INIClass const & ini, const char * section, bool vq
 	ini.Get_String(section, "RegionPrefix", NULL, region_prefix, sizeof(region_prefix));
 
 	char territory_name[64];
-	sprintf(territory_name, "%s%s", region_prefix, faction_prefix);
+	snprintf(territory_name, sizeof(territory_name), "%s%s", region_prefix, faction_prefix);
 
 	WorldMap.Add_Territory(territory_name, ini, section, TourCampaign->PlayerFaction, *this, TerritoryDrawer, &Anims, Position);
 
 	char background_name[64];
-	sprintf(background_name, "%sBack.PCX", region_prefix);
+	snprintf(background_name, sizeof(background_name), "%sBack.PCX", region_prefix);
 	CancelButtonAnim = new MSPCXAnim(background_name, &Anims, CancelButtonRectangle.TopLeft, true);
 	CancelButtonAnim->Set_Active(false);
 	Add_Animation(CancelButtonAnim);
 
-	sprintf(background_name, "%sBackh.PCX", region_prefix);
+	snprintf(background_name, sizeof(background_name), "%sBackh.PCX", region_prefix);
 	CancelButtonHoverAnim = new MSPCXAnim(background_name, &Anims, CancelButtonRectangle.TopLeft, true);
 	CancelButtonHoverAnim->Set_Active(false);
 	Add_Animation(CancelButtonHoverAnim);
@@ -288,10 +289,10 @@ void Selection::Init_Logo(INIClass const & ini, const char * section)
 	char buffer[64];
 	char const * faction_name = TourCampaign->PlayerFaction == 3 ? "NOD" : "GDI";
 
-	sprintf(buffer, "%sLogo.PAL", faction_name);
+	snprintf(buffer, sizeof(buffer), "%sLogo.PAL", faction_name);
 	LogoDrawer = Create_Drawer(buffer);
 
-	sprintf(buffer, "%sLogo.SHP", faction_name);
+	snprintf(buffer, sizeof(buffer), "%sLogo.SHP", faction_name);
 
 	Point2D position(0,0);
 	position = ini.Get_Point(section, "Logo", position);
@@ -314,20 +315,20 @@ void Selection::Init_Target(INIClass const & ini, const char * section)
 	char buffer2[64];
 	char const * faction_name = TourCampaign->PlayerFaction == 3 ? "NOD" : "GDI";
 
-	sprintf(buffer2, "%sZoomingTarget", faction_name);
+	snprintf(buffer2, sizeof(buffer2), "%sZoomingTarget", faction_name);
 	if (ini.Get_String(section, buffer2, NULL, buffer, sizeof(buffer)) > 0) {
 		ZoomingTarget = new MSAnimEntry(buffer);
 	}
 
-	sprintf(buffer2, "%sTargetPalette", faction_name);
+	snprintf(buffer2, sizeof(buffer2), "%sTargetPalette", faction_name);
 	ini.Get_String(section, buffer2, NULL, buffer, sizeof(buffer));
 	TargetDrawer = Create_Drawer(buffer);
 
-	sprintf(buffer2, "%sThrobbingTarget", faction_name);
+	snprintf(buffer2, sizeof(buffer2), "%sThrobbingTarget", faction_name);
 	ini.Get_String(section, buffer2, NULL, buffer, sizeof(buffer));
 	ThrobbingTarget = new MSAnimEntry(buffer);
 
-	sprintf(buffer2, "%sThrobbingTargetDividingFrame", faction_name);
+	snprintf(buffer2, sizeof(buffer2), "%sThrobbingTargetDividingFrame", faction_name);
 	ThrobbingTargetDividingFrame = ini.Get_Int(section, buffer2, 32);
 }
 
@@ -661,7 +662,7 @@ bool Selection::Select_Territory(Territory * territory)
 		if (conflict != NULL) {
 			found = true;
 			SelectedConflict = *conflict;
-			strcpy(buffer, "\n");
+			UTF8::Copy(buffer, "\n");
 			conflict->Process_Game_Options(&buffer[1], 511);
 			description = buffer;
 			MSShapeAnim * anim = (MSShapeAnim *)territory->TargetAnim;
@@ -674,7 +675,7 @@ bool Selection::Select_Territory(Territory * territory)
 	}
 
 	char dest[256];
-	sprintf(dest, Fetch_String(TXT_WDT_FORMAT_TWO_LINES), MousedTerritory->Name, MousedTerritory->Description);
+	snprintf(dest, sizeof(dest), Fetch_String(TXT_WDT_FORMAT_TWO_LINES), MousedTerritory->Name, MousedTerritory->Description);
 	if (description != NULL) {
 		unsigned int len = strlen(dest);
 		if ((int)(256 - len) > 0) {
@@ -867,8 +868,8 @@ bool Selection::Present_Ticks(int tick_from, int tick_to)
 			if (first) {
 				len = strlen(str1);
 			}
-			sprintf(str2, Fetch_String(TXT_WDT_DAY), i + 1);
-			strcat(str1, str2);
+			snprintf(str2, sizeof(str2), Fetch_String(TXT_WDT_DAY), i + 1);
+			UTF8::Append(str1, str2);
 			if (first) {
 				char *trim = str1 + len;
 				while (*trim == ' ') {
@@ -1327,10 +1328,10 @@ void WorldDominationTour::Write_Map_INI(char const * map_name, char const * pcx1
 		if (piter == points.end()) {
 			break;
 		}
-		sprintf(string, "Territory%02d", ti);
-		sprintf(idx1, "%02d", ti);
+		snprintf(string, sizeof(string), "Territory%02d", ti);
+		snprintf(idx1, sizeof(idx1), "%02d", ti);
 		ti++;
-		sprintf(idx2, "%02d", ti);
+		snprintf(idx2, sizeof(idx2), "%02d", ti);
 		strncpy(section, map_name, 255u);
 		strncat(section, idx1, 255u);
 		ini.Put_String(map_name, string, section);

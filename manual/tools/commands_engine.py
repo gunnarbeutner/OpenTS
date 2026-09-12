@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CODE = ROOT / "code"
 MANIFEST = ROOT / "manual" / "data" / "command-adapters.yaml"
 INIT_SOURCE = CODE / "init.cpp"
-LANGUAGE_SOURCE = CODE / "language" / "language.rc"
+LANGUAGE_SOURCE = CODE / "languagestrings.cpp"
 
 ALL_BUILDS = ["release", "debug"]
 SOURCE_SUFFIXES = {".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx", ".inl"}
@@ -105,20 +105,20 @@ def route_id(identifier):
     return slug
 
 
-def _decode_rc_string(value):
+def _decode_string(value):
     try:
         return ast.literal_eval('"' + value + '"')
     except (SyntaxError, ValueError) as error:
-        raise ValueError(f"invalid language resource string {value!r}") from error
+        raise ValueError(f"invalid language string {value!r}") from error
 
 
 def language_strings(text=None):
-    text = read(LANGUAGE_SOURCE) if text is None else text
+    text = LANGUAGE_SOURCE.read_text(encoding="utf-8") if text is None else text
     strings = {}
     for match in re.finditer(
-            r'^\s*(TXT_[A-Z0-9_]+)\s+"((?:[^"\\]|\\.)*)"\s*$', text, re.M):
+            r'^\s*\{\s*(TXT_[A-Z0-9_]+)\s*,\s*"((?:[^"\\]|\\.)*)"\s*\}', text, re.M):
         token, value = match.groups()
-        strings[token] = _decode_rc_string(value)
+        strings[token] = _decode_string(value)
     return strings
 
 
@@ -148,7 +148,7 @@ def _method_text(class_name, body, method, resources, team=None, fallback=None):
             return fallback
         raise ValueError(f"{class_name}: no supported {method}() definition")
     formatted = re.search(
-        r"sprintf\s*\(\s*_cmd_buffer\s*,\s*(?:"
+        r"snprintf\s*\(\s*_cmd_buffer\s*,\s*sizeof\s*\(\s*_cmd_buffer\s*\)\s*,\s*(?:"
         r'"(?P<literal>(?:[^"\\]|\\.)*)"|'
         r"Fetch_String\s*\(\s*(?P<token>TXT_[A-Z0-9_]+)\s*\))\s*,\s*Team\s*\)",
         source,
@@ -156,7 +156,7 @@ def _method_text(class_name, body, method, resources, team=None, fallback=None):
     if formatted:
         if team is None:
             raise ValueError(f"{class_name}.{method}: Team format without a team number")
-        template = (_decode_rc_string(formatted.group("literal"))
+        template = (_decode_string(formatted.group("literal"))
                     if formatted.group("literal") is not None
                     else resources.get(formatted.group("token")))
         if template is None:
@@ -179,7 +179,7 @@ def _method_text(class_name, body, method, resources, team=None, fallback=None):
 
     literal = re.search(r'return\s*\(\s*"((?:[^"\\]|\\.)*)"\s*\)', source)
     if literal:
-        return _decode_rc_string(literal.group(1))
+        return _decode_string(literal.group(1))
     raise ValueError(f"{class_name}.{method}: unsupported metadata expression")
 
 
@@ -387,7 +387,7 @@ def discover_launch_sites(init_text=None):
     for match in re.finditer(r"^.*\b(?:stricmp|strcmp|strstr|memcmp|strnicmp)\s*\(.*$", body, re.M):
         line = match.group(0)
         for literal in re.findall(r'"((?:[^"\\]|\\.)*)"', line):
-            value = _decode_rc_string(literal)
+            value = _decode_string(literal)
             if value.startswith(("-", "/")):
                 add("literal:" + value, match.start())
             elif value.lower() == ".map":

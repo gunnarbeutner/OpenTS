@@ -138,7 +138,7 @@ void Motion_Capture(void)
 
 			for (int index = 0; index < _sequence; index++) {
 				char filename[30];
-				sprintf(filename, "cap%04d.pcx", index);
+				snprintf(filename, sizeof(filename), "cap%04d.pcx", index);
 				CCFileClass file(filename);
 				temp_page.Blit_From(*_array[index], false, true);
 				Write_PCX_File(file, temp_page, & GamePalette);
@@ -729,22 +729,22 @@ void Multiplayer_Debug_Print(void)
 
 	char buffer[256];
 
-	sprintf(buffer, "Frame : %d", Frame);
+	snprintf(buffer, sizeof(buffer), "Frame : %d", Frame);
 	Fancy_Text_Print(buffer, *LogicalSurface, LogicalSurface->Get_Rect(), Point2D(0, top + 2), Fetch_Scheme_By_Name("Grey"), 0, (TextPrintType)(TPF_EFNT | TPF_NOSHADOW));
 
-	sprintf(buffer, "FPS : %d", LastFramesPerSecond);
+	snprintf(buffer, sizeof(buffer), "FPS : %d", LastFramesPerSecond);
 	Fancy_Text_Print(buffer, *LogicalSurface, LogicalSurface->Get_Rect(), Point2D(0, top + 10), Fetch_Scheme_By_Name("Grey"), 0, (TextPrintType)(TPF_EFNT | TPF_NOSHADOW));
 
-	sprintf(buffer, "MaxAhead : %d", Session.MaxAhead);
+	snprintf(buffer, sizeof(buffer), "MaxAhead : %d", Session.MaxAhead);
 	Fancy_Text_Print(buffer, *LogicalSurface, LogicalSurface->Get_Rect(), Point2D(0, top + 18), Fetch_Scheme_By_Name("Grey"), 0, (TextPrintType)(TPF_EFNT | TPF_NOSHADOW));
 
-	sprintf(buffer, "Resp Time : %d ms", (int)(Ipx.Response_Time() * 1000) / TIMER_SECOND);
+	snprintf(buffer, sizeof(buffer), "Resp Time : %d ms", (int)(Ipx.Response_Time() * 1000) / TIMER_SECOND);
 	Fancy_Text_Print(buffer, *LogicalSurface, LogicalSurface->Get_Rect(), Point2D(0, top + 26), Fetch_Scheme_By_Name("Grey"), 0, (TextPrintType)(TPF_EFNT | TPF_NOSHADOW));
 
-	sprintf(buffer, "Req fps : %d", Session.DesiredFrameRate);
+	snprintf(buffer, sizeof(buffer), "Req fps : %d", Session.DesiredFrameRate);
 	Fancy_Text_Print(buffer, *LogicalSurface, LogicalSurface->Get_Rect(), Point2D(0, top + 34), Fetch_Scheme_By_Name("Grey"), 0, (TextPrintType)(TPF_EFNT | TPF_NOSHADOW));
 
-	sprintf(buffer, "Process : %d", Session.Players[0]->Player.ProcessTime);
+	snprintf(buffer, sizeof(buffer), "Process : %d", Session.Players[0]->Player.ProcessTime);
 	Fancy_Text_Print(buffer, *LogicalSurface, LogicalSurface->Get_Rect(), Point2D(0, top + 42), Fetch_Scheme_By_Name("Grey"), 0, (TextPrintType)(TPF_EFNT | TPF_NOSHADOW));
 
 	Ipx.Multiplayer_Debug_Print(top);

@@ -11,6 +11,7 @@
  * disclaimers apply; see LICENSE.md.
  ******************************************************************************/
 
+#include "utf8.h"
 #include "always.h"
 
 #include "movie.h"
@@ -221,7 +222,7 @@ void Play_Ingame_Movie(VQType vq)
 {
 	static char _buf[20];
 	if (vq != VQ_NONE) {
-		strcpy(_buf, Movies[vq]);
+		UTF8::Copy(_buf, Movies[vq]);
 		strcpy(_buf + strlen(Movies[vq]), ".VQA");
 		Play_Ingame_Movie(_buf);
 	}

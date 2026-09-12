@@ -783,7 +783,7 @@ void EventClass::Execute(void)
 				Special = Data.Options.Data;
 				Scen->Special = Data.Options.Data;
 
-				sprintf(txt, Fetch_String(TXT_SPECIAL_WARNING), (char const *)house->IniName);
+				snprintf(txt, sizeof(txt), Fetch_String(TXT_SPECIAL_WARNING), (char const *)house->IniName);
 				Session.Messages.Add_Message(NULL, 0, txt,
 					house->Scheme,
 					TextPrintType(TPF_6PT_GRAD|TPF_USE_GRAD_PAL|TPF_FULLSHADOW), 1200);

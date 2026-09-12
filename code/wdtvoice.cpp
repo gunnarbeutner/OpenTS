@@ -7,6 +7,7 @@
  * See LICENSE.md for applicable additional terms and warranty disclaimers.
  ******************************************************************************/
 
+#include "utf8.h"
 #include "always.h"
 
 #include "_mixfile.h"
@@ -86,7 +87,7 @@ void Voices::Init_Standalone(INIClass const & ini, const char * section, Standal
 	char buffer[32];
 	char entry[64];
 
-	strcpy(entry, Side == 3 ? "NOD" : "GDI");
+	UTF8::Copy(entry, Side == 3 ? "NOD" : "GDI");
 	strncat(entry, voice_name, sizeof(entry));
 	ini.Get_String(section, entry, "", buffer, sizeof(buffer));
 	Parse_Index_List(buffer, StandaloneVoices[voice]);
@@ -164,7 +165,7 @@ bool WDT_Random_Pick_Sound_Filename(int side, VOICEINDEX_LIST & list, char * buf
 /// <remarks>Be sure the destination buffer is big enough to hold a sound filename.</remarks>
 bool WDT_Make_Sound_Filename(int side, int index, char * buffer, int bufsize)
 {
-	sprintf(buffer, side == 3 ? "01-W%03d.v01" : "00-W%03d.v00", index);
+	snprintf(buffer, bufsize, side == 3 ? "01-W%03d.v01" : "00-W%03d.v00", index);
 	return(true);
 }
 
@@ -271,7 +272,7 @@ void Voices::VoiceCategory::Read_Voiceover(INIClass const & ini, const char * se
 	char entry[64];
 	char buffer[32];
 
-	strcpy(entry, side == 3 ? "NOD" : "GDI");
+	UTF8::Copy(entry, side == 3 ? "NOD" : "GDI");
 	strncat(entry, Name, sizeof(entry));
 	strncat(entry, outcome_string, sizeof(entry));
 

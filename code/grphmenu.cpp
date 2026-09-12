@@ -93,7 +93,7 @@ GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name)
 	char entry[8];
 	int item_max = ini.Get_Int(name, "ItemMax", 100);
 	for (int i = 0; i <= item_max; i++) {
-		sprintf(entry, "%d", i);
+		snprintf(entry, sizeof(entry), "%d", i);
 		if (ini.Get_String(name, entry, "", buffer, sizeof(buffer)) > 0) {
 			GraphicMenuItem * item = GM_Create_Item_From_INI(buffer, ini, menu->Engine, pt);
 			if (item != NULL) {

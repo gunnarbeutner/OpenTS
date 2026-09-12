@@ -1059,7 +1059,7 @@ void CommBufferClass::Mono_Debug_Print2(int refresh)
 			hdr = (CommHdr *)SendQueue[i].Buffer;
 			hdr->MagicNumber = hdr->MagicNumber;
 			hdr->Code = hdr->Code;
-			sprintf(txt,"%4d %2d %-5s  ",
+			snprintf(txt, sizeof(txt), "%4d %2d %-5s  ",
 				hdr->PacketID,
 				SendQueue[i].SendCount,
 				ConnectionClass::Command_Name(hdr->Code));
@@ -1123,7 +1123,7 @@ void CommBufferClass::Mono_Debug_Print2(int refresh)
 			hdr = (CommHdr *)ReceiveQueue[i].Buffer;
 			hdr->MagicNumber = hdr->MagicNumber;
 			hdr->Code = hdr->Code;
-			sprintf(txt,"%4d %2d %-5s  ",
+			snprintf(txt, sizeof(txt), "%4d %2d %-5s  ",
 				hdr->PacketID,
 				ReceiveQueue[i].IsRead,
 				ConnectionClass::Command_Name(hdr->Code));

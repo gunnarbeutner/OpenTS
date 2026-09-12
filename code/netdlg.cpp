@@ -101,6 +101,7 @@
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 //   Warning - Most disgusting cpp file of all time. ajw
 
+#include "utf8.h"
 #include "always.h"
 
 #include "netdlg.h"
@@ -256,9 +257,9 @@ void Destroy_Connection(int id, int error)
 	//------------------------------------------------------------------------
 	txt[0] = '\0';
 	if (error==1) {
-		sprintf(txt,Fetch_String(TXT_CONNECTION_LOST), housep->IniName.c_str());
+		snprintf(txt, sizeof(txt), Fetch_String(TXT_CONNECTION_LOST), housep->IniName.c_str());
 	} else if (error==0) {
-		sprintf(txt,Fetch_String(TXT_LEFT_GAME), housep->IniName.c_str());
+		snprintf(txt, sizeof(txt), Fetch_String(TXT_LEFT_GAME), housep->IniName.c_str());
 	}
 
 	if (strlen(txt)) {
@@ -298,7 +299,7 @@ void Destroy_Connection(int id, int error)
 	// If we're the last player left, tell the user.
 	//------------------------------------------------------------------------
 	if (Session.NumPlayers == 1) {
-		sprintf(txt,"%s",Fetch_String(TXT_JUST_YOU_AND_ME));
+		snprintf(txt, sizeof(txt), "%s",Fetch_String(TXT_JUST_YOU_AND_ME));
 		Session.Messages.Add_Message (NULL, 0, txt, housep->Class->Scheme,
 			TextPrintType(TPF_6PT_GRAD|TPF_FULLSHADOW|TPF_USE_GRAD_PAL), int(Rule->MessageDelay * TICKS_PER_MINUTE));
 		Map.Flag_To_Redraw();
@@ -327,7 +328,7 @@ unsigned int Compute_Name_CRC(char *name)
 	unsigned int crc = 0L;
 	int i;
 
-	strcpy (buf, name);
+	UTF8::Copy(buf, name);
 	_strupr (buf);
 
 	for (i = 0; (unsigned)i < strlen(buf); i++) {

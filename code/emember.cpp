@@ -72,7 +72,7 @@ char const * EnlistedMemberClass::Build_INI_Entry(void) const
 {
 	static char _buf[32];
 
-	sprintf(_buf, "%d,%s", Quantity, (char const *)Class->IniName);
+	snprintf(_buf, sizeof(_buf), "%d,%s", Quantity, (char const *)Class->IniName);
 	return(_buf);
 }
 

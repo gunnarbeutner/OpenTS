@@ -599,9 +599,9 @@ void MultiScore::Print_Headings(void)
 	/// Display the number of games played
 	char buffer[256];
 	if (Session.Type == GAME_INTERNET) {
-		sprintf(buffer, Fetch_String(TXT_GAME), WestwoodOnline_GameID);
+		snprintf(buffer, sizeof(buffer), Fetch_String(TXT_GAME), WestwoodOnline_GameID);
 	} else {
-		sprintf(buffer, Fetch_String(TXT_GAME), Session.GamesPlayed);
+		snprintf(buffer, sizeof(buffer), Fetch_String(TXT_GAME), Session.GamesPlayed);
 	}
 
 	MSPrintAnim *gameAnim = new MSPrintAnim(buffer, XPos + 15, YPos + 15, Font, RECT_NONE, 0, 4, true, false);
@@ -1062,7 +1062,7 @@ Rect MultiScore::Print_Score(Surface * surface, int score, int maximum, int x, i
 {
 	char buffer[32];
 
-	sprintf(buffer, "%d", score > maximum ? maximum : score);
+	snprintf(buffer, sizeof(buffer), "%d", score > maximum ? maximum : score);
 
 	int stringWidth = Font->Get_String_Width(buffer);
 	Font->Draw_String(surface,buffer, x - stringWidth / 2, y, 2);

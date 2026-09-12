@@ -139,8 +139,8 @@ void TubeClass::Write_INI(CCINIClass & ini)
 		TubeClass * tube = Tubes[index];
 		if (tube != NULL) {
 
-			sprintf(key, "%d", index);
-			sprintf(buffer, "%d,%d,%d,%d,%d", tube->Enter.X, tube->Enter.Y, tube->EnterDir, tube->Exit.X, tube->Exit.Y);
+			snprintf(key, sizeof(key), "%d", index);
+			snprintf(buffer, sizeof(buffer), "%d,%d,%d,%d,%d", tube->Enter.X, tube->Enter.Y, tube->EnterDir, tube->Exit.X, tube->Exit.Y);
 			for (int dir = 0; dir < 100; dir++) {
 				sprintf(buffer + strlen(buffer), ",%d", tube->Dirs[dir]);
 			}

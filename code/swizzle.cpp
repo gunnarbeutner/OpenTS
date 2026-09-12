@@ -208,7 +208,7 @@ void SwizzleManagerClass::Resolve(void)
 
 	if (orphans > 0) {
 		char txt[512];
-		sprintf(txt, "Save game load failed!  %d pointer(s) could not be remapped.\n\n"
+		snprintf(txt, sizeof(txt), "Save game load failed!  %d pointer(s) could not be remapped.\n\n"
 			"The first names ID %08X, wanted by a %s slot in %s record %08X,\n"
 			"serialized at %s(%u).\n\n"
 			"The game will now exit.",
