@@ -25,6 +25,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <mutex>
+#include <thread>
 
 #define CONSOLE_WINDOW_NAME		"Debug Console"
 
@@ -42,8 +44,8 @@ static constexpr unsigned __int64 DEBUG_LOG_MAX_BYTES = 64ui64 * 1024ui64 * 1024
 static constexpr unsigned __int64 DEBUG_LOG_NOTICE_RESERVE = sizeof(DebugTruncationNotice) - 1;
 static constexpr unsigned __int64 DEBUG_LOG_BUDGET = DEBUG_LOG_MAX_BYTES - DEBUG_LOG_NOTICE_RESERVE;
 
-static SRWLOCK DebugLock = SRWLOCK_INIT;
-static DWORD DebugLockOwner = 0;
+static std::mutex DebugLock;
+static std::thread::id DebugLockOwner;
 static bool DebugInitDone = false;
 static bool AtLineStart = true;
 static bool ConsoleActive = false;
@@ -430,7 +432,7 @@ R"ART(
 /// </summary>
 static void Emit(char const * buffer, bool with_prefix)
 {
-	DWORD const self = GetCurrentThreadId();
+	std::thread::id const self = std::this_thread::get_id();
 
 	// A fault raised inside a logging call brings the handler back here on the same thread,
 	// where taking the lock again would deadlock. Such a message reaches the debugger only.
@@ -441,13 +443,13 @@ static void Emit(char const * buffer, bool with_prefix)
 		return;
 	}
 
-	AcquireSRWLockExclusive(&DebugLock);
+	DebugLock.lock();
 	DebugLockOwner = self;
 
 	Write_Message_Locked(buffer, with_prefix);
 
-	DebugLockOwner = 0;
-	ReleaseSRWLockExclusive(&DebugLock);
+	DebugLockOwner = std::thread::id();
+	DebugLock.unlock();
 }
 
 
@@ -458,11 +460,11 @@ static void Emit(char const * buffer, bool with_prefix)
 /// </summary>
 void Debug_Init(int argc, char const * const * argv)
 {
-	AcquireSRWLockExclusive(&DebugLock);
-	DebugLockOwner = GetCurrentThreadId();
+	DebugLock.lock();
+	DebugLockOwner = std::this_thread::get_id();
 	Init_Locked(argc, argv);
-	DebugLockOwner = 0;
-	ReleaseSRWLockExclusive(&DebugLock);
+	DebugLockOwner = std::thread::id();
+	DebugLock.unlock();
 }
 
 
@@ -471,12 +473,12 @@ void Debug_Init(int argc, char const * const * argv)
 /// </summary>
 void Debug_Init_Console(void)
 {
-	AcquireSRWLockExclusive(&DebugLock);
-	DebugLockOwner = GetCurrentThreadId();
+	DebugLock.lock();
+	DebugLockOwner = std::this_thread::get_id();
 	ConsoleRequested = true;
 	if (DebugInitDone) Init_Console_Locked();
-	DebugLockOwner = 0;
-	ReleaseSRWLockExclusive(&DebugLock);
+	DebugLockOwner = std::thread::id();
+	DebugLock.unlock();
 }
 
 
