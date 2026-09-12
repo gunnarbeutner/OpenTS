@@ -150,7 +150,7 @@ void Debug_Key(unsigned input)
 
 					SeenBuff.Blit(temp_page);
 					for (int lp = 0; lp < 99; lp ++) {
-						sprintf(filename, "scrsht%02d.pcx", lp);
+						snprintf(filename, sizeof(filename), "scrsht%02d.pcx", lp);
 						file.Set_Name(filename);
 						if (!file.Is_Available()) break;
 					}
@@ -421,7 +421,7 @@ static char const * Bench_Time(BenchType btype)
 		percent = ((count * time) * 99) / (roottime * rootcount);
 	}
 	if (percent > 99) percent = 99;
-	sprintf(buffer, "%-2d%% %7d", percent, time);
+	snprintf(buffer, sizeof(buffer), "%-2d%% %7d", percent, time);
 	return(buffer);
 }
 

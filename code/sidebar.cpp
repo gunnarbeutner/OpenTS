@@ -1812,9 +1812,9 @@ char const * SidebarClass::StripClass::Help_Text(int id)
 			}
 
 			if (Map.IsCameoText) {
-				sprintf(_buffer, Fetch_String(TXT_MONEY_FORMAT_1), choice->Cost_Of(PlayerPtr));
+				snprintf(_buffer, sizeof(_buffer), Fetch_String(TXT_MONEY_FORMAT_1), choice->Cost_Of(PlayerPtr));
 			} else {
-				sprintf(_buffer, Fetch_String(TXT_MONEY_FORMAT_2), choice->Full_Name(), choice->Cost_Of(PlayerPtr));
+				snprintf(_buffer, sizeof(_buffer), Fetch_String(TXT_MONEY_FORMAT_2), choice->Full_Name(), choice->Cost_Of(PlayerPtr));
 			}
 
 			return(_buffer);
@@ -2877,7 +2877,7 @@ void Print_Cameo_Text(char const * string, Point2D const & point, Rect const & c
 
 		if (font->String_Pixel_Width(string) > maxlinelen) {
 			int len = strlen(string);
-			strcpy(buffer, string);
+			UTF8::Copy(buffer, string);
 			string = buffer;
 
 			int w = 0;

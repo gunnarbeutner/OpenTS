@@ -403,7 +403,7 @@ void ObjectTypeClass::Fetch_Voxel_Image(void)
 	UnitTypeClass *utype = (UnitTypeClass *)this;
 
 	if (utype->RTTI != RTTI_UNITTYPE || utype->IsTurretEquipped) {
-		sprintf(buffer, "%sTUR", (const char *)utype->GraphicName);
+		snprintf(buffer, sizeof(buffer), "%sTUR", (const char *)utype->GraphicName);
 		_makepath(name, 0, 0, buffer, ".VXL");
 		CCFileClass tvxl(name);
 
@@ -415,7 +415,7 @@ void ObjectTypeClass::Fetch_Voxel_Image(void)
 				failed = true;
 			}
 
-			sprintf(buffer, "%sTUR", (const char *)utype->GraphicName);
+			snprintf(buffer, sizeof(buffer), "%sTUR", (const char *)utype->GraphicName);
 			_makepath(name, 0, 0, buffer, ".HVA");
 			CCFileClass thva(name);
 
@@ -430,7 +430,7 @@ void ObjectTypeClass::Fetch_Voxel_Image(void)
 			//}
 		}
 	} else if (strcmp((const char *)utype->IniName, "APC") == 0) {
-		sprintf(buffer, "%sW", (const char *)utype->GraphicName);
+		snprintf(buffer, sizeof(buffer), "%sW", (const char *)utype->GraphicName);
 		_makepath(name, 0, 0, buffer, ".VXL");
 		CCFileClass wvxl(name);
 
@@ -441,7 +441,7 @@ void ObjectTypeClass::Fetch_Voxel_Image(void)
 			if (AuxVoxel.VoxLib == NULL || AuxVoxel.VoxLib->Load_Failed()) {
 				failed = true;
 			}
-			sprintf(buffer, "%sW", (const char *)utype->GraphicName);
+			snprintf(buffer, sizeof(buffer), "%sW", (const char *)utype->GraphicName);
 			_makepath(name, 0, 0, buffer, ".HVA");
 			CCFileClass whva(name);
 
@@ -458,7 +458,7 @@ void ObjectTypeClass::Fetch_Voxel_Image(void)
 	}
 
 	if (utype->RTTI != RTTI_UNITTYPE || utype->IsTurretEquipped) {
-		sprintf(buffer, "%sBARL", (const char *)utype->GraphicName);
+		snprintf(buffer, sizeof(buffer), "%sBARL", (const char *)utype->GraphicName);
 		_makepath(name, 0, 0, buffer, ".VXL");
 		CCFileClass bvxl(name);
 
@@ -470,7 +470,7 @@ void ObjectTypeClass::Fetch_Voxel_Image(void)
 				failed = true;
 			}
 
-			sprintf(buffer, "%sBARL", (const char *)utype->GraphicName);
+			snprintf(buffer, sizeof(buffer), "%sBARL", (const char *)utype->GraphicName);
 			_makepath(name, 0, 0, buffer, ".HVA");
 			CCFileClass bhva(name);
 
@@ -528,7 +528,7 @@ void ObjectTypeClass::Fetch_Aux_Voxel_Image(void)
 		UnitTypeClass *utype = (UnitTypeClass *)this;
 
 		if (utype->Get_Image_Data() != NULL && utype->IsTurretEquipped) {
-			sprintf(buffer, "%sTUR", (const char *)utype->GraphicName);
+			snprintf(buffer, sizeof(buffer), "%sTUR", (const char *)utype->GraphicName);
 			_makepath(name, 0, 0, buffer, ".VXL");
 			CCFileClass tvxl(name);
 
@@ -538,7 +538,7 @@ void ObjectTypeClass::Fetch_Aux_Voxel_Image(void)
 
 				if (utype->AuxVoxel.VoxLib && !utype->AuxVoxel.VoxLib->Load_Failed()) {
 
-					sprintf(buffer, "%sTUR", (const char *)utype->GraphicName);
+					snprintf(buffer, sizeof(buffer), "%sTUR", (const char *)utype->GraphicName);
 					_makepath(name, 0, 0, buffer, ".HVA");
 					CCFileClass thva(name);
 
@@ -549,7 +549,7 @@ void ObjectTypeClass::Fetch_Aux_Voxel_Image(void)
 					//}
 				}
 			}
-			sprintf(buffer, "%sBARL", (const char *)utype->GraphicName);
+			snprintf(buffer, sizeof(buffer), "%sBARL", (const char *)utype->GraphicName);
 			_makepath(name, 0, 0, buffer, ".VXL");
 			CCFileClass bvxl(name);
 
@@ -559,7 +559,7 @@ void ObjectTypeClass::Fetch_Aux_Voxel_Image(void)
 
 				if (utype->AuxVoxel2.VoxLib && !utype->AuxVoxel2.VoxLib->Load_Failed()) {
 
-					sprintf(buffer, "%sBARL", (const char *)utype->GraphicName);
+					snprintf(buffer, sizeof(buffer), "%sBARL", (const char *)utype->GraphicName);
 					_makepath(name, 0, 0, buffer, ".HVA");
 					CCFileClass bhva(name);
 

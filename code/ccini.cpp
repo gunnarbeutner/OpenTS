@@ -454,7 +454,7 @@ bool CCINIClass::Put_Angle(char const * section, char const * entry, int value)
 {
 	char buffer[32];
 
-	sprintf(buffer, "%d", 360 * value / 256);
+	snprintf(buffer, sizeof(buffer), "%d", 360 * value / 256);
 	return(Put_String(section, entry, buffer));
 }
 
@@ -503,7 +503,7 @@ Cell CCINIClass::Get_Cell(char const * section, char const * entry, Cell const &
 bool CCINIClass::Put_Cell(char const * section, char const * entry, Cell const & value)
 {
 	char buffer[64];
-	sprintf(buffer, "%d,%d", value.X, value.Y);
+	snprintf(buffer, sizeof(buffer), "%d,%d", value.X, value.Y);
 	return(Put_String(section, entry, buffer));
 }
 
@@ -774,7 +774,7 @@ bool CCINIClass::Put_RGBClass(char const * section, char const * entry, RGBClass
 {
 	char buffer[64];
 
-	sprintf(buffer, "%d,%d,%d", value.Get_Red(), value.Get_Green(), value.Get_Blue());
+	snprintf(buffer, sizeof(buffer), "%d,%d,%d", value.Get_Red(), value.Get_Green(), value.Get_Blue());
 	return(Put_String(section, entry, buffer));
 }
 
@@ -805,7 +805,7 @@ bool CCINIClass::Put_HSVClass(char const * section, char const * entry, HSVClass
 {
 	char buffer[64];
 
-	sprintf(buffer, "%d,%d,%d", value.Get_Hue(), value.Get_Saturation(), value.Get_Value());
+	snprintf(buffer, sizeof(buffer), "%d,%d,%d", value.Get_Hue(), value.Get_Saturation(), value.Get_Value());
 	return(Put_String(section, entry, buffer));
 }
 
@@ -1087,9 +1087,9 @@ bool CCINIClass::Put_Owners(char const * section, char const * entry, int value)
 		HouseTypeClass * type = HouseTypes[house];
 		if ((value & (1 << type->House)) != 0) {
 			if (buffer[0] != '\0') {
-				strcat(buffer, ",");
+				UTF8::Append(buffer, ",");
 			}
-			strcat(buffer, type->Name());
+			UTF8::Append(buffer, type->Name());
 		}
 	}
 
@@ -1677,9 +1677,9 @@ bool CCINIClass::Put_Buildings(char const * section, char const * entry, int val
 		if ((value & (1L << index)) != 0) {
 
 			if (buffer[0] != '\0') {
-				strcat(buffer, ",");
+				UTF8::Append(buffer, ",");
 			}
-			strcat(buffer, BuildingTypes[index]->IniName);
+			UTF8::Append(buffer, BuildingTypes[index]->IniName);
 		}
 	}
 
@@ -1697,9 +1697,9 @@ bool CCINIClass::Put_VocType_List(char const * section, char const * entry, Type
 	char buffer[128] = "";
 	for (int index = 0; index < value.Count(); index++) {
 		if (buffer[0]) {
-			strcat(buffer, ",");
+			UTF8::Append(buffer, ",");
 		}
-		strcat(buffer, Voc_Name((VocType)value[index]));
+		UTF8::Append(buffer, Voc_Name((VocType)value[index]));
 	}
 	return(Put_String(section, entry, buffer));
 }
@@ -1740,10 +1740,10 @@ bool CCINIClass::Put_IntList(char const * section, char const * entry, TypeList<
 
 	for (int index = 0; index < value.Count(); index++) {
 		if (buffer[0]) {
-			strcat(buffer, ",");
+			UTF8::Append(buffer, ",");
 		}
-		sprintf(number, "%d", value[index]);
-		strcat(buffer, number);
+		snprintf(number, sizeof(number), "%d", value[index]);
+		UTF8::Append(buffer, number);
 	}
 	return(Put_String(section, entry, buffer));
 }
@@ -1796,12 +1796,12 @@ bool CCINIClass::Put_Target_List(const char * section, const char * entry, TypeL
 
 	for (int index = 0; index < value.Count(); index++) {
 		if (buffer[0]) {
-			strcat(buffer, ",");
+			UTF8::Append(buffer, ",");
 		}
 		TargetClass target;
 		target.Decode(value[index]);
 		TechnoTypeClass *ttype = target.As_TechnoType();
-		strcat(buffer, ttype->Name());
+		UTF8::Append(buffer, ttype->Name());
 	}
 	return(Put_String(section, entry, buffer));
 }
@@ -1871,9 +1871,9 @@ bool CCINIClass::Put_TechnoType_List(char const * section, char const * entry, T
 
 	for (int index = 0; index < value.Count(); index++) {
 		if (buffer[0]) {
-			strcat(buffer, ",");
+			UTF8::Append(buffer, ",");
 		}
-		strcat(buffer, value[index]->Name());
+		UTF8::Append(buffer, value[index]->Name());
 	}
 	return(Put_String(section, entry, buffer));
 }
@@ -1919,9 +1919,9 @@ bool CCINIClass::Put_House_List(char const * section, char const * entry, TypeLi
 
 	for (int index = 0; index < value.Count(); index++) {
 		if (buffer[0]) {
-			strcat(buffer, ",");
+			UTF8::Append(buffer, ",");
 		}
-		strcat(buffer, HouseTypes[value[index]]->Name());
+		UTF8::Append(buffer, HouseTypes[value[index]]->Name());
 	}
 	return(Put_String(section, entry, buffer));
 }

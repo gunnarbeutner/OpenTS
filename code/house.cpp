@@ -5608,7 +5608,7 @@ void HouseClass::Write_All(CCINIClass & ini)
 	ini.Clear("Houses");
 
 	for (index = HOUSE_FIRST; index < Houses.Count(); index++) {
-		sprintf(buffer, "%d", index);
+		snprintf(buffer, sizeof(buffer), "%d", index);
 		ini.Put_HousesType("Houses", buffer, Houses[index]->Class->House);
 	}
 

@@ -54,6 +54,7 @@
  *   TeamTypeClass::~TeamTypeClass -- class destructor                                         *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "utf8.h"
 #include "always.h"
 
 #include "teamtype.h"
@@ -492,14 +493,14 @@ char const * TeamTypeClass::Member_Description(void) const
 	for (int index = 0; index < TaskForce->ClassCount; index++) {
 		char txt[10];
 
-		strcat(buffer, TaskForce->Members[index].Class->IniName);
-		strcat(buffer, ":");
+		UTF8::Append(buffer, TaskForce->Members[index].Class->IniName);
+		UTF8::Append(buffer, ":");
 
-		sprintf(txt, "%d", TaskForce->Members[index].Quantity);
-		strcat(buffer, txt);
+		snprintf(txt, sizeof(txt), "%d", TaskForce->Members[index].Quantity);
+		UTF8::Append(buffer, txt);
 
 		if (index < TaskForce->ClassCount-1) {
-			strcat(buffer, ",");
+			UTF8::Append(buffer, ",");
 		}
 	}
 
@@ -544,7 +545,7 @@ char const * TeamTypeClass::Description(void) const
 		}
 	}
 
-	sprintf(_buffer, "%s\t%s\t%c%s\t%d\t%s", (char const *)IniName, House->Class->Suffix, extra, loc, Script ? Script->MissionCount : 0, Member_Description());
+	snprintf(_buffer, sizeof(_buffer), "%s\t%s\t%c%s\t%d\t%s", (char const *)IniName, House->Class->Suffix, extra, loc, Script ? Script->MissionCount : 0, Member_Description());
 	return(_buffer);
 }
 #endif
@@ -835,7 +836,7 @@ void TeamTypeClass::Write_All(CCINIClass & ini, INIScopeType scope)
 	int i = 0;
 	for (index = 0; index < TeamTypes.Count(); index++) {
 		if (TeamTypes[index]->Scope == scope) {
-			sprintf(buffer, "%d", i++);
+			snprintf(buffer, sizeof(buffer), "%d", i++);
 			ini.Put_String("TeamTypes", buffer, (char const *)TeamTypes[index]->IniName);
 			TeamTypes[index]->Write_INI(ini);
 		}

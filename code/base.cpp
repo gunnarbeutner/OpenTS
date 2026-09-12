@@ -464,7 +464,7 @@ void BaseClass::Read_INI(CCINIClass const & ini, char const * hname)
 		/*
 		**	Get an INI entry
 		*/
-		sprintf(uname,"%03d",i);
+		snprintf(uname, sizeof(uname), "%03d",i);
 		ini.Get_String(hname, uname, NULL, buf, sizeof(buf));
 
 		/*
@@ -525,15 +525,15 @@ void BaseClass::Write_INI(CCINIClass & ini, char const * hname)
 		char buf[128];
 		char uname[12];
 
-		sprintf(uname,"%03d",i);
+		snprintf(uname, sizeof(uname), "%03d",i);
 		StructType type = Nodes[i].Type;
 		if (Nodes[i].Type >= STRUCT_FIRST) {
-			sprintf(buf,"%s,%d,%d",
+			snprintf(buf, sizeof(buf), "%s,%d,%d",
 			(char const *)BuildingTypes[Nodes[i].Type]->IniName,
 			Nodes[i].CellID.X,
 			Nodes[i].CellID.Y);
 		} else {
-			sprintf(buf,"%d,%d,%d",
+			snprintf(buf, sizeof(buf), "%d,%d,%d",
 			Nodes[i].Type,
 			Nodes[i].CellID.X,
 			Nodes[i].CellID.Y);

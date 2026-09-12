@@ -11,6 +11,7 @@
  * disclaimers apply; see LICENSE.md.
  ******************************************************************************/
 
+#include "utf8.h"
 #include "always.h"
 
 #include "isotype.h"
@@ -677,7 +678,7 @@ void IsometricTileTypeClass::Read_Control_File(TheaterType theater, bool from_cc
 	}
 
 	char slopzname[_MAX_PATH];
-	sprintf(slopzname, "SLOP01Z.%s", data.Suffix.c_str());
+	snprintf(slopzname, sizeof(slopzname), "SLOP01Z.%s", data.Suffix.c_str());
 	CCFileClass slopz(slopzname);
 
 	SlopeZShapes[0] = (ShapeSet *)new char[slopz.Size()];
@@ -704,7 +705,7 @@ void IsometricTileTypeClass::Read_Control_File(TheaterType theater, bool from_cc
 	}
 
 	char palname[_MAX_PATH];
-	sprintf(palname, "ISO%s.PAL", data.Suffix.c_str());
+	snprintf(palname, sizeof(palname), "ISO%s.PAL", data.Suffix.c_str());
 	CCFileClass palette(palname);
 	if (palette.Is_Available()) {
 		palette.Read(&IsoTilePalette, sizeof(IsoTilePalette));
@@ -717,7 +718,7 @@ void IsometricTileTypeClass::Read_Control_File(TheaterType theater, bool from_cc
 	IsometricTileTypeClass::Init_Drawers();
 
 	char ininame[_MAX_PATH];
-	sprintf(ininame, "%s.INI", data.Root.c_str());
+	snprintf(ininame, sizeof(ininame), "%s.INI", data.Root.c_str());
 	CCFileClass inifile(ininame);
 	ini.Load(inifile, false, false);
 
@@ -864,7 +865,7 @@ void IsometricTileTypeClass::Read_Control_File(TheaterType theater, bool from_cc
 		}
 
 		char section[64];
-		sprintf(section, "TileSet%04d", setid);
+		snprintf(section, sizeof(section), "TileSet%04d", setid);
 		int tiles_in_set = ini.Get_Int(section, "TilesInSet", -1);
 		if (tiles_in_set == -1) {
 			break;
@@ -993,11 +994,11 @@ void IsometricTileTypeClass::Read_Control_File(TheaterType theater, bool from_cc
 					letter_suffix[0] = 0;
 				}
 
-				sprintf(suffix, "%02d", i + 1);
-				strcat(suffix, letter_suffix);
-				strcpy(tile_name, file_name);
-				strcat(tile_name, suffix);
-				sprintf(given_name, "%.28s %02d", set_name, i + 1);
+				snprintf(suffix, sizeof(suffix), "%02d", i + 1);
+				UTF8::Append(suffix, letter_suffix);
+				UTF8::Copy(tile_name, file_name);
+				UTF8::Append(tile_name, suffix);
+				snprintf(given_name, sizeof(given_name), "%.28s %02d", set_name, i + 1);
 
 				int uninitialized_value = 0x00000003;
 
@@ -1026,7 +1027,7 @@ void IsometricTileTypeClass::Read_Control_File(TheaterType theater, bool from_cc
 					if (has_section) {
 
 						char entry[32];
-						sprintf(entry, "Tile%02dAnim", i + 1);
+						snprintf(entry, sizeof(entry), "Tile%02dAnim", i + 1);
 
 						char anim_name[128];
 						if (ini.Get_String(set_name, entry, (const char *)"", anim_name, sizeof(anim_name))) {
@@ -1034,13 +1035,13 @@ void IsometricTileTypeClass::Read_Control_File(TheaterType theater, bool from_cc
 							AnimTypeClass * animtype = AnimTypeClass::Find_Or_Make(anim_name);
 							if (animtype != NULL) {
 								tile->Anim = (AnimType)animtype->Fetch_Heap_ID();
-								sprintf(entry, "Tile%02dXOffset", i + 1);
+								snprintf(entry, sizeof(entry), "Tile%02dXOffset", i + 1);
 								tile->Offset.X = ini.Get_Int(set_name, entry, tile->Offset.X);
-								sprintf(entry, "Tile%02dYOffset", i + 1);
+								snprintf(entry, sizeof(entry), "Tile%02dYOffset", i + 1);
 								tile->Offset.Y = ini.Get_Int(set_name, entry, tile->Offset.Y);
-								sprintf(entry, "Tile%02dAttachesTo", i + 1);
+								snprintf(entry, sizeof(entry), "Tile%02dAttachesTo", i + 1);
 								tile->AttachesTo = ini.Get_Int(set_name, entry, tile->AttachesTo);
-								sprintf(entry, "Tile%02dZAdjust", i + 1);
+								snprintf(entry, sizeof(entry), "Tile%02dZAdjust", i + 1);
 								tile->ZAdjust = ini.Get_Int(set_name, entry, tile->ZAdjust);
 							}
 						}

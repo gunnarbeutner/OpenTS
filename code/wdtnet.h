@@ -841,7 +841,7 @@ namespace WorldDominationTour
 
 				WDT_Game_Option_Append_Comma(str, len);
 				T *ptr = (T *)((unsigned char *)territory + Offset);
-				sprintf(buffer, Fetch_String(StringID), *ptr);
+				snprintf(buffer, sizeof(buffer), Fetch_String(StringID), *ptr);
 				strncat(str, buffer, len);
 			}
 

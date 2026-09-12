@@ -48,7 +48,6 @@
 
 #include <cstdio>
 #include <cstring>
-#include <winsock.h>
 
 
 /***************************************************************************
@@ -71,7 +70,7 @@
  *=========================================================================*/
 IPXAddressClass::IPXAddressClass(void)
 {
-	IP = INADDR_BROADCAST;
+	IP = SOCKET_BROADCAST_ADDRESS;
 	Port = 0;
 
 }	/* end of IPXAddressClass */
@@ -142,7 +141,7 @@ void IPXAddressClass::Set_Address(uint32_t ip, uint16_t port)
  *=========================================================================*/
 int IPXAddressClass::Is_Broadcast(void) const
 {
-	return(IP == INADDR_BROADCAST);
+	return(IP == SOCKET_BROADCAST_ADDRESS);
 
 }	/* end of Is_Broadcast */
 
@@ -187,9 +186,9 @@ const char *IPXAddressClass::As_String(void)
 	const unsigned char *quad = reinterpret_cast<const unsigned char *>(&IP);
 
 	if (IP == 0) {
-		sprintf(_addr_str, "tunnel id %d", Socket_Host_Port(Port));
+		snprintf(_addr_str, sizeof(_addr_str), "tunnel id %d", Socket_Host_Port(Port));
 	} else {
-		sprintf(_addr_str, "%d.%d.%d.%d:%d", quad[0], quad[1], quad[2], quad[3], Socket_Host_Port(Port));
+		snprintf(_addr_str, sizeof(_addr_str), "%d.%d.%d.%d:%d", quad[0], quad[1], quad[2], quad[3], Socket_Host_Port(Port));
 	}
 
 	return(_addr_str);

@@ -5684,8 +5684,8 @@ void UnitClass::Write_INI(CCINIClass & ini)
 			char	uname[10];
 			char	buf[128];
 
-			sprintf(uname, "%d", index);
-			sprintf(buf, "%s,%s,%d,%d,%d,%d,%s,%s,%d,%d,%d,%d,%d,%d",
+			snprintf(uname, sizeof(uname), "%d", index);
+			snprintf(buf, sizeof(buf), "%s,%s,%d,%d,%d,%d,%s,%s,%d,%d,%d,%d,%d,%d",
 				(char const *)unit->House->Class->IniName,
 				(char const *)unit->Class->IniName,
 				(int)(unit->HealthRatio*256),

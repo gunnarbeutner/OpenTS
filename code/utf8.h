@@ -11,6 +11,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstring>
 #include <string>
 #include <string_view>
 
@@ -41,6 +42,23 @@ namespace UTF8
 
 	// Cuts that never split a sequence.
 	std::size_t Copy(char * dest, std::size_t size, char const * source);
+
+	// The same cut with the destination's size deduced, which is what a fixed buffer wants:
+	// the size cannot be got wrong, and a destination that is not an array does not compile.
+	template<std::size_t N>
+	std::size_t Copy(char (&dest)[N], char const * source)
+	{
+		return(Copy(dest, N, source));
+	}
+
+	// Appends within the destination, leaving it terminated.
+	template<std::size_t N>
+	std::size_t Append(char (&dest)[N], char const * source)
+	{
+		std::size_t const used = std::strlen(dest);
+		return((used < N) ? used + Copy(dest + used, N - used, source) : used);
+	}
+
 	std::size_t Boundary_Before(char const * text, std::size_t limit);
 
 	// The code pages of legacy text files and of the shipped fonts.

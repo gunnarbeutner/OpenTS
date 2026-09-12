@@ -66,7 +66,7 @@ bool MapChoice::Initialize(char const * house_name)
 	Deinit();
 
 	if (Get_Required_Addon() > ADDON_BASE_GAME) {
-		sprintf(buffer, "MAPSEL%02d.INI", Get_Required_Addon());
+		snprintf(buffer, sizeof(buffer), "MAPSEL%02d.INI", Get_Required_Addon());
 		file.Open(buffer);
 	} else {
 		file.Open("MAPSEL.INI");
@@ -79,7 +79,7 @@ bool MapChoice::Initialize(char const * house_name)
 
 	for (index = 1; index <= 100; index++) {
 
-		sprintf(key, "%d", index);
+		snprintf(key, sizeof(key), "%d", index);
 
 		if (!ini.Get_String(house_name, key, NULL, buffer, sizeof(buffer))) {
 			break;
@@ -130,7 +130,7 @@ bool MapChoice::Initialize(char const * house_name)
 
 		for (index = 1; index <= 100; index++) {
 
-			sprintf(key, "%d", index);
+			snprintf(key, sizeof(key), "%d", index);
 
 			if (!ini.Get_String(section, key, NULL, buffer, sizeof(buffer))) {
 				break;
@@ -348,7 +348,7 @@ MapStage::MapStage(INIClass const & ini, char const * label) :
 	}
 
 	for (index = 1; index < 8; index++) {
-		sprintf(key, "Text%d", index);
+		snprintf(key, sizeof(key), "Text%d", index);
 		if (ini.Get_String(label, key, NULL, buffer, sizeof(buffer)) > 0) {
 			MSTextEntry * text = new MSTextEntry(buffer);
 			if (text) {
@@ -384,7 +384,7 @@ MapStage::MapStage(INIClass const & ini, char const * label) :
 	}
 
 	for (index = 0; index < 256; ++index) {
-		sprintf(key, "%d", index);
+		snprintf(key, sizeof(key), "%d", index);
 
 		if (ini.Get_String(label, key, 0, buffer, sizeof(buffer)) > 0) {
 

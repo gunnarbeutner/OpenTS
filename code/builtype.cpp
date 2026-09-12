@@ -55,6 +55,7 @@
  *   BuildingTypeClass::operator new -- Allocates a building type object from the special heap.*
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "utf8.h"
 #include "always.h"
 
 #include "builtype.h"
@@ -1045,9 +1046,9 @@ void BuildingTypeClass::Fetch_Building_Normal_Image(TheaterType theater)
 	char ext[16];
 	ArtINI.Get_String(Graphic_Name(), "Image", "", buffer, sizeof(buffer));
 	if (!IsTheater || theater == THEATER_NONE) {
-		strcpy(ext, ".SHP");
+		UTF8::Copy(ext, ".SHP");
 	} else {
-		strcpy(ext, TheaterClass::As_Reference(theater).Suffix);
+		UTF8::Copy(ext, TheaterClass::As_Reference(theater).Suffix);
 	}
 
 	if (strlen(buffer)) {
@@ -1096,7 +1097,7 @@ void BuildingTypeClass::Fetch_Building_Voxel_Image(void)
 	char fullname[256];
 
 	if (IsTurretAnimAVoxel || IsBarrelAnimAVoxel) {
-		strcpy(buffer, AnimData[BANIM_TURRET].Anim);
+		UTF8::Copy(buffer, AnimData[BANIM_TURRET].Anim);
 		_makepath(fullname, NULL, NULL, buffer, ".VXL");
 
 		if (Upr_Strstr(&fullname[4], "TUR")) {
@@ -1342,22 +1343,22 @@ bool BuildingTypeClass::Read_INI(CCINIClass const & ini)
 		/*
 		 * Animation controls.
 		 */
-		sprintf(defvalue, "%d,%d,%d", Anims[BSTATE_IDLE].Start, Anims[BSTATE_IDLE].Count, Anims[BSTATE_IDLE].Rate);
+		snprintf(defvalue, sizeof(defvalue), "%d,%d,%d", Anims[BSTATE_IDLE].Start, Anims[BSTATE_IDLE].Count, Anims[BSTATE_IDLE].Rate);
 		if (ArtINI.Get_String(Graphic_Name(), "AnimIdle", defvalue, animcontrol, sizeof(animcontrol)) > 0) {
 			sscanf(animcontrol, "%d,%d,%d", &Anims[BSTATE_IDLE].Start, &Anims[BSTATE_IDLE].Count, &Anims[BSTATE_IDLE].Rate);
 		}
 
-		sprintf(defvalue, "%d,%d,%d", Anims[BSTATE_ACTIVE].Start, Anims[BSTATE_ACTIVE].Count, Anims[BSTATE_ACTIVE].Rate);
+		snprintf(defvalue, sizeof(defvalue), "%d,%d,%d", Anims[BSTATE_ACTIVE].Start, Anims[BSTATE_ACTIVE].Count, Anims[BSTATE_ACTIVE].Rate);
 		if (ArtINI.Get_String(Graphic_Name(), "AnimActive", defvalue, animcontrol, sizeof(animcontrol)) > 0) {
 			sscanf(animcontrol, "%d,%d,%d", &Anims[BSTATE_ACTIVE].Start, &Anims[BSTATE_ACTIVE].Count, &Anims[BSTATE_ACTIVE].Rate);
 		}
 
-		sprintf(defvalue, "%d,%d,%d", Anims[BSTATE_AUX1].Start, Anims[BSTATE_AUX1].Count, Anims[BSTATE_AUX1].Rate);
+		snprintf(defvalue, sizeof(defvalue), "%d,%d,%d", Anims[BSTATE_AUX1].Start, Anims[BSTATE_AUX1].Count, Anims[BSTATE_AUX1].Rate);
 		if (ArtINI.Get_String(Graphic_Name(), "AnimAux1", defvalue, animcontrol, sizeof(animcontrol)) > 0) {
 			sscanf(animcontrol, "%d,%d,%d", &Anims[BSTATE_AUX1].Start, &Anims[BSTATE_AUX1].Count, &Anims[BSTATE_AUX1].Rate);
 		}
 
-		sprintf(defvalue, "%d,%d,%d", Anims[BSTATE_AUX2].Start, Anims[BSTATE_AUX2].Count, Anims[BSTATE_AUX2].Rate);
+		snprintf(defvalue, sizeof(defvalue), "%d,%d,%d", Anims[BSTATE_AUX2].Start, Anims[BSTATE_AUX2].Count, Anims[BSTATE_AUX2].Rate);
 		if (ArtINI.Get_String(Graphic_Name(), "AnimAux2", defvalue, animcontrol, sizeof(animcontrol)) > 0) {
 			sscanf(animcontrol, "%d,%d,%d", &Anims[BSTATE_AUX2].Start, &Anims[BSTATE_AUX2].Count, &Anims[BSTATE_AUX2].Rate);
 		}
@@ -1605,12 +1606,12 @@ bool BuildingTypeClass::Read_INI(CCINIClass const & ini)
 		/// Building upgrades
 		Upgrades = ini.Get_Int(Name(), "Upgrades", Upgrades);
 		for (int i = 0; i < Upgrades; i++) {
-			sprintf(anim, "PowerUp%01dAnim", i + 1);
-			sprintf(damagedanim, "PowerUp%01dDamagedAnim", i + 1);
-			sprintf(locxx, "PowerUp%01dLocXX", i + 1);
-			sprintf(locyy, "PowerUp%01dLocYY", i + 1);
-			sprintf(loczz, "PowerUp%01dLocZZ", i + 1);
-			sprintf(ysort, "PowerUp%01dYSort", i + 1);
+			snprintf(anim, sizeof(anim), "PowerUp%01dAnim", i + 1);
+			snprintf(damagedanim, sizeof(damagedanim), "PowerUp%01dDamagedAnim", i + 1);
+			snprintf(locxx, sizeof(locxx), "PowerUp%01dLocXX", i + 1);
+			snprintf(locyy, sizeof(locyy), "PowerUp%01dLocYY", i + 1);
+			snprintf(loczz, sizeof(loczz), "PowerUp%01dLocZZ", i + 1);
+			snprintf(ysort, sizeof(ysort), "PowerUp%01dYSort", i + 1);
 
 			ArtINI.Get_String(Graphic_Name(), anim, "", buffer, sizeof(((AnimDataType *)0)->Anim));
 			if (strlen(buffer)) {

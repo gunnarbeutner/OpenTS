@@ -57,6 +57,7 @@
  *   ScenarioClass::Do_Fade_AI -- Process the palette fading effect.                           *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "utf8.h"
 #include "always.h"
 
 #include "scenario.h"
@@ -458,7 +459,7 @@ bool Start_Scenario(char const * name, bool briefing, CampaignType campaign)
 			named = Fetch_String(_difficulty_names[std::clamp((int)Scen->CDifficulty, 0, DIFF_COUNT - 1)]);
 		}
 
-		sprintf(message, Fetch_String(TXT_DIFFICULTY_LEVEL), named);
+		snprintf(message, sizeof(message), Fetch_String(TXT_DIFFICULTY_LEVEL), named);
 		Session.Messages.Add_Message(NULL, 0, message, PlayerPtr->Scheme,
 			TextPrintType(TPF_6PT_GRAD|TPF_USE_GRAD_PAL|TPF_FULLSHADOW),
 			int(Rule->MessageDelay * TICKS_PER_MINUTE));
@@ -669,7 +670,7 @@ bool Read_Scenario(char const * fname)
 {
 	char name[_MAX_PATH];
 
-	strcpy(name, fname);
+	UTF8::Copy(name, fname);
 
 	Frame = 0;
 
@@ -710,7 +711,7 @@ bool Read_Scenario(char const * fname)
 		char prog_msg_buffer[129];
 
 		if (Session.Type == GAME_INTERNET && WestwoodOnline_Tournament) {
-			sprintf(prog_msg_buffer, Fetch_String(TXT_GAME_ID), WestwoodOnline_GameID);
+			snprintf(prog_msg_buffer, sizeof(prog_msg_buffer), Fetch_String(TXT_GAME_ID), WestwoodOnline_GameID);
 			prog_msg = prog_msg_buffer;
 		}
 
@@ -2145,7 +2146,7 @@ ScenarioState Read_Scenario_INI(CCINIClass const & ini, bool is_mapgen)
 		cfile.Close();
 		if (Scen->RequiredAddOn > ADDON_FIRST) {
 			char fname[32];
-			sprintf(fname, "MISSION%1d.INI", Scen->RequiredAddOn);
+			snprintf(fname, sizeof(fname), "MISSION%1d.INI", Scen->RequiredAddOn);
 			cfile.Set_Name(fname);
 		} else {
 			cfile.Set_Name("MISSION.INI");

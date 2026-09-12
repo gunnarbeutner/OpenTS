@@ -215,7 +215,7 @@ bool ScriptTypeClass::Write_INI(CCINIClass & ini) const
 		for (int index = 0; index < MAX_TEAM_MISSIONS; index++) {
 			TeamMissionClass tmission;
 
-			sprintf(entry, "%d", index);
+			snprintf(entry, sizeof(entry), "%d", index);
 			strtrim(entry);
 			if (index < MissionCount) {
 				MissionList[index].Build_INI_Entry(buf);
@@ -248,7 +248,7 @@ bool ScriptTypeClass::Read_INI(CCINIClass const & ini)
 		for (int index = 0; index < MAX_TEAM_MISSIONS; index++) {
 			TeamMissionClass tmission;
 
-			sprintf(entry, "%d", index);
+			snprintf(entry, sizeof(entry), "%d", index);
 			strtrim(entry);
 
 			if (ini.Get_String(Name(), entry, "", buf, sizeof(buf)) > 0) {

@@ -49,7 +49,7 @@ AbstractTypeClass::AbstractTypeClass(char const * ininame) :
 {
 	if (ininame == NULL) {
 		char pstr[2 * sizeof(void *) + 1];
-		sprintf(pstr, "%0*" PRIXPTR, (int)(2 * sizeof(void *)), (uintptr_t)this);
+		snprintf(pstr, sizeof(pstr), "%0*" PRIXPTR, (int)(2 * sizeof(void *)), (uintptr_t)this);
 		IniName = TStringID<24>(pstr);
 	} else {
 		IniName = TStringID<24>(ininame);

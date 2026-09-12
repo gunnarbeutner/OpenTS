@@ -57,8 +57,8 @@ void Map::Add_Territory(const char * name, INIClass const & ini, const char * se
 	char fname[64];
 
 	for (int i = 0; i < MAX_WDT_TERRITORIES; i++) {
-		sprintf(entry, "Territory%02d", i);
-		sprintf(fname, "%s%02d.shp", name, i + 1);
+		snprintf(entry, sizeof(entry), "Territory%02d", i);
+		snprintf(fname, sizeof(fname), "%s%02d.shp", name, i + 1);
 		if (ini.Get_String(section, entry, 0, buffer, sizeof(buffer)) > 0) {
 			Territories.Add(new Territory(i, fname, ini, buffer, side, engine, drawer, anims, pos));
 		}

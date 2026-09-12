@@ -682,7 +682,7 @@ bool INIClass::Put_UUBlock(char const * section, void const * block, int len)
 		buffer[length] = '\0';
 		if (length == 0) break;
 
-		sprintf(sbuffer, "%d", counter);
+		snprintf(sbuffer, sizeof(sbuffer), "%d", counter);
 		Put_String(section, sbuffer, buffer);
 		counter++;
 	}
@@ -773,7 +773,7 @@ bool INIClass::Put_TextBlock(char const * section, char const * text)
 		buffer[75] = '\0';
 
 		char b[32];
-		sprintf(b, "%d", index);
+		snprintf(b, sizeof(b), "%d", index);
 
 		/*
 		**	Scan backward looking for a good break position.
@@ -897,15 +897,15 @@ bool INIClass::Put_Int(char const * section, char const * entry, int number, int
 	switch (format) {
 		default:
 		case 0:
-			sprintf(buffer, "%d", number);
+			snprintf(buffer, sizeof(buffer), "%d", number);
 			break;
 
 		case 1:
-			sprintf(buffer, "%Xh", number);
+			snprintf(buffer, sizeof(buffer), "%Xh", number);
 			break;
 
 		case 2:
-			sprintf(buffer, "$%X", number);
+			snprintf(buffer, sizeof(buffer), "$%X", number);
 			break;
 	}
 	return(Put_String(section, entry, buffer));
@@ -1102,7 +1102,7 @@ bool INIClass::Put_Rect(char const * section, char const * entry, Rect const & v
 {
 	char buffer[64];
 
-	sprintf(buffer, "%d,%d,%d,%d", value.X, value.Y, value.Width, value.Height);
+	snprintf(buffer, sizeof(buffer), "%d,%d,%d,%d", value.X, value.Y, value.Width, value.Height);
 	return(Put_String(section, entry, buffer));
 }
 
@@ -1168,7 +1168,7 @@ bool INIClass::Put_Hex(char const * section, char const * entry, int number)
 {
 	char buffer[MAX_LINE_LENGTH];
 
-	sprintf(buffer, "%X", number);
+	snprintf(buffer, sizeof(buffer), "%X", number);
 	return(Put_String(section, entry, buffer));
 }
 
@@ -1275,7 +1275,7 @@ bool INIClass::Put_Float(char const * section, char const * entry, double number
 {
 	char buffer[MAX_LINE_LENGTH];
 
-	sprintf(buffer, "%f", (float)number);
+	snprintf(buffer, sizeof(buffer), "%f", (float)number);
 	return(Put_String(section, entry, buffer));
 }
 
@@ -1505,7 +1505,7 @@ bool INIClass::Get_Bool(char const * section, char const * entry, bool defvalue)
 bool INIClass::Put_Point(char const * section, char const * entry, TPoint2D<int> const & value)
 {
 	char buffer[64];
-	sprintf(buffer, "%d,%d", value.X, value.Y);
+	snprintf(buffer, sizeof(buffer), "%d,%d", value.X, value.Y);
 	return(Put_String(section, entry, buffer));
 }
 
@@ -1563,7 +1563,7 @@ TPoint2D<int> const INIClass::Get_Point(char const * section, char const * entry
 bool INIClass::Put_Point(char const * section, char const * entry, TPoint3D<int> const & value)
 {
 	char buffer[64];
-	sprintf(buffer, "%d,%d,%d", value.X, value.Y, value.Z);
+	snprintf(buffer, sizeof(buffer), "%d,%d,%d", value.X, value.Y, value.Z);
 	return(Put_String(section, entry, buffer));
 }
 
@@ -1622,7 +1622,7 @@ TPoint3D<int> const INIClass::Get_Point(char const * section, char const * entry
 bool INIClass::Put_Point(char const * section, char const * entry, TPoint3D<float> const & value)
 {
 	char buffer[64];
-	sprintf(buffer, "%f,%f,%f", (float)value.X, (float)value.Y, (float)value.Z);
+	snprintf(buffer, sizeof(buffer), "%f,%f,%f", (float)value.X, (float)value.Y, (float)value.Z);
 	return(Put_String(section, entry, buffer));
 }
 

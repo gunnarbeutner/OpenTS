@@ -157,7 +157,7 @@ void Nod_Ending(void)
 	Free_Sample(kanefinl);
 	Free_Sample(loopie6m);
 
-	sprintf(fname, "NODEND%d", selection);
+	snprintf(fname, sizeof(fname), "NODEND%d", selection);
 	PreserveVQAScreen = 1;
 	Play_Movie(fname);
 

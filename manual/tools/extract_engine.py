@@ -209,7 +209,7 @@ RULES_OBJECTS_READ_RE = re.compile(
 COMPUTED_KEY_READS = {
     ("weapon.cpp", "WeaponTypeClass"): [
         {
-            "format": r'sprintf\s*\(\s*buf\s*,\s*"BurstDelay%d"\s*,\s*i\s*\)',
+            "format": r'snprintf\s*\(\s*buf\s*,\s*sizeof\s*\(\s*buf\s*\)\s*,\s*"BurstDelay%d"\s*,\s*i\s*\)',
             "read": r'BurstDelay\[i\]\s*=\s*ini\.Get_Int\s*\(\s*IniName\s*,'
                     r'\s*buf\s*,\s*BurstDelay\[i\]\s*\)',
             "keys": ["BurstDelay0", "BurstDelay1", "BurstDelay2", "BurstDelay3"],

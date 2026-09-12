@@ -3268,8 +3268,8 @@ void InfantryClass::Write_INI(CCINIClass & ini)
 			char	uname[10];
 			char	buf[128];
 
-			sprintf(uname, "%d", index);
-			sprintf(buf, "%s,%s,%d,%d,%d,%d,%s,%d,%s,%d,%d,%d,%d,%d",
+			snprintf(uname, sizeof(uname), "%d", index);
+			snprintf(buf, sizeof(buf), "%s,%s,%d,%d,%d,%d,%s,%d,%s,%d,%d,%d,%d,%d",
 					(char const *)infantry->House->Class->IniName,
 					(char const *)infantry->Class->IniName,
 					int(infantry->HealthRatio*256),

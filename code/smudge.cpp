@@ -258,8 +258,8 @@ void SmudgeClass::Write_INI(CCINIClass & ini)
 				char	uname[10];
 				char	buf[127];
 
-				sprintf(uname, "%d", index);
-				sprintf(buf, "%s,%d,%d,%d", (char const *)stype->IniName, x, y, ptr->SmudgeData);
+				snprintf(uname, sizeof(uname), "%d", index);
+				snprintf(buf, sizeof(buf), "%s,%d,%d,%d", (char const *)stype->IniName, x, y, ptr->SmudgeData);
 				ini.Put_String(INI_NAME, uname, buf);
 				index++;
 			}

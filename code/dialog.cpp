@@ -587,7 +587,7 @@ Point2D Conquer_Clip_Text_Print(char const * text, Surface & surface, Rect const
 	Point2D point = pt;
 
 	if (text) {
-		strcpy(buffer, text);
+		UTF8::Copy(buffer, text);
 
 		/*
 		**	Set the font and spacing characteristics according to the flag

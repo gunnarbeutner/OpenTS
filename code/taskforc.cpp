@@ -206,7 +206,7 @@ void TaskForceClass::Write_All(CCINIClass & ini, INIScopeType scope)
 	for (index = 0; index < TaskForces.Count(); index++) {
 		TaskForceClass *tforce = TaskForces[index];
 		if (tforce->Scope == scope) {
-			sprintf(buffer, "%d", i++);
+			snprintf(buffer, sizeof(buffer), "%d", i++);
 			strtrim(buffer);
 			ini.Put_String("TaskForces", buffer, (char const *)tforce->IniName);
 			tforce->Write_INI(ini);
@@ -230,7 +230,7 @@ bool TaskForceClass::Read_INI(CCINIClass const & ini)
 		ClassCount = 0;
 
 		for (int index = 0; index < MAX_TEAM_CLASSCOUNT; index++) {
-			sprintf(entry, "%d", index);
+			snprintf(entry, sizeof(entry), "%d", index);
 
 			if (ini.Get_String(Name(), entry, "", buf, sizeof(buf)) > 0) {
 				Members[ClassCount] = EnlistedMemberClass(buf);
@@ -260,7 +260,7 @@ bool TaskForceClass::Write_INI(CCINIClass & ini) const
 		for (int index = 0; index < MAX_TEAM_CLASSCOUNT; index++) {
 			EnlistedMemberClass enlisted;
 
-			sprintf(entry, "%d", index);
+			snprintf(entry, sizeof(entry), "%d", index);
 			if (index < ClassCount) {
 				ini.Put_String(Name(), entry, Members[index].Build_INI_Entry());
 			} else {

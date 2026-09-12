@@ -37,7 +37,7 @@ Territory::Territory(int id, const char * fname, INIClass const & ini, const cha
 	ini.Get_String(name, "Name", 0, Name, sizeof(Name));
 
 	char desc[64];
-	sprintf(desc, "%sDescription", side == 3 ? "NOD" : "GDI");
+	snprintf(desc, sizeof(desc), "%sDescription", side == 3 ? "NOD" : "GDI");
 	ini.Get_String(name, desc, 0, Description, sizeof(Description));
 
 	Target = ini.Get_Point(name, "Target", Target);
