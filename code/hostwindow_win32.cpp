@@ -34,6 +34,7 @@
 #include "wincursor.h"
 
 #include <algorithm>
+#include <climits>
 #include <commctrl.h>
 #include <cstring>
 #include <windowsx.h>
@@ -169,6 +170,17 @@ void Host_Hide_Cursor(void)
 	SetCursor(NULL);
 }
 
+
+int Host_Max_Cursor_Size(void)
+{
+	return(INT_MAX);
+}
+
+
+bool Host_Has_Class_Cursor(void)
+{
+	return(true);
+}
 
 unsigned short Host_Key_Modifiers(void)
 {

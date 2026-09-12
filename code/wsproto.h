@@ -203,7 +203,7 @@ class WinsockInterfaceClass {
 		*/
 		std::unique_ptr<SocketClass>	Socket;
 
-		// Whether Service may poll the socket.
+		// Whether Service may poll the carrier.
 		bool				Listening;
 
 		/*

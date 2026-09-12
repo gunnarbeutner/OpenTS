@@ -49,6 +49,7 @@ class TextButtonClass : public ToggleClass
 		virtual void Set_Text(char const *text, bool resize = false);
 		virtual void Set_Text(int text, bool resize = false);
 		virtual void Set_Style (TextPrintType style) {PrintFlags = style;}
+		virtual char const * Get_Caption(void) const override { return(String); }
 
 	protected:
 

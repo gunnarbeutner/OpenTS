@@ -19,9 +19,11 @@
 #include "dialogresult.h"
 #include "goptions.h"
 #include "language/language.h"
+#include "mainopt.h"
 #include "uicontext.h"
 #include "uirmlview.h"
 #include "uirunner.h"
+#include "uiscreens.h"
 
 #include <RmlUi/Core/Context.h>
 #include <RmlUi/Core/DataModelHandle.h>
@@ -200,3 +202,15 @@ bool UI_Main_Options_Screen(int & choice)
 	choice = (result.Type == UI_RESULT_SESSION_ENDED) ? -1 : result.Code;
 	return(true);
 }
+
+
+// Registered through the dialog driver rather than through the screen, so a run exercises
+// the path a caller takes, the selector and the sub-screens included.
+static bool Open_Main_Options_Dialog(void)
+{
+	Main_Options_Dialog();
+	return(true);
+}
+
+
+static UIScreenRegistration _Register("options", Open_Main_Options_Dialog);

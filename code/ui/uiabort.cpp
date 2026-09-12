@@ -17,15 +17,21 @@
 
 #include "data.h"
 #include "dialogresult.h"
+#include "goptions.h"
 #include "house.h"
 #include "language/language.h"
 #include "session.h"
 #include "uicontext.h"
 #include "uirmlview.h"
 #include "uirunner.h"
+#include "uiscreens.h"
 
 #include <RmlUi/Core/Context.h>
 #include <RmlUi/Core/DataModelHandle.h>
+
+#if defined(__EMSCRIPTEN__)
+#include <emscripten/emscripten.h>
+#endif
 
 
 enum
@@ -204,3 +210,33 @@ bool UI_Abort_Screen(int & result)
 	result = (outcome.Type == UI_RESULT_SESSION_ENDED) ? DIALOG_OK : outcome.Code;
 	return(true);
 }
+
+
+// The register's entry, raised through Abort_Dialog so the selector is exercised. It is
+// only meaningful over a game in progress, and what it answered is kept for a run to read
+// rather than acted on, so a run can try every button without leaving the mission.
+static int _LastAnswer = -99;
+
+
+static bool Open_Abort_Dialog(void)
+{
+	_LastAnswer = Abort_Dialog();
+	return(true);
+}
+
+
+static UIScreenRegistration _Register("abort-mission", Open_Abort_Dialog);
+
+
+#if defined(__EMSCRIPTEN__)
+
+extern "C" {
+
+EMSCRIPTEN_KEEPALIVE int OpenTS_UI_Abort_Answer(void)
+{
+	return(_LastAnswer);
+}
+
+}
+
+#endif

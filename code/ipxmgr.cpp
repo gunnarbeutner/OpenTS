@@ -218,6 +218,7 @@ void IPXManagerClass::Configure_LAN(unsigned short port)
 	udp->Enable_Broadcast(true);
 
 	PacketTransport = udp;
+
 	TransportMode = TRANSPORT_LAN;
 }
 

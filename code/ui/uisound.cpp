@@ -29,6 +29,7 @@
 #include "uicontext.h"
 #include "uimodel.h"
 #include "uirmlview.h"
+#include "uiscreens.h"
 #include "uirunner.h"
 
 #include <RmlUi/Core/Context.h>
@@ -402,3 +403,15 @@ bool UI_Sound_Screen(void)
 
 	return(result.Type != UI_RESULT_FAILED);
 }
+
+
+// Registered through the dialog driver rather than through the screen, so a run exercises
+// the path a caller takes, the selector included.
+static bool Open_Sound_Dialog(void)
+{
+	SoundControlsClass().Dialog();
+	return(true);
+}
+
+
+static UIScreenRegistration _Register("sound", Open_Sound_Dialog);

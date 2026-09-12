@@ -47,6 +47,13 @@ void Host_Destroy_Cursor(HostCursor * cursor);
 void Host_Set_Cursor(HostCursor * cursor);
 void Host_Hide_Cursor(void);
 
+// The largest image, in pixels a side, that the host still draws.
+int Host_Max_Cursor_Size(void);
+
+// Whether the host has a pointer of its own to show while the game does not hold the mouse.
+// Without one, the game's image stands in for it.
+bool Host_Has_Class_Cursor(void);
+
 // The modifier keys held now, as the WWKEY_ bits a key code carries.
 unsigned short Host_Key_Modifiers(void);
 

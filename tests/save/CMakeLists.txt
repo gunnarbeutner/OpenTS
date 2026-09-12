@@ -15,5 +15,8 @@ opents_add_test(SaveTest
 
 if(OPENTS_POSIX)
     target_compile_options(SaveTest PRIVATE -fexceptions)
-    target_link_options(SaveTest PRIVATE -fexceptions)
+
+    # The harness writes the files it reads back, so it needs a real filesystem rather than
+    # the in-memory one Emscripten supplies by default.
+    target_link_options(SaveTest PRIVATE -fexceptions $<$<BOOL:${EMSCRIPTEN}>:-sNODERAWFS=1;-sALLOW_MEMORY_GROWTH=1>)
 endif()

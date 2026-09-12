@@ -33,6 +33,7 @@ class GraphicMenuItem
 		bool Is_Visible(void) const { return(Visible); }
 		void Set_Select_Sound(MSSfxEntry * sound) { SelectSound = sound; }
 
+
 	protected:
 		/*
 		 * This is the identifier the menu reports when this item is the one chosen, and

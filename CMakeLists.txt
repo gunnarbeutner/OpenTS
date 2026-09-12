@@ -17,31 +17,34 @@ option(OPENTS_EXPERIMENTAL_CLANG_CL "Build with clang-cl using the MSVC ABI" OFF
 # this as well, so declare it here rather than inherit it from a vendored build.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-# Visual Studio 2022 is the supported toolchain.
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
-   AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
-    if(NOT OPENTS_EXPERIMENTAL_CLANG_CL)
+# target, whose state docs/BUILDING.md records.
+if(NOT EMSCRIPTEN)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
+       AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+        if(NOT OPENTS_EXPERIMENTAL_CLANG_CL)
+            message(FATAL_ERROR
+                "The unsupported clang-cl experiment must be configured with "
+                "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/clang-cl-msvc.cmake.")
+        endif()
+    elseif(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        # The native macOS target is in progress and unsupported; docs/BUILDING.md records
+        # its state.
+        set(OPENTS_MACOS ON)
+    elseif(MSVC)
+        if(MSVC_VERSION LESS 1930)
+            message(FATAL_ERROR "OpenTS requires MSVC 19.30 or newer.")
+        endif()
+        if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4 AND NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+            message(FATAL_ERROR
+                "OpenTS targets Win32 and x64. Reconfigure with -A Win32 or -A x64.")
+        endif()
+    else()
         message(FATAL_ERROR
-            "The unsupported clang-cl experiment must be configured with "
+            "OpenTS requires the Visual Studio 2022 MSVC toolchain, or the Emscripten "
+            "toolchain for the in-progress WebAssembly target. "
+            "For the unsupported clang-cl experiment, configure with "
             "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/clang-cl-msvc.cmake.")
     endif()
-elseif(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    # The native macOS target is in progress and unsupported; docs/BUILDING.md records
-    # its state.
-    set(OPENTS_MACOS ON)
-elseif(MSVC)
-    if(MSVC_VERSION LESS 1930)
-        message(FATAL_ERROR "OpenTS requires MSVC 19.30 or newer.")
-    endif()
-    if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4 AND NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
-        message(FATAL_ERROR
-            "OpenTS targets Win32 and x64. Reconfigure with -A Win32 or -A x64.")
-    endif()
-else()
-    message(FATAL_ERROR
-        "OpenTS requires the Visual Studio 2022 MSVC toolchain. "
-        "For the unsupported clang-cl experiment, configure with "
-        "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/clang-cl-msvc.cmake.")
 endif()
 
 # CMAKE_CXX_COMPILER_ARCHITECTURE_ID is an MSVC answer; every other toolchain leaves it empty.
@@ -58,8 +61,9 @@ if(NOT OPENTS_ARCH)
     endif()
 endif()
 
-# Only the Windows toolchains have a resource compiler.
-if(NOT OPENTS_MACOS)
+# Only the Windows toolchains have a resource compiler; the other targets reach the
+# language resources another way.
+if(NOT EMSCRIPTEN AND NOT OPENTS_MACOS)
     enable_language(RC)
 endif()
 
@@ -127,13 +131,20 @@ add_custom_command(
 
 add_custom_target(OpenTSStringNames DEPENDS "${OPENTS_STRING_NAME_HEADER}")
 
-# macOS builds with clang against POSIX rather than the Windows SDK.
-if(OPENTS_MACOS)
+# Emscripten and macOS build with clang against POSIX rather than the Windows SDK.
+if(EMSCRIPTEN OR OPENTS_MACOS)
     set(OPENTS_POSIX ON)
+endif()
+
+# The page host in code/browser.cpp answers code/browser.h under Emscripten, which puts
+# the executable back into the default build.
+if(EMSCRIPTEN)
+    set(OPENTS_HOST page)
 endif()
 
 add_subdirectory(thirdparty)
 add_subdirectory(code)
+add_subdirectory(wasm)
 
 enable_testing()
 

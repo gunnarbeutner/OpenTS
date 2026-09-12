@@ -19,6 +19,7 @@
 
 #include "addon.h"
 #include "ccrand.h"
+#include "conquer.h"
 #include "data.h"
 #include "globals.h"
 #include "language/language.h"
@@ -30,6 +31,7 @@
 #include "uimodel.h"
 #include "uirmlview.h"
 #include "uirunner.h"
+#include "uiscreens.h"
 #include "uishell.h"
 #include "uisystem.h"
 #include "uitexture.h"
@@ -762,3 +764,14 @@ int UI_Map_Generator_Screen(bool (*callback)())
 			return(2);
 	}
 }
+
+
+// Registered through the dialog driver, so a run exercises the path a caller takes.
+static bool Open_Map_Generator(void)
+{
+	Do_Random_Map_Dialog(MapGen_Call_Back);
+	return(true);
+}
+
+
+static UIScreenRegistration _Register("mapgen", Open_Map_Generator);

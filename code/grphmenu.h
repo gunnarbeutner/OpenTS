@@ -14,6 +14,7 @@
 #include "msengine.h"
 #include "rect.h"
 
+
 class GraphicMenuItem;
 class INIClass;
 class MSSfxEntry;
@@ -87,6 +88,12 @@ class GraphicMenuString
 		char * Buffer;
 };
 
+/*
+ * Presentation returns this, not a choice, when the frame is moving to a new
+ * size; the caller builds the page again against the new frame.
+ */
+int const GMENU_REDISPLAY = -2;
+
 class GraphicMenu
 {
 	friend GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name);
@@ -99,6 +106,7 @@ class GraphicMenu
 
 		void Set_Animation(MSAnim * anim);
 		void Set_Theme_Name(const char * name);
+		void Set_Theme_Playing(bool playing) { ThemeIsPlaying = playing; }
 
 		void Add_Item(GraphicMenuItem * item);
 
@@ -143,6 +151,12 @@ class GraphicMenu
 		 * one, which leaves the page drawn at frame size.
 		 */
 		Point2D LayoutSize;
+
+		/*
+		 * A page put up again to follow the frame to a new size takes over the
+		 * music from the copy it replaces rather than restarting the track.
+		 */
+		bool ThemeIsPlaying;
 
 		/*
 		 * These are the items the player may pick from. The menu owns them and destroys

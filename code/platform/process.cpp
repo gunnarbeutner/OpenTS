@@ -17,7 +17,7 @@
 
 /// <summary>
 /// Returns the directory holding the executable, ending with a separator. Where the program
-/// has no file of its own, the current directory at the first call stands in
+/// has no file of its own, as on a page, the current directory at the first call stands in
 /// for it, because startup makes this directory current before the first archive is opened.
 /// The answer is fixed at the first call.
 /// </summary>

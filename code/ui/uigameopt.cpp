@@ -39,6 +39,7 @@
 #include "uicontext.h"
 #include "uirmlview.h"
 #include "uirunner.h"
+#include "uiscreens.h"
 #include "utf8.h"
 
 #include "special.hh"
@@ -484,3 +485,15 @@ bool UI_Game_Options_Screen(void)
 	Map.Flag_To_Redraw(GS_REDRAW_ALL);
 	return(true);
 }
+
+
+// Registered through the dialog driver rather than through the screen, so a run exercises
+// the path a caller takes. It is only meaningful over a game in progress.
+static bool Open_Game_Options_Dialog(void)
+{
+	Game_Options_Dialog();
+	return(true);
+}
+
+
+static UIScreenRegistration _Register("game-options", Open_Game_Options_Dialog);

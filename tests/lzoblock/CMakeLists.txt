@@ -30,3 +30,8 @@ if(OPENTS_POSIX)
     )
 endif()
 
+if(EMSCRIPTEN)
+    # The compressor keeps its 64 KiB work area on the stack, which is the whole of the
+    # default wasm stack.
+    target_link_options(LzoBlock PRIVATE -sSTACK_SIZE=1048576)
+endif()

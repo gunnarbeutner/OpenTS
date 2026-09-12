@@ -56,6 +56,7 @@ class EditClass : public ControlClass
 		virtual int  Draw_Me(int forced) override;
 		virtual void Set_Text(char * text, int max_len);
 		virtual char * Get_Text(void) {return(String);};
+		virtual char const * Get_Caption(void) const override { return(String); }
 		void Set_Color (int color) { Color = color; }
 
 		void Set_Read_Only(int rdonly) {IsReadOnly = rdonly;}

@@ -14,13 +14,19 @@
 
 #include "uimsgbox.h"
 
+#include "msgbox.h"
 #include "uicontext.h"
 #include "uimodel.h"
 #include "uirmlview.h"
+#include "uiscreens.h"
 #include "uirunner.h"
 
 #include <RmlUi/Core/Context.h>
 #include <RmlUi/Core/DataModelHandle.h>
+
+#if defined(__EMSCRIPTEN__)
+#include <emscripten/emscripten.h>
+#endif
 
 #include <cstring>
 #include <string>
@@ -217,3 +223,46 @@ int UI_Message_Box(char const * message, int defresponse,
 
 	return(result.Code);
 }
+
+
+// The register's entries for exercising the answers a caller reads, without reproducing a
+// game state that raises a box. Raised through WWMessageBox so the selector is exercised.
+static int _LastAnswer = -99;
+
+
+static bool Open_Probe_Box(int buttons)
+{
+	char const * const texts[] = { "First", "Second", "Third" };
+
+	_LastAnswer = WWMessageBox()._Process("Probe message",
+		0,
+		buttons >= 1 ? texts[0] : nullptr,
+		buttons >= 2 ? texts[1] : nullptr,
+		buttons >= 3 ? texts[2] : nullptr);
+
+	return(true);
+}
+
+
+static bool Open_Probe_Box_1(void) { return(Open_Probe_Box(1)); }
+static bool Open_Probe_Box_2(void) { return(Open_Probe_Box(2)); }
+static bool Open_Probe_Box_3(void) { return(Open_Probe_Box(3)); }
+
+
+static UIScreenRegistration _Register1("msgbox1", Open_Probe_Box_1);
+static UIScreenRegistration _Register2("msgbox2", Open_Probe_Box_2);
+static UIScreenRegistration _Register3("msgbox3", Open_Probe_Box_3);
+
+
+#if defined(__EMSCRIPTEN__)
+
+extern "C" {
+
+EMSCRIPTEN_KEEPALIVE int OpenTS_UI_Message_Box_Answer(void)
+{
+	return(_LastAnswer);
+}
+
+}
+
+#endif

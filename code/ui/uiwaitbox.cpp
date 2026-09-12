@@ -15,6 +15,7 @@
 #include "dbgprint.h"
 #include "keyboard.h"
 #include "uicontext.h"
+#include "uiscreens.h"
 #include "uishell.h"
 #include "uisystem.h"
 #include "video.h"
@@ -192,3 +193,38 @@ void UIWaitBoxClass::Set_Text(char const * message)
 		UI_Wait_Box_Set_Text(message);
 	}
 }
+
+
+// The register's entries for exercising the box through the interface its callers use.
+static UIWaitBoxClass * _Probe = nullptr;
+
+
+static bool Open_Probe_Wait_Box(void)
+{
+	if (_Probe == nullptr) {
+		_Probe = new UIWaitBoxClass("Saving game");
+	}
+	return(true);
+}
+
+
+static bool Count_Probe_Wait_Box(void)
+{
+	if (_Probe != nullptr) {
+		_Probe->Set_Text("Loading in 3 seconds");
+	}
+	return(true);
+}
+
+
+static bool Close_Probe_Wait_Box(void)
+{
+	delete _Probe;
+	_Probe = nullptr;
+	return(true);
+}
+
+
+static UIScreenRegistration _RegisterOpen("waitbox", Open_Probe_Wait_Box);
+static UIScreenRegistration _RegisterCount("waitbox-count", Count_Probe_Wait_Box);
+static UIScreenRegistration _RegisterClose("waitbox-close", Close_Probe_Wait_Box);

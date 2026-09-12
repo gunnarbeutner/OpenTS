@@ -9,7 +9,7 @@
 
 #include "always.h"
 
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 
 #include "platform/wait.h"
 
@@ -27,4 +27,4 @@ void Platform_Sleep(unsigned int milliseconds)
 	std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 }
 
-#endif	// !_WIN32
+#endif	// !_WIN32 && !__EMSCRIPTEN__

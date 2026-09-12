@@ -55,6 +55,10 @@ bool UI_Handle_Mouse_Wheel(float delta, unsigned int modifiers);
 bool UI_Handle_Key(UIKeyType key, bool down, unsigned int modifiers);
 bool UI_Handle_Text(char const * utf8);
 
+bool UI_Point_Is_Over_Document(int clientx, int clienty);
+// Whether the element holding the focus takes typed text.
+bool UI_Text_Field_Has_Focus(void);
+
 // Drops capture, drags, and composition. Held keys are not replayed as presses when focus
 // returns.
 void UI_On_Focus_Lost(void);
@@ -68,3 +72,21 @@ bool UI_Modal_Is_Active(void);
 // message box over an options screen does not end the outer screen's scope.
 void UI_Begin_Modal(void);
 void UI_End_Modal(void);
+
+// Whether a modal screen is being run. code/ui/uiscreens.cpp reads this before it opens
+// one, so a request never opens a modal screen from inside another.
+bool UI_Modal_Is_Open(void);
+
+// Whether the shell is tearing a screen down. The message pump inside the keyboard clear
+// can reach UI code again, and this is what tells it the screen it would act on is going.
+bool UI_Is_Closing(void);
+
+// Shows or hides the built-in probe document, which is how the shell is exercised before
+// any screen uses it: it draws, it takes a hover and a click, and it needs no font and no
+// shipped file. Reports whether the probe is showing afterwards.
+bool UI_Toggle_Probe(void);
+bool UI_Probe_Is_Showing(void);
+
+// How many clicks the probe has taken. A run reads this to tell a consumed click from one
+// that reached the game underneath.
+int UI_Probe_Click_Count(void);

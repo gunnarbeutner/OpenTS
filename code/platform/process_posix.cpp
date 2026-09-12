@@ -26,7 +26,10 @@
 
 std::string Executable_Path(void)
 {
-#if defined(__APPLE__)
+#if defined(__EMSCRIPTEN__)
+	// A page is not a process with an image on disk.
+	return(std::string());
+#elif defined(__APPLE__)
 	uint32_t size = 0;
 	_NSGetExecutablePath(nullptr, &size);
 

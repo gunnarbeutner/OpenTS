@@ -17,3 +17,9 @@ opents_add_test(UIFontDialog
     LIBRARIES rmlui
 )
 
+# FreeType is compiled for the wasm form of longjmp on that target, which the link has to
+# provide, and that form needs the harness to unwind with wasm exceptions as the engine does.
+if(EMSCRIPTEN)
+    target_compile_options(UIFontDialog PRIVATE -fwasm-exceptions)
+    target_link_options(UIFontDialog PRIVATE -fwasm-exceptions -sSUPPORT_LONGJMP=wasm -sNODERAWFS=1)
+endif()

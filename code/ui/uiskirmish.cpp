@@ -21,6 +21,7 @@
 #include "globals.h"
 #include "goptions.h"
 #include "houstype.h"
+#include "init.h"
 #include "language/language.h"
 #include "mapgen.h"
 #include "mplayer.h"
@@ -29,10 +30,12 @@
 #include "preview.h"
 #include "rules.h"
 #include "session.h"
+#include "skirmish.h"
 #include "uicontext.h"
 #include "uimodel.h"
 #include "uirmlview.h"
 #include "uirunner.h"
+#include "uiscreens.h"
 #include "uitexture.h"
 #include "utf8.h"
 #include "win.h"
@@ -956,3 +959,21 @@ bool UI_Skirmish_Screen(int & rc)
 
 	return(true);
 }
+
+
+// Registered through the dialog driver rather than through the screen, so a run exercises
+// the path a caller takes, the selector included. The main menu reads the settings and the
+// scenario list before it opens the dialog, and so does this. Accepting here starts no game:
+// that is the menu's caller's work.
+static bool Open_Skirmish_Dialog(void)
+{
+	Session.Read_MultiPlayer_Settings();
+	Prepare_Side_Roster();
+	Session.Read_Scenario_Descriptions();
+
+	Skirmish_Mode_Dialog();
+	return(true);
+}
+
+
+static UIScreenRegistration _Register("skirmish", Open_Skirmish_Dialog);

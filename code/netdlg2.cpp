@@ -859,7 +859,10 @@ bool Net2Remote_Connect(void)
 			Windows_Message_Handler();
 
 			// A screen acts on what the pump brought it, as a dialog acted on it inside the
-			// pump.
+			// pump; the page's own events arrive inside Call_Back, so it looks again after.
+			UI_Lobby_Service_All();
+
+			Call_Back();
 			UI_Lobby_Service_All();
 			if (_netresponse != 0) {
 				break;

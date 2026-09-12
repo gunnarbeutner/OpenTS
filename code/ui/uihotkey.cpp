@@ -29,6 +29,8 @@
 #include "command.h"
 #include "dbgprint.h"
 #include "dialogresult.h"
+#include "globals.h"
+#include "goptions.h"
 #include "index.h"
 #include "init.h"
 #include "keyboard.h"
@@ -40,6 +42,7 @@
 #include "uimodel.h"
 #include "uirmlview.h"
 #include "uirunner.h"
+#include "uiscreens.h"
 #include "vector.h"
 #include "voc.h"
 
@@ -628,3 +631,15 @@ bool UI_Hotkey_Screen(void)
 
 	return(result.Type != UI_RESULT_FAILED);
 }
+
+
+// Registered through the dialog driver rather than through the screen, so a run exercises
+// the path a caller takes, the selector included.
+static bool Open_Hotkey_Dialog(void)
+{
+	Options.Hotkey_Dialog();
+	return(true);
+}
+
+
+static UIScreenRegistration _Register("keyboard", Open_Hotkey_Dialog);

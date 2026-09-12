@@ -20,7 +20,7 @@
 #include <string>
 
 
-// Empty where the program has no file of its own.
+// Empty where the program has no file of its own, as on a page.
 std::string Executable_Path(void);
 
 // Ends with a separator, so a file name can be appended directly.

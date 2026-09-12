@@ -18,6 +18,7 @@
 #include "dsurface.h"
 #include "movieformat.h"
 #include "movieskip.h"
+#include "phase.h"
 #include "surface.h"
 #include "theme.h"
 #include "vqa.h"
@@ -31,6 +32,10 @@ DynamicVectorClass<VQHandle *> IngameVQ;
 
 VQHandle *CurrentVQ = NULL;
 int MovieInt1 = 0;
+
+// A handle holds its surface from Movie_Create until Movie_Destroy, so the
+// drawing surfaces cannot be replaced while this is above zero.
+static int _LiveMovies = 0;
 
 
 /// <summary>
@@ -196,6 +201,7 @@ VQHandle * Movie_Create(char const * name, Surface * surface, Rect rect1, Rect r
 		handle->DrawSurface = surface;
 		handle->VQA->Set_Draw_Buffer(NULL, surface->Stride() / surface->Bytes_Per_Pixel(), surface->Get_Height());
 		handle->IsInitialized = true;
+		_LiveMovies++;
 		return(handle);
 	}
 	return(NULL);
@@ -214,9 +220,19 @@ void Movie_Destroy(VQHandle * handle)
 			handle->VQA->Close_And_Free_VQA();
 			delete handle->VQA;
 			handle->VQA = NULL;
+			_LiveMovies--;
 		}
 		handle->IsInitialized = false;
 	}
+}
+
+
+/// <summary>
+/// Is any movie holding one of the engine's drawing surfaces?
+/// </summary>
+bool Movie_Holds_A_Surface(void)
+{
+	return(_LiveMovies > 0);
 }
 
 
@@ -233,6 +249,7 @@ void Movie_Destroy(VQHandle * handle)
 void Movie_Play(VQHandle *movie, bool hide_mouse, ThemeType theme, bool user_break_not_allowed)
 {
 	if (CurrentVQ == NULL) {
+		PhaseScope phase("movie");
 		movie->IsInitialized = true;
 		CurrentVQ = movie;
 		int start_frame = 0;

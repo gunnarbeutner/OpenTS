@@ -70,7 +70,8 @@ GraphicMenuItem * GM_Read_Image_Item(const char * name, INIClass const & ini, MS
 /// the others are activated as the item gains the selection or is disabled. The
 /// highlighted and disabled artwork may be omitted: an item with no highlight simply does
 /// not light up, and one with no disabled artwork keeps its normal image while it is
-/// unavailable rather than vanishing from the menu.
+/// unavailable rather than vanishing from the menu. The browser build dims a
+/// copy of the normal artwork for the disabled face when it can.
 /// </summary>
 /// <param name="origin">The screen position to display the artwork at.</param>
 /// <param name="rect">The screen area the mouse must be within to select this item.</param>
@@ -99,11 +100,14 @@ GraphicMenuImageItem::GraphicMenuImageItem(int id, MSEngine & engine, Point2D co
 
 	strncpy(SelectVQ, select_vq != NULL ? select_vq : "", sizeof(SelectVQ));
 
+	MSPCXAnim * highlight = NULL;
+
 	if (strlen(highlight_image)) {
-		HighlightImage = new MSPCXAnim(highlight_image, engine.Get_Anims(), origin, true);
-		if (HighlightImage != NULL) {
-			HighlightImage->Set_Active(false);
-			engine.Add_Animation(HighlightImage);
+		highlight = new MSPCXAnim(highlight_image, engine.Get_Anims(), origin, true);
+		HighlightImage = highlight;
+		if (highlight != NULL) {
+			highlight->Set_Active(false);
+			engine.Add_Animation(highlight);
 		}
 	}
 
@@ -114,7 +118,22 @@ GraphicMenuImageItem::GraphicMenuImageItem(int id, MSEngine & engine, Point2D co
 		}
 	}
 
-	if (strlen(disabled_image)) {
+#if defined(__EMSCRIPTEN__)
+	// Few choices ship disabled artwork, so a dimmed copy of the ordinary face
+	// stands in where the highlight shows which pixels are lettering.
+	if (highlight != NULL && strlen(image)) {
+		MSPCXAnim * dimmed = new MSPCXAnim(image, engine.Get_Anims(), origin, true);
+		if (dimmed->Dim_Lettering(*highlight)) {
+			DisabledImage = dimmed;
+			dimmed->Set_Active(false);
+			engine.Add_Animation(dimmed);
+		} else {
+			delete dimmed;
+		}
+	}
+#endif
+
+	if (DisabledImage == NULL && strlen(disabled_image)) {
 		DisabledImage = new MSPCXAnim(disabled_image, engine.Get_Anims(), origin, true);
 		if (DisabledImage != NULL) {
 			DisabledImage->Set_Active(false);

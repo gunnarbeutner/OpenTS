@@ -26,6 +26,7 @@
 #include "keyboard.h"
 #include "movie.h"
 #include "movies.h"
+#include "musicbackend.h"
 #include "video.h"
 #include "vidscale.h"
 #include "wwmouse.h"
@@ -146,6 +147,11 @@ void Focus_Loss(void)
 	DebugString("Focus_Loss()\n");
 	Pause_Ingame_Movie(true);
 	AudioEngine.Focus_Loss();
+#if defined(__EMSCRIPTEN__)
+	// A score playing through the page's own audio element is not in the mix the engine
+	// just paused, so it is silenced here.
+	Music_Browser_Pause();
+#endif
 	if (MouseCursor) {
 		_MouseCaptured = MouseCursor->Is_Captured();
 		DebugString("Focus_Loss(): _MouseCaptured = %s\n", _MouseCaptured ? "true" : "false");
@@ -164,6 +170,9 @@ void Focus_Restore(void)
 {
 	DebugString("Focus_Restore()\n");
 	AudioEngine.Focus_Restore();
+#if defined(__EMSCRIPTEN__)
+	Music_Browser_Resume();
+#endif
 	DebugString("Focus_Restore(): _MouseCaptured = %s\n", _MouseCaptured ? "true" : "false");
 	if (MouseCursor && _MouseCaptured == true && !Debug_Map) {
 		MouseCursor->Capture_Mouse();

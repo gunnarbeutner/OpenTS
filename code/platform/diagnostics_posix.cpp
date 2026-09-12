@@ -21,7 +21,7 @@
 #include <sys/utsname.h>
 
 
-// Standard error already reaches whatever terminal started the program, so
+// Standard error already reaches whatever terminal or page console started the program, so
 // there is no window to open.
 bool Debug_Console_Open(void)
 {

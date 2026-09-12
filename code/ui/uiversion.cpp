@@ -23,6 +23,8 @@
 #include "uicontext.h"
 #include "uimodel.h"
 #include "uirmlview.h"
+#include "init.h"
+#include "uiscreens.h"
 #include "uirunner.h"
 #include "utf8.h"
 #include "version.h"
@@ -185,3 +187,15 @@ bool UI_Version_Screen(void)
 
 	return(result.Type != UI_RESULT_FAILED);
 }
+
+
+// Registered through the dialog driver rather than through the screen, so a run exercises
+// the path a caller takes, the selector included.
+static bool Open_Version_Dialog(void)
+{
+	Version_Dialog();
+	return(true);
+}
+
+
+static UIScreenRegistration _Register("version", Open_Version_Dialog);

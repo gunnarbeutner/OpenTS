@@ -17,12 +17,14 @@
 #include "_keyboar.h"
 #include "dbgprint.h"
 #include "keyboard.h"
+#include "uibrowser.h"
 #include "uicontext.h"
 #include "uifile.h"
 #include "uifontengine.h"
 #include "uirender.h"
 #include "globals.h"
 #include "goptions.h"
+#include "uiscreens.h"
 #include "uisystem.h"
 #include "video.h"
 #include "mstimer.h"
@@ -37,8 +39,14 @@
 #include <RmlUi/Core/ElementDocument.h>
 #include <RmlUi/Core/ElementInstancer.h>
 #include <RmlUi/Core/Factory.h>
+#include <RmlUi/Core/Event.h>
+#include <RmlUi/Core/EventListener.h>
 #include <RmlUi/Core/Input.h>
 #include <RmlUi/Core/StyleTypes.h>
+
+#if defined(__EMSCRIPTEN__)
+#include <emscripten/emscripten.h>
+#endif
 
 
 static bool _Initialized = false;
@@ -62,9 +70,16 @@ static bool _GameFontsLoaded = false;
 static int _ContextWidth = 0;
 static int _ContextHeight = 0;
 
+static Rml::ElementDocument * _Probe = nullptr;
+static int _ProbeClicks = 0;
+
 // How many modal screens are open. Only the outermost one's scope brackets the keyboard
 // queue; a message box over an options screen must not end the options screen's.
 static int _ModalDepth = 0;
+
+// Set while the shell is closing a screen, so the message pump inside Keyboard->Clear
+// cannot re-enter the screen that is going away.
+static bool _Closing = false;
 
 
 static int Translate_Modifiers(unsigned int modifiers)
@@ -383,6 +398,10 @@ bool UI_Init(void)
 	_Initialized = true;
 	Apply_Frame_Geometry();
 
+#if defined(__EMSCRIPTEN__)
+	UI_Browser_Install_Hook();
+#endif
+
 	return(true);
 }
 
@@ -393,8 +412,14 @@ void UI_Shutdown(void)
 		return;
 	}
 
-	// Rml::Shutdown releases the context, so the pointer is dropped rather than the context
-	// removed first, and the render interface outlives the documents that hold its handles.
+#if defined(__EMSCRIPTEN__)
+	// The hook goes first: nothing may reach a document once the context is gone.
+	UI_Browser_Remove_Hook();
+#endif
+
+	// Rml::Shutdown releases the contexts, so the pointers are dropped rather than removed
+	// first, and the render interface outlives the documents that hold its handles.
+	_Probe = nullptr;
 	_Context = nullptr;
 	_Initialized = false;
 
@@ -452,6 +477,13 @@ void UI_Tick(void)
 		return;
 	}
 
+#if defined(__EMSCRIPTEN__)
+	// The page tracks the pointer rather than queuing a move for it, so the move is picked
+	// up here, before the update that acts on it.
+	UI_Browser_Service_Mouse();
+	UI_Browser_Service_Text_Input();
+#endif
+
 	// Call_Back is reached from inside waits that the shell's own work can enter again, and
 	// RmlUi promises nothing about an update raised from its own event dispatch.
 	_Updating = true;
@@ -462,6 +494,10 @@ void UI_Tick(void)
 	if (Any_Document_Visible()) {
 		UI_Mark_Overlay_Dirty();
 	}
+
+	// After the update, so a screen opened here starts from a settled context rather than
+	// from the middle of one.
+	UI_Service_Screen_Request();
 }
 
 
@@ -620,6 +656,44 @@ bool UI_Handle_Key(UIKeyType key, bool down, unsigned int modifiers)
 }
 
 
+bool UI_Point_Is_Over_Document(int clientx, int clienty)
+{
+	if (!_Initialized || _Context == nullptr) {
+		return(false);
+	}
+
+	int x = 0;
+	int y = 0;
+	if (!Client_To_Context(clientx, clienty, &x, &y)) {
+		return(false);
+	}
+
+	return(_Context->GetElementAtPoint(Rml::Vector2f((float)x, (float)y)) != nullptr);
+}
+bool UI_Text_Field_Has_Focus(void)
+{
+	if (!_Initialized || _Context == nullptr) {
+		return(false);
+	}
+
+	Rml::Element * focus = _Context->GetFocusElement();
+	if (focus == nullptr) {
+		return(false);
+	}
+
+	if (focus->GetTagName() == "textarea") {
+		return(true);
+	}
+
+	if (focus->GetTagName() != "input") {
+		return(false);
+	}
+
+	Rml::String const type = focus->GetAttribute<Rml::String>("type", "text");
+	return(type == "text" || type == "password");
+}
+
+
 bool UI_Handle_Text(char const * utf8)
 {
 	if (!_Initialized || _Context == nullptr || utf8 == nullptr) {
@@ -664,6 +738,116 @@ bool UI_Modal_Is_Active(void)
 }
 
 
+// The probe is written here rather than shipped as a file so that the shell can be
+// exercised before the document tree, the font, and the packaging exist. It needs no font
+// because it holds no text: what it proves is that geometry, blending, clipping, the
+// coordinate mapping, and input consumption work.
+//
+// It sits at a known place in the frame's own coordinates. A document unit is a game
+// logical unit, so the box lands over the same part of the picture at every window size,
+// which is what a screenshot is compared on. Its label needs the shipped font, so a probe
+// that draws boxes and no text says the font did not load.
+static char const _ProbeDocument[] =
+	"<rml>"
+	"<head><style>"
+	"body { position: absolute; left: 0; top: 0; width: 100%; height: 100%;"
+	"       pointer-events: none; }"
+	"#probe { position: absolute; left: 40dp; top: 40dp; width: 160dp; height: 100dp;"
+	"         background-color: #1040c0e0; border: 2dp #ffffffff;"
+	"         pointer-events: auto; }"
+	"#probe:hover { background-color: #40a0ffe0; }"
+	"#probe.hit { background-color: #c02020e0; }"
+	"#inner { position: absolute; left: 20dp; top: 20dp; width: 40dp; height: 40dp;"
+	"         background-color: #ffe000ff; }"
+	// The label is what proves the font pipeline: a face loaded through the engine's file
+	// system, rasterized by FreeType, and drawn from the atlas RmlUi generates.
+	"#label { position: absolute; left: 20dp; top: 68dp; font-family: opents-sans;"
+	"         font-size: 12dp; color: #ffffffff; }"
+	"</style></head>"
+	"<body><div id=\"probe\"><div id=\"inner\"/>"
+	"<p id=\"label\">Shell probe</p></div></body>"
+	"</rml>";
+
+
+class UIProbeListener : public Rml::EventListener
+{
+	public:
+		void ProcessEvent(Rml::Event & event) override;
+};
+
+
+static UIProbeListener _ProbeListener;
+
+
+void UIProbeListener::ProcessEvent(Rml::Event & event)
+{
+	_ProbeClicks++;
+
+	Rml::Element * element = event.GetCurrentElement();
+	if (element != nullptr) {
+		element->SetClass("hit", !element->IsClassSet("hit"));
+	}
+
+	UI_Mark_Overlay_Dirty();
+}
+
+
+/// <summary>
+/// Shows the probe document, or hides it when it is already up.
+/// </summary>
+/// <returns>Whether the probe is showing once this returns.</returns>
+bool UI_Toggle_Probe(void)
+{
+	if (!_Initialized || _Context == nullptr) {
+		return(false);
+	}
+
+	if (_Probe != nullptr) {
+		// The listener is detached before the document goes, so nothing of the probe
+		// outlives the element it was attached to.
+		Rml::Element * box = _Probe->GetElementById("probe");
+		if (box != nullptr) {
+			box->RemoveEventListener(Rml::EventId::Click, &_ProbeListener);
+		}
+
+		_Probe->Close();
+		_Probe = nullptr;
+
+		// Closing is deferred to the next update, and the pixels have to go either way.
+		UI_Mark_Overlay_Dirty();
+		return(false);
+	}
+
+	_Probe = _Context->LoadDocumentFromMemory(_ProbeDocument);
+	if (_Probe == nullptr) {
+		DebugString("UI: the probe document would not parse\n");
+		return(false);
+	}
+
+	Rml::Element * box = _Probe->GetElementById("probe");
+	if (box != nullptr) {
+		box->AddEventListener(Rml::EventId::Click, &_ProbeListener);
+	}
+
+	_Probe->Show();
+	UI_Mark_Overlay_Dirty();
+
+	return(true);
+}
+
+
+bool UI_Probe_Is_Showing(void)
+{
+	return(_Probe != nullptr);
+}
+
+
+int UI_Probe_Click_Count(void)
+{
+	return(_ProbeClicks);
+}
+
+
 Rml::Context * UI_Context(void)
 {
 	return(_Context);
@@ -695,10 +879,54 @@ void UI_End_Modal(void)
 
 	if (_ModalDepth == 0) {
 		if (Keyboard != nullptr) {
+			// Keyboard->Clear pumps window messages, which can reach UI code again. The flag is
+			// what a screen's own handlers test before they act on anything.
+			_Closing = true;
 			Keyboard->Clear();
+			_Closing = false;
 		}
 		Menu_Release_Mouse();
 	}
 
 	UI_Mark_Overlay_Dirty();
 }
+
+
+bool UI_Modal_Is_Open(void)
+{
+	return(_ModalDepth > 0);
+}
+
+
+bool UI_Is_Closing(void)
+{
+	return(_Closing);
+}
+
+
+#if defined(__EMSCRIPTEN__)
+
+// The browser harness drives the probe through these rather than through a key, so the
+// shell can be exercised in any phase, the title screen included.
+extern "C" {
+
+EMSCRIPTEN_KEEPALIVE int OpenTS_UI_Toggle_Probe(void)
+{
+	return(UI_Toggle_Probe() ? 1 : 0);
+}
+
+
+EMSCRIPTEN_KEEPALIVE int OpenTS_UI_Probe_Showing(void)
+{
+	return(UI_Probe_Is_Showing() ? 1 : 0);
+}
+
+
+EMSCRIPTEN_KEEPALIVE int OpenTS_UI_Probe_Clicks(void)
+{
+	return(UI_Probe_Click_Count());
+}
+
+}
+
+#endif

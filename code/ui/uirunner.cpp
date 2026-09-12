@@ -15,6 +15,7 @@
 
 #include "uirunner.h"
 
+#include "browser.h"
 #include "conquer.h"
 #include "mainloop.h"
 #include "msgloop.h"
@@ -49,6 +50,11 @@ bool UI_Service_Game(void)
 	} else {
 		Call_Back();
 
+#if defined(__EMSCRIPTEN__)
+		// A screen's pass has no frame timer to wait on, and the paced yield inside
+		// Call_Back leaves the rest of the frame to be spun through.
+		Browser_Yield();
+#endif
 	}
 
 	return(false);

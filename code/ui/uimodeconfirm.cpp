@@ -16,14 +16,22 @@
 #include "uimodeconfirm.h"
 
 #include "dialogresult.h"
+#include "globals.h"
+#include "goptions.h"
+#include "mainopt.h"
 #include "stimer.h"
 #include "timer.h"
 #include "uicontext.h"
 #include "uirmlview.h"
 #include "uirunner.h"
+#include "uiscreens.h"
 
 #include <RmlUi/Core/Context.h>
 #include <RmlUi/Core/DataModelHandle.h>
+
+#if defined(__EMSCRIPTEN__)
+#include <emscripten/emscripten.h>
+#endif
 
 
 enum
@@ -190,3 +198,33 @@ bool UI_Mode_Confirm_Screen(int & result)
 	result = (outcome.Type == UI_RESULT_SESSION_ENDED) ? -1 : outcome.Code;
 	return(true);
 }
+
+
+// The register's entry for exercising the confirmation without a target that offers display
+// modes. It tries the mode the frame already has, through the driver, so both the keep and
+// the rollback paths put back the same mode. The answer is kept for a run to read.
+static int _LastAnswer = -99;
+
+
+static bool Open_Mode_Confirm(void)
+{
+	_LastAnswer = Test_Display_Mode_Dialog(Options.ScreenWidth, Options.ScreenHeight) ? 1 : 0;
+	return(true);
+}
+
+
+static UIScreenRegistration _Register("mode-confirm", Open_Mode_Confirm);
+
+
+#if defined(__EMSCRIPTEN__)
+
+extern "C" {
+
+EMSCRIPTEN_KEEPALIVE int OpenTS_UI_Mode_Confirm_Answer(void)
+{
+	return(_LastAnswer);
+}
+
+}
+
+#endif

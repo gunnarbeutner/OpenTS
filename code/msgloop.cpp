@@ -35,10 +35,17 @@
 #include "msgloop.h"
 
 #include "_tooltip.h"
+#include "browser.h"
 #include "cctooltip.h"
+#include "gamewindow.h"
+#include "globals.h"
 #include "mainwindow.h"
+#include "misc.h"
 #include "video.h"
-#include "win.h"
+
+#if !defined(_WIN32)
+#include "audio/audioengine.h"
+#endif
 
 
 /***********************************************************************************************
@@ -62,7 +69,25 @@
  *=============================================================================================*/
 void Windows_Message_Handler(void)
 {
-#if defined(_WIN32)
+#if defined(__EMSCRIPTEN__)
+	// Every engine wait reaches here, so this takes in the page's events and
+	// hands the thread back; see docs/WASM-PORT.md section 1.
+	Browser_Service();
+
+	// A page has no multimedia timer and the waiting stretches never reach
+	// Call_Back, so the mixer's feeder runs its passes from here too.
+	AudioEngine.Service();
+
+	if (!Has_Main_Window()) {
+		Video_Present_If_Dirty();
+		Browser_Yield_If_Due();
+		return;
+	}
+
+	if (Host_Take_Paint()) {
+		Game_Window_On_Paint(GameInFocus == true || WindowedMode == true);
+	}
+#elif defined(_WIN32)
 
 	if (!Has_Main_Window()) return;
 
@@ -96,4 +121,12 @@ void Windows_Message_Handler(void)
 	 * reach the screen.
 	 */
 	Video_Present_If_Dirty();
+
+#if defined(__EMSCRIPTEN__)
+	// Matching the frame to the canvas replaces every drawing surface, and this
+	// is the one pump the movie player and dialog loops do not come through.
+	Video_Service_Display();
+
+	Browser_Yield_If_Due();
+#endif
 }

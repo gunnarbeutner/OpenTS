@@ -568,3 +568,4 @@ bool WWKeyboardClass::Post_Mouse_Event(unsigned short vk_key, int x, int y, bool
 {
 	return(Put_Mouse_Message(vk_key, x, y, release));
 }
+

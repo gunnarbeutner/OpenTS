@@ -42,3 +42,21 @@ UIKeyType UI_Key_From_Virtual(unsigned int key)
 
 	return(UI_KEY_UNKNOWN);
 }
+
+
+unsigned int UI_Modifiers_From_Bits(unsigned short bits)
+{
+	unsigned int modifiers = UI_MODIFIER_NONE;
+
+	if ((bits & WWKEY_SHIFT_BIT) != 0) {
+		modifiers |= UI_MODIFIER_SHIFT;
+	}
+	if ((bits & WWKEY_CTRL_BIT) != 0) {
+		modifiers |= UI_MODIFIER_CONTROL;
+	}
+	if ((bits & WWKEY_ALT_BIT) != 0) {
+		modifiers |= UI_MODIFIER_ALT;
+	}
+
+	return(modifiers);
+}

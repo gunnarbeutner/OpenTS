@@ -322,4 +322,6 @@ extern bool Debug_Skip_Intro;
 // -NOBRIEFING starts a mission without its movies and the mission restatement.
 extern bool Debug_Skip_Briefing;
 
+extern bool Main_Menu_Is_Up;
+
 extern Buffer * UnkBuffer;

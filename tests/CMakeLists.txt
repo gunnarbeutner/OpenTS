@@ -136,3 +136,5 @@ add_subdirectory(platform)
 add_subdirectory(utf8)
 add_subdirectory(keyname)
 add_subdirectory(movieformat)
+
+# These exercise the WebAssembly target's own layers, so their harnesses build only there.
