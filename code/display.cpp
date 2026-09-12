@@ -126,6 +126,7 @@
 #include "keyboard.h"
 #include "language/language.h"
 #include "logic.h"
+#include "mainwindow.h"
 #include "mixfile.h"
 #include "overtype.h"
 #include "palette.h"
@@ -3766,7 +3767,7 @@ char const * DisplayClass::Help_Text(int id)
 	/*
 	**	Give a generic help message when over shadow terrain.
 	*/
-	if (!Map[coord].IsMapped && MainWindow) {
+	if (!Map[coord].IsMapped && Has_Main_Window()) {
 		return(Fetch_String(TXT_SHADOW));
 	}
 
@@ -3838,20 +3839,6 @@ char const * DisplayClass::Help_Text(int id)
 /// </summary>
 void DisplayClass::Reposition_Sidebar(void)
 {
-	if (UnusedWindow) {
-		CloseWindow(UnusedWindow);
-		UnusedWindow = 0;
-	}
-}
-
-
-/// <summary>
-/// Handles a window message by handing it straight back to Windows.
-/// </summary>
-/// <returns>Returns with whatever the default window procedure decides.</returns>
-LRESULT DisplayClass::Windows_Message_Proc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
-{
-	return(DefWindowProc(hWnd, Msg, wParam, lParam));
 }
 
 

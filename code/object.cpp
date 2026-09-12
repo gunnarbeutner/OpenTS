@@ -117,6 +117,7 @@
 #include "infatype.h"
 #include "inline.h"
 #include "logic.h"
+#include "mainwindow.h"
 #include "map.h"
 #include "mono.h"
 #include "objtype.h"
@@ -1188,7 +1189,7 @@ bool ObjectClass::Render(Rect & cliprect, bool forced, bool extras_only) const
 
 	Point2D point;
 
-	if (Debug_Map || !MainWindow || (forced || IsToDisplay) && !IsInLimbo) {
+	if (Debug_Map || !Has_Main_Window() || (forced || IsToDisplay) && !IsInLimbo) {
 		IsToDisplay = false;
 
 		if (TacticalMap->Coord_To_Pixel(Render_Coord(), point) || RTTI == RTTI_PARTICLESYSTEM) {

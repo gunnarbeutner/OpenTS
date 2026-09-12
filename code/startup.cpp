@@ -77,6 +77,7 @@
 #include "fog.h"
 #include "gamedirs.h"
 #include "goptions.h"
+#include "hostwindow.h"
 #include "house.h"
 #include "houstype.h"
 #include "hover.h"
@@ -381,85 +382,15 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 	int const lzo_status = lzo_init();
 	if (lzo_status != LZO_E_OK) {
 		DebugString("lzo_init failed with %d.\n", lzo_status);
-		MessageBox(NULL, "The compression library failed its startup check. This build is faulty.", "OpenTS", MB_OK | MB_ICONERROR);
+		Host_Message_Box("OpenTS", "The compression library failed its startup check. This build is faulty.", HOST_BOX_OK | HOST_BOX_ERROR);
 		return(EXIT_FAILURE);
 	}
 
-	/*
-	 * Create a mutex with a unique name to TibSun in order to determine if
-	 * our app is already running.
-	 *
-	 * WARNING: DO NOT use this number for any other application except TibSun
-	 */
-	AppMutex = ::CreateMutex (NULL, FALSE, APP_GUID);
-
-	//
-	// Is there already an instance of this app somewhere?
-	//
-	if (::GetLastError () == ERROR_ALREADY_EXISTS) {
-		//
-		// Find the previous instance
-		//
-		HWND main_wnd = ::FindWindow (APP_GUID, NULL);
-		if (main_wnd != NULL) {
-			::SetForegroundWindow (main_wnd);
-			::ShowWindow (main_wnd, SW_RESTORE);
-		}
-		if (AppMutex != NULL) {
-			CloseHandle(AppMutex);
-			AppMutex = NULL;
-		}
-		DebugString("TibSun is already running...Bail!\n");
+	if (!Acquire_Single_Instance()) {
 		return(EXIT_SUCCESS);
-	} else {
-
-		DebugString("Create AppMutex okay.\n");
-
-		//
-		// Obtain the mutex unique to the Renegade AutoPlay application.
-		//
-		// WARNING: DO NOT use this number for any other application except Renegade AutoPlay
-		//
-		do
-		{
-			//
-			// Attempt to open the mutex
-			//
-			AutoPlayMutex = ::OpenMutex (MUTEX_ALL_ACCESS, FALSE, AUTOPLAY_GUID);
-			if (AutoPlayMutex != NULL) {
-				DebugString( "Waiting for Autoplay to quit!\n");
-				if (::WaitForSingleObject (AutoPlayMutex, 30000) == WAIT_FAILED) {
-					DebugString ("Failed waiting for AutoPlayMutex\n");
-					::CloseHandle (AutoPlayMutex);
-					AutoPlayMutex = NULL;
-				}
-			}
-
-			/*
-			 * Create a mutex with a name unique to the TibSun AutoPlay application.
-			 * This prevents the autoplay from running since it cannot get the mutex.
-			 * TibSun needs both of these mutexs before it is allowed to run.
-			 */
-			if (AutoPlayMutex == NULL) {
-				AutoPlayMutex = CreateMutex (NULL, FALSE, AUTOPLAY_GUID);
-				if (GetLastError () == ERROR_ALREADY_EXISTS) {
-					CloseHandle (AutoPlayMutex);
-					AutoPlayMutex = NULL;
-					Sleep (2500);
-				} else {
-					DebugString("Create AutoPlayMutex.\n");
-				}
-			}
-		} while (AutoPlayMutex == NULL);
-
-		DebugString ("Got AutoPlayMutex okay.\n");
 	}
 
 	atexit(Prog_End);
-
-	if (!Init_Language_Resources(true)) {
-		return(EXIT_SUCCESS);
-	}
 
 	RegisterClasses();
 
@@ -522,8 +453,7 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 		*/
 		if (Disk_Space_Available() < INIT_FREE_DISK_SPACE) {
 			snprintf(buffer, sizeof(buffer), Fetch_String(TXT_CRITICALLY_LOW), (INIT_FREE_DISK_SPACE) / (1024 * 1024));
-			int reply = MessageBox(NULL, buffer, Fetch_String(TXT_SHORT_TITLE), MB_ICONQUESTION|MB_YESNO);
-			if (reply == IDNO) {
+			if (Host_Message_Box(Fetch_String(TXT_SHORT_TITLE), buffer, HOST_BOX_QUESTION | HOST_BOX_YES_NO) == HOST_ANSWER_NO) {
 				return(EXIT_FAILURE);
 			}
 		}
@@ -537,7 +467,7 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 		VideoModeWidth = Options.ScreenWidth;
 		VideoModeHeight = Options.ScreenHeight;
 
-		Create_Main_Window(instance, command_show, Options.ScreenWidth, Options.ScreenHeight);
+		Host_Create_Window(Options.ScreenWidth, Options.ScreenHeight);
 
 		Exception_Run_Post_Window_Test();
 
@@ -545,17 +475,17 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 
 		int drawablewidth = 0;
 		int drawableheight = 0;
-		int refreshrate = Win_Window_Refresh_Rate(MainWindow);
-		NativeWindow nativewindow = Win_Native_Window(MainWindow);
-		if (!Win_Window_Drawable_Size(MainWindow, drawablewidth, drawableheight)
+		int refreshrate = Host_Window_Refresh_Rate();
+		NativeWindow nativewindow = Host_Native_Window();
+		if (!Host_Window_Drawable_Size(drawablewidth, drawableheight)
 			|| !Video_Init(nativewindow, drawablewidth, drawableheight, refreshrate)) {
-			MessageBox(MainWindow, Fetch_String(TXT_VIDEO_ERROR), Fetch_String(TXT_SHORT_TITLE), MB_ICONWARNING);
+			Host_Message_Box(Fetch_String(TXT_SHORT_TITLE), Fetch_String(TXT_VIDEO_ERROR), HOST_BOX_OK | HOST_BOX_WARNING);
 			exit(EXIT_FAILURE);
 		}
 
 		VisibleSurface = DSurface::Create_Primary();
 		if (VisibleSurface == NULL) {
-			MessageBox(MainWindow, Fetch_String(TXT_VIDEO_ERROR), Fetch_String(TXT_SHORT_TITLE), MB_ICONWARNING);
+			Host_Message_Box(Fetch_String(TXT_SHORT_TITLE), Fetch_String(TXT_VIDEO_ERROR), HOST_BOX_OK | HOST_BOX_WARNING);
 			exit(EXIT_FAILURE);
 		}
 
@@ -585,7 +515,7 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 
 		AlphaBuffer = new ABuffer(Rect(TacticalRect.X, TacticalRect.Y, 480, 480 - TacticalRect.Y));
 
-		MouseCursor = new WWMouseClass(MainWindow);
+		MouseCursor = new WWMouseClass();
 		MouseCursor->Capture_Mouse();
 
 		/*
@@ -625,18 +555,7 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 
 		AudioEngine.End();
 
-		/*
-		**	Post a message to our message handler to tell it to clean up.
-		*/
-		PostMessage(MainWindow, WM_DESTROY, 0, 0);
-
-		/*
-		**	Wait until the message handler has dealt with the message
-		*/
-		do
-		{
-			Windows_Message_Handler();
-		}while (ReadyToQuit == 1);
+		Host_Close_Window();
 
 		error_code = EXIT_SUCCESS;
 
@@ -647,7 +566,7 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 		 * either, so a directory the game cannot use is reported where it will be seen.
 		 */
 		if (*Game_Directory_Error() != '\0') {
-			MessageBox(NULL, Game_Directory_Error(), Fetch_String(TXT_SHORT_TITLE), MB_ICONEXCLAMATION|MB_OK);
+			Host_Message_Box(Fetch_String(TXT_SHORT_TITLE), Game_Directory_Error(), HOST_BOX_OK | HOST_BOX_WARNING);
 		}
 
 		// The help and the invalid option message are of no use if the console closes with
@@ -1013,17 +932,7 @@ void Emergency_Exit(void)
 
 	ReadyToQuit = 1;
 
-	/*
-	**	Post a message to our message handler to tell it to clean up.
-	*/
-	PostMessage(MainWindow, WM_DESTROY, 0, 0);
-
-	while (MainWindow) {
-		Windows_Message_Handler();
-		if (ReadyToQuit != 1) {
-			break;
-		}
-	}
+	Host_Close_Window();
 
 
 	if (MouseCursor) {
@@ -1032,7 +941,9 @@ void Emergency_Exit(void)
 	}
 	MouseCursor = NULL;
 
+#if defined(_WIN32)
 	PostQuitMessage(EXIT_SUCCESS);
+#endif
 
 	Shutdown_Network();
 

@@ -34,6 +34,7 @@
 #include "mapgen.h"
 #include "mplayer.h"
 #include "msgbox.h"
+#include "msgloop.h"
 #include "netdlg.h"
 #include "netshare.h"
 #include "nettiming.h"
@@ -855,11 +856,7 @@ bool Net2Remote_Connect(void)
 			Ipx.Service();
 			Title_Screen_Restore();
 
-			MSG msg;
-			while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
+			Windows_Message_Handler();
 
 			// A screen acts on what the pump brought it, as a dialog acted on it inside the
 			// pump.
@@ -1590,21 +1587,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 	case LOBBY_MSG_DESTROY:
 		return(0);
 
-	case WM_DRAWITEM:
-		OwnerDraw::Draw_Item((DRAWITEMSTRUCT *)lparam);
-
-	case WM_ERASEBKGND:
-		return(TRUE);
-
-	case WM_PAINT:
-		OwnerDraw::Draw_Dialog_Back(window);
-		if (MultiplayerMapPreview != NULL) {
-			MultiplayerMapPreview->Blit_Preview(window);
-		}
-		ValidateRect(window, NULL);
-		return(0);
-
-	case WM_INITDIALOG: {
+	case LOBBY_MSG_INIT: {
 		VerNum.Init_Clipping();
 
 		srand(NonCriticalRandomNumber(1, 0x7FFF));
@@ -1613,60 +1596,58 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 		Set_Scenario_Info_From_Index(0);
 		Session.Options.ScenarioIndex = 0;
 
-		Center_Window_Within_Window(window);
+		Fill_Side_Box(window);
+		Select_Side_In_Box(window, Session.House);
 
-		Fill_Country_Box(GetDlgItem(window, IDC_YOURSIDE));
-		Select_Country_In_Box(GetDlgItem(window, IDC_YOURSIDE), Session.House);
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_RESET, 0, 0);
 
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_RESETCONTENT, 0, 0);
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, -1, (LobbyLParam)Fetch_String(TXT_GOLD));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, -1, (LobbyLParam)Fetch_String(TXT_RED));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, -1, (LobbyLParam)Fetch_String(TXT_BLUE));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, -1, (LobbyLParam)Fetch_String(TXT_GREEN));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, -1, (LobbyLParam)Fetch_String(TXT_ORANGE));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, -1, (LobbyLParam)Fetch_String(TXT_SKY_BLUE));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, -1, (LobbyLParam)Fetch_String(TXT_PURPLE));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, -1, (LobbyLParam)Fetch_String(TXT_PINK));
 
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, -1, (LPARAM)Fetch_String(TXT_GOLD));
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, -1, (LPARAM)Fetch_String(TXT_RED));
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, -1, (LPARAM)Fetch_String(TXT_BLUE));
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, -1, (LPARAM)Fetch_String(TXT_GREEN));
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, -1, (LPARAM)Fetch_String(TXT_ORANGE));
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, -1, (LPARAM)Fetch_String(TXT_SKY_BLUE));
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, -1, (LPARAM)Fetch_String(TXT_PURPLE));
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, -1, (LPARAM)Fetch_String(TXT_PINK));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_SET_CUR_SEL, Session.ColorIdx, 0);
 
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_SETCURSEL, Session.ColorIdx, 0);
-
-		SendDlgItemMessage(window, IDC_AILEVEL_SLIDER, LB_RESETCONTENT, 0, 0);
+		Lobby_Send(window, IDC_AILEVEL_SLIDER, LOBBY_MSG_LIST_RESET, 0, 0);
 
 		for (int j = 0; j < Session.Scenarios.Count(); ++j) {
-			SendDlgItemMessage(window, IDC_AILEVEL_SLIDER, LB_INSERTSTRING, -1, (LPARAM)Session.Scenarios[j]);
+			Lobby_Send(window, IDC_AILEVEL_SLIDER, LOBBY_MSG_LIST_INSERT, -1, (LobbyLParam)Session.Scenarios[j]);
 		}
 
-		SendDlgItemMessage(window, IDC_SCENARIONAME, WM_SETTEXT, 0, (LPARAM)Session.Options.ScenarioDescription);
+		Lobby_Send(window, IDC_SCENARIONAME, LOBBY_MSG_SET_TEXT, 0, (LobbyLParam)Session.Options.ScenarioDescription);
 
 		Update_Network_Dialog_Preview(window);
 
-		SendMessage(window, WM_COMMAND, MAKEWPARAM(IDC_YOURSIDE, CBN_SELCHANGE), (LPARAM)GetDlgItem(window, IDC_YOURSIDE));
-		SendMessage(window, WM_COMMAND, MAKEWPARAM(IDC_YOURCOLOR, CBN_SELCHANGE), (LPARAM)GetDlgItem(window, IDC_YOURCOLOR));
+		Lobby_Command(window, MPlayer_Host_Dialog_Proc, IDC_YOURSIDE, LOBBY_NOTIFY_SELCHANGE);
+		Lobby_Command(window, MPlayer_Host_Dialog_Proc, IDC_YOURCOLOR, LOBBY_NOTIFY_SELCHANGE);
 
 		return(0);
 	}
 
-	case WM_HSCROLL:
-	case WM_VSCROLL: {
+	case LOBBY_MSG_HSCROLL:
+	case LOBBY_MSG_VSCROLL: {
 		if (Net2GameStarted) return(0);
 
-		Session.Options.UnitCount = SendDlgItemMessage(window, IDC_UNITCOUNT, TBM_GETPOS, 0, 0);
-		BuildLevel = SendDlgItemMessage(window, IDC_TECHLEVEL, TBM_GETPOS, 0, 0);
-		Session.Options.Credits = SendDlgItemMessage(window, IDC_CREDITS, TBM_GETPOS, 0, 0);
-		Session.Options.AIPlayers = SendDlgItemMessage(window, IDC_AIPLAYERS, TBM_GETPOS, 0, 0);
-		Session.Options.AIDifficulty = (DiffType)SendDlgItemMessage(window, IDC_AILEVEL_SLIDER, TBM_GETPOS, 0, 0);
-		Session.Options.GameSpeed = 6 - SendDlgItemMessage(window, IDC_GAME_SPEED_SLIDER, TBM_GETPOS, 0, 0);
+		Session.Options.UnitCount = Lobby_Send(window, IDC_UNITCOUNT, LOBBY_MSG_TRACK_GET_POS, 0, 0);
+		BuildLevel = Lobby_Send(window, IDC_TECHLEVEL, LOBBY_MSG_TRACK_GET_POS, 0, 0);
+		Session.Options.Credits = Lobby_Send(window, IDC_CREDITS, LOBBY_MSG_TRACK_GET_POS, 0, 0);
+		Session.Options.AIPlayers = Lobby_Send(window, IDC_AIPLAYERS, LOBBY_MSG_TRACK_GET_POS, 0, 0);
+		Session.Options.AIDifficulty = (DiffType)Lobby_Send(window, IDC_AILEVEL_SLIDER, LOBBY_MSG_TRACK_GET_POS, 0, 0);
+		Session.Options.GameSpeed = 6 - Lobby_Send(window, IDC_GAME_SPEED_SLIDER, LOBBY_MSG_TRACK_GET_POS, 0, 0);
 
 		return(0);
 	}
 
-	case WM_COMMAND: {
-		switch (LOWORD(wparam)) {
+	case LOBBY_MSG_COMMAND: {
+		switch (Lobby_Low_Word(wparam)) {
 
 		case IDC_YOURSIDE:
-			if (HIWORD(wparam) == CBN_SELCHANGE && !Net2GameStarted) {
-				Session.House = Country_From_Box(GetDlgItem(window, IDC_YOURSIDE));
+			if (Lobby_High_Word(wparam) == LOBBY_NOTIFY_SELCHANGE && !Net2GameStarted) {
+				Session.House = Side_From_Box(window);
 				Session.Players[0]->Player.House = Session.House;
 
 				PumpGameopts(1, 0);
@@ -1677,13 +1658,13 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 		case IDC_INPUT:
 		{
 			char text[260];
-			SendDlgItemMessage(window, IDC_INPUT, WM_GETTEXT, 256, (LPARAM)text);
+			Lobby_Send(window, IDC_INPUT, LOBBY_MSG_GET_TEXT, 256, (LobbyLParam)text);
 
 			int len = strlen(text);
 
-			if (HIWORD(wparam) != EN_MAXTEXT) return(0);
+			if (Lobby_High_Word(wparam) != LOBBY_NOTIFY_MAX_TEXT) return(0);
 
-			SendDlgItemMessage(window, IDC_INPUT, WM_SETTEXT, 0, (LPARAM)"");
+			Lobby_Send(window, IDC_INPUT, LOBBY_MSG_SET_TEXT, 0, (LobbyLParam)"");
 
 			if (len <= 2) return(0);
 
@@ -1714,7 +1695,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 			return(0);
 		}
 
-		case IDCANCEL: {
+		case DIALOG_CANCEL: {
 			if (Net2GameStarted) return(0);
 
 			if (MultiplayerMapPreview != NULL) {
@@ -1722,7 +1703,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 				MultiplayerMapPreview = NULL;
 			}
 
-			_netresponse = IDCANCEL;
+			_netresponse = DIALOG_CANCEL;
 			return(0);
 		}
 
@@ -1736,11 +1717,11 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 		 * ....................................................................
 		 */
 		case IDC_YOURCOLOR:
-			if (HIWORD(wparam) == CBN_SELCHANGE && !Net2GameStarted) {
+			if (Lobby_High_Word(wparam) == LOBBY_NOTIFY_SELCHANGE && !Net2GameStarted) {
 
 				int old_color = Session.ColorIdx;
 
-				Session.ColorIdx = SendDlgItemMessage(window, IDC_YOURCOLOR, CB_GETCURSEL, 0, 0);
+				Session.ColorIdx = Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_GET_CUR_SEL, 0, 0);
 				Session.PrefColor = Session.ColorIdx;
 
 				int newcolor;
@@ -1749,12 +1730,12 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 				for (;;) {
 					int count = 0;
 					newcolor = color;
-					found = FALSE;
+					found = false;
 
 					while (count < Session.Players.Count()) {
 						if (count != 0 && Session.Players[count]->Player.Color == color) {
 							color++;
-							found = TRUE;
+							found = true;
 						}
 						count++;
 					}
@@ -1772,12 +1753,12 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 					for (;;) {
 						int count = 0;
 						old_color = color;
-						found = FALSE;
+						found = false;
 
 						while (count < Session.Players.Count()) {
 							if (count != 0 && Session.Players[count]->Player.Color == color) {
 								color++;
-								found = TRUE;
+								found = true;
 							}
 							count++;
 						}
@@ -1793,7 +1774,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 				Session.ColorIdx = resolved;
 				Session.Players[0]->Player.Color = resolved;
 
-				SendDlgItemMessage(window, IDC_YOURCOLOR, CB_SETCURSEL, Session.ColorIdx, 0);
+				Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_SET_CUR_SEL, Session.ColorIdx, 0);
 
 				_Net2DisplayUsers();
 				PumpGameopts(1, 0);
@@ -1803,21 +1784,21 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 		case IDC_CRATES:
 			if (Net2GameStarted) return(0);
 			Session.Options.Goodies = false;
-			if (SendDlgItemMessage(window, IDC_CRATES, BM_GETCHECK, 0, 0) != BST_CHECKED) return(0);
+			if (Lobby_Send(window, IDC_CRATES, LOBBY_MSG_GET_CHECK, 0, 0) != LOBBY_CHECKED) return(0);
 			Session.Options.Goodies = true;
 			return(0);
 
 		case IDC_BASES:
 			if (Net2GameStarted) return(0);
 			Session.Options.Bases = false;
-			if (SendDlgItemMessage(window, IDC_BASES, BM_GETCHECK, 0, 0) != BST_CHECKED) return(0);
+			if (Lobby_Send(window, IDC_BASES, LOBBY_MSG_GET_CHECK, 0, 0) != LOBBY_CHECKED) return(0);
 			Session.Options.Bases = true;
 			return(0);
 
 		case IDC_SHORT_GAME:
 			if (Net2GameStarted) return(0);
 			Session.Options.ShortGame = false;
-			if (SendDlgItemMessage(window, IDC_SHORT_GAME, BM_GETCHECK, 0, 0) != BST_CHECKED) return(0);
+			if (Lobby_Send(window, IDC_SHORT_GAME, LOBBY_MSG_GET_CHECK, 0, 0) != LOBBY_CHECKED) return(0);
 			Session.Options.ShortGame = true;
 			return(0);
 
@@ -1828,7 +1809,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 		 * ....................................................................
 		 */
 		case IDC_GO:
-			EnableWindow(GetDlgItem(window, IDC_GO), FALSE);
+			Lobby_Enable_Item(window, IDC_GO, false);
 			Net2GameStarted = true;
 			_netresponse = IDC_GO;
 			return(0);
@@ -1843,12 +1824,12 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 		 */
 		case IDC_KICK:
 		{
-			HWND userwin = GetDlgItem(WS_Find_Dialog(IDD_MPLAYER_HOST), IDC_USERS);
+			WSScreenHandle host = WS_Find_Dialog(IDD_MPLAYER_HOST);
 
 			Wstring name;
 			Dictionary<Wstring,bool> lbdict(Wstring_Hash);
 
-			LBSaveSelections(userwin, lbdict);
+			Save_Selections(host, IDC_USERS, lbdict);
 
 			while (lbdict.getEntries()) {
 				bool value;
@@ -1872,7 +1853,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 				}
 			}
 
-			SendMessage(userwin, LB_SELITEMRANGE, 0, MAKELPARAM(0, -1));
+			Lobby_Send(host, IDC_USERS, LOBBY_MSG_LIST_SELECT_RANGE, 0, Lobby_Make_Param(0, -1));
 			_Net2DisplayUsers();
 			return(0);
 		}
@@ -1888,15 +1869,15 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 
 			int old = Session.Options.ScenarioIndex;
 
-			ShowWindow(window, SW_HIDE);
+			Lobby_Show(window, false);
 			IsRandomMap = false;
 
-			if (Scenario_Dialog(MainWindow) == 2) {
+			if (Scenario_Dialog(nullptr) == 2) {
 				Session.Options.ScenarioIndex = old;
 				Set_Scenario_Info_From_Index(Session.Options.ScenarioIndex);
 				Update_Network_Dialog_Preview(window);
 				IsRandomMap = true;
-				ShowWindow(window, SW_SHOW);
+				Lobby_Show(window, true);
 
 				if (!stricmp((char *)Session.Scenarios[Session.Options.ScenarioIndex] + DESCRIP_MAX, "RandMap.Sed")) {
 					if (MultiplayerMapPreview != NULL) {
@@ -1907,21 +1888,21 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 					if (MultiplayerMapPreview->Get_Preview_Surface() == NULL) {
 						Update_Network_Dialog_Preview(window);
 					}
-					InvalidateRect(window, NULL, FALSE);
+					Lobby_Invalidate(window);
 				} else {
 					Update_Network_Dialog_Preview(window);
 				}
 
 				PumpGameopts(1, 0);
-				InvalidateRect(window, NULL, FALSE);
+				Lobby_Invalidate(window);
 			} else {
 				if (!Set_Scenario_Info_From_Index(Session.Options.ScenarioIndex)) {
 					Session.Options.ScenarioIndex = old;
 				}
 				IsRandomMap = true;
-				ShowWindow(window, SW_SHOW);
+				Lobby_Show(window, true);
 
-				SendDlgItemMessage(window, IDC_SCENARIONAME, WM_SETTEXT, 0, (LPARAM)Session.Options.ScenarioDescription);
+				Lobby_Send(window, IDC_SCENARIONAME, LOBBY_MSG_SET_TEXT, 0, (LobbyLParam)Session.Options.ScenarioDescription);
 
 				if (!stricmp((char *)Session.Scenarios[Session.Options.ScenarioIndex] + DESCRIP_MAX, "RandMap.Sed")) {
 					if (MultiplayerMapPreview != NULL) {
@@ -1932,7 +1913,7 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 					if (MultiplayerMapPreview->Get_Preview_Surface() == NULL) {
 						Update_Network_Dialog_Preview(window);
 					}
-					InvalidateRect(window, NULL, FALSE);
+					Lobby_Invalidate(window);
 				} else {
 					Update_Network_Dialog_Preview(window);
 				}
@@ -1944,14 +1925,14 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 		case IDC_BRIDGE_DESTROY:
 			if (Net2GameStarted) return(0);
 			Session.Options.BridgeDestruction = false;
-			if (SendDlgItemMessage(window, IDC_BRIDGE_DESTROY, BM_GETCHECK, 0, 0) != BST_CHECKED) return(0);
+			if (Lobby_Send(window, IDC_BRIDGE_DESTROY, LOBBY_MSG_GET_CHECK, 0, 0) != LOBBY_CHECKED) return(0);
 			Session.Options.BridgeDestruction = true;
 			return(0);
 
 		case IDC_MULTI_ENGINEER:
 			if (Net2GameStarted) return(0);
 			Session.Options.CrapEngineers = false;
-			if (SendDlgItemMessage(window, IDC_MULTI_ENGINEER, BM_GETCHECK, 0, 0) != BST_CHECKED) return(0);
+			if (Lobby_Send(window, IDC_MULTI_ENGINEER, LOBBY_MSG_GET_CHECK, 0, 0) != LOBBY_CHECKED) return(0);
 			Session.Options.CrapEngineers = true;
 			return(0);
 
@@ -1960,32 +1941,13 @@ LobbyResult MPlayer_Host_Dialog_Proc(WSScreenHandle window, unsigned int message
 		}
 	}
 
-	case OD_SUBCLASSED: {
-		Net2_g_Col_Accept = 5;
-		Net2_g_Col_Name = 45;
-		Net2_g_Col_House = 25;
-
-		SendDlgItemMessage(window, IDC_USERS, OD_ADDCOLUMN, 0, Net2_g_Col_Name);
-		SendDlgItemMessage(window, IDC_USERS, OD_ADDCOLUMN, 0, Net2_g_Col_House);
-		SendDlgItemMessage(window, IDC_USERS, OD_ADDCOLUMN, 0, Net2_g_Col_Accept);
-		SendDlgItemMessage(window, IDC_USERS, OD_TOOLTIPS, 0, 1);
-
+	case LOBBY_MSG_SUBCLASSED: {
 		for (int i = 0; i < ARRAY_SIZE(PlayerColorTable); i++) {
-			SendDlgItemMessage(window, IDC_YOURCOLOR, OD_SETCOLOR, i, (LPARAM)PlayerColorTable[i]);
+			Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_SET_COLOR, i, (LobbyLParam)PlayerColorTable[i]);
 		}
-
-		SendDlgItemMessage(window, IDC_KICK, OD_TOOLTIPS, 0, 1);
-		SendDlgItemMessage(window, IDC_KICK, OD_SETIMAGE, 0, (LPARAM)SurfaceCache.GetSurface("woukick.pcx"));
-		SendDlgItemMessage(window, IDC_KICK, OD_SETALTIMAGE, 0, (LPARAM)SurfaceCache.GetSurface("wodkick.pcx"));
 
 		_Net2DisplayUsers();
 		Net2DisplayGameList();
-		return(0);
-	}
-
-	case OD_GETTIPTEXT: {
-		HWND ctrl = GetDlgItem(window, wparam);
-		GetWindowText(ctrl, (LPSTR)lparam, 127);
 		return(0);
 	}
 	}
@@ -2433,7 +2395,6 @@ static void Get_Join_Responses(void)
 	char txt[80];
 	bool display_users = false;
 	bool display_games = false;
-	HWND dialog;
 	int resend;
 	unsigned int version;              // version # to use
 
@@ -2535,6 +2496,7 @@ static void Get_Join_Responses(void)
 				who->Game.Addon = Session.GPacket.GameInfo.IsFirestorm;
 				who->Game.LastTime = TickCount;
 				Session.Games.Add (who);
+				DebugString("Found game '%s'\n", who->Name);
 
 				//..................................................................
 				// If this player's in the Chat vector, remove him from there
@@ -2633,7 +2595,7 @@ static void Get_Join_Responses(void)
 					NodeNameType * player = Session.Players[i];
 					if (strcmp(player->Name,Session.GameName) && player->Player.Status != 0) {
 						player->Player.Status = 0;
-						EnableWindow(GetDlgItem(GameoptWindow(), IDC_ACCEPT), TRUE);
+						Lobby_Enable_Item(GameoptWindow(), IDC_ACCEPT, true);
 					}
 				}
 
@@ -2675,10 +2637,7 @@ static void Get_Join_Responses(void)
 				Net2IsGameListActive = false;
 				WS_Destroy_Dialog(0, 0);
 				_netresponse = 0;
-				dialog = WS_Create_Dialog(ProgramInstance, IDD_MPLAYER_GUEST, MainWindow, MPlayer_Guest_Dialog_Proc, FALSE);
-				Center_Window_Within_Window(dialog);
-				OwnerDraw::Subclass_Dialog(dialog, 0);
-				ShowWindow(dialog, SW_SHOWNORMAL);
+				Open_Lobby_Dialog(IDD_MPLAYER_GUEST, MPlayer_Guest_Dialog_Proc, UI_LOBBY_GUEST);
 				display_users = true;
 
 				Send_Join_Queries(1, 1, 1, 0);
@@ -2774,7 +2733,7 @@ static void Get_Join_Responses(void)
 					ODMessageBox(item, 0, Net2Callback, 0);
 				}
 				if ( WS_Top_Window_ID() != IDD_MPLAYER_GAME_LIST ) {
-					_netresponse = IDCANCEL;
+					_netresponse = DIALOG_CANCEL;
 				}
 				Send_Join_Queries (0, 0, 1, 0);
 			}
@@ -2954,7 +2913,7 @@ static void Get_Join_Responses(void)
 					NodeNameType * player = Session.Players[i];
 					if (strcmp(player->Name,Session.GameName) && player->Player.Status != 0) {
 						player->Player.Status = 0;
-						EnableWindow(GetDlgItem(GameoptWindow(), IDC_ACCEPT), TRUE);
+						Lobby_Enable_Item(GameoptWindow(), IDC_ACCEPT, true);
 					}
 				}
 			}
@@ -2987,7 +2946,7 @@ static void Get_Join_Responses(void)
 				}
 				Session.HostAddress = Session.GAddress;
 				Session.NumPlayers = Session.Players.Count();
-				_netresponse = IDOK;
+				_netresponse = DIALOG_OK;
 				if (Session.GPacket.Command==NET_GO) {
 					JoinState = JOIN_GAME_START;
 					if (!Net2ReadyToGo(0)) {
@@ -3273,6 +3232,7 @@ static void Get_Join_Responses(void)
 				}
 				who->Player.Color = newcolor;
 				Session.Players.Add (who);
+				DebugString("Player '%s' joined\n", who->Name);
 
 				for (i = 0; i < Session.Players.Count(); i++) {
 					if (strcmp(Session.Players[i]->Name, Session.GameName)) {
@@ -3424,28 +3384,28 @@ bool Net2ReadyToGo(int load_game)
 /// host when it is happy for the game to begin.
 /// </summary>
 /// <returns>Returns with TRUE if the message was consumed by this dialog.</returns>
-INT_PTR CALLBACK MPlayer_Guest_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
+LobbyResult MPlayer_Guest_Dialog_Proc(WSScreenHandle window, unsigned int message, LobbyWParam wparam, LobbyLParam lparam)
 {
 	switch (message) {
 
-	case WM_INITDIALOG: {
-		Fill_Country_Box(GetDlgItem(window, IDC_YOURSIDE));
-		Select_Country_In_Box(GetDlgItem(window, IDC_YOURSIDE), Session.House);
+	case LOBBY_MSG_INIT: {
+		Fill_Side_Box(window);
+		Select_Side_In_Box(window, Session.House);
 
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_RESETCONTENT, 0, 0);
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_RESET, 0, 0);
 
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, (WPARAM)-1, (LPARAM)Fetch_String(TXT_GOLD));
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, (WPARAM)-1, (LPARAM)Fetch_String(TXT_RED));
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, (WPARAM)-1, (LPARAM)Fetch_String(TXT_BLUE));
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, (WPARAM)-1, (LPARAM)Fetch_String(TXT_GREEN));
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, (WPARAM)-1, (LPARAM)Fetch_String(TXT_ORANGE));
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, (WPARAM)-1, (LPARAM)Fetch_String(TXT_SKY_BLUE));
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, (WPARAM)-1, (LPARAM)Fetch_String(TXT_PURPLE));
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_INSERTSTRING, (WPARAM)-1, (LPARAM)Fetch_String(TXT_PINK));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, (LobbyWParam)-1, (LobbyLParam)Fetch_String(TXT_GOLD));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, (LobbyWParam)-1, (LobbyLParam)Fetch_String(TXT_RED));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, (LobbyWParam)-1, (LobbyLParam)Fetch_String(TXT_BLUE));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, (LobbyWParam)-1, (LobbyLParam)Fetch_String(TXT_GREEN));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, (LobbyWParam)-1, (LobbyLParam)Fetch_String(TXT_ORANGE));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, (LobbyWParam)-1, (LobbyLParam)Fetch_String(TXT_SKY_BLUE));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, (LobbyWParam)-1, (LobbyLParam)Fetch_String(TXT_PURPLE));
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_INSERT, (LobbyWParam)-1, (LobbyLParam)Fetch_String(TXT_PINK));
 
-		SendDlgItemMessage(window, IDC_YOURCOLOR, CB_SETCURSEL, Session.ColorIdx, 0);
+		Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_SET_CUR_SEL, Session.ColorIdx, 0);
 
-		EnableWindow(GetDlgItem(window, IDC_ACCEPT), FALSE);
+		Lobby_Enable_Item(window, IDC_ACCEPT, false);
 
 		int self_index = -1;
 		for (int i = 0; i < Session.Players.Count(); ++i) {
@@ -3464,18 +3424,17 @@ INT_PTR CALLBACK MPlayer_Guest_Dialog_Proc(HWND window, UINT message, WPARAM wpa
 		return(0);
 	}
 
-	case WM_COMMAND: {
-		switch (LOWORD(wparam)) {
+	case LOBBY_MSG_COMMAND: {
+		switch (Lobby_Low_Word(wparam)) {
 
 		case IDC_ACCEPT: {
 			Session.Players[0]->Player.Status = 1;
 
 			char dest[64];
-			sprintf(dest, "A1");
+			snprintf(dest, sizeof(dest), "A1");
 			SendPublicGameopts(dest);
 
-			EnableWindow(GetDlgItem(window, IDC_ACCEPT), FALSE);
-			InvalidateRect(GetDlgItem(window, IDC_ACCEPT), NULL, FALSE);
+			Lobby_Enable_Item(window, IDC_ACCEPT, false);
 
 			_Net2DisplayUsers();
 			return(0);
@@ -3483,23 +3442,23 @@ INT_PTR CALLBACK MPlayer_Guest_Dialog_Proc(HWND window, UINT message, WPARAM wpa
 
 		case IDC_YOURSIDE:
 		case IDC_YOURCOLOR: {
-			if (HIWORD(wparam) == CBN_SELCHANGE) {
-				int color = (int)SendDlgItemMessage(window, IDC_YOURCOLOR, CB_GETCURSEL, 0, 0);
+			if (Lobby_High_Word(wparam) == LOBBY_NOTIFY_SELCHANGE) {
+				int color = (int)Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_COMBO_GET_CUR_SEL, 0, 0);
 
-				int house = Country_From_Box(GetDlgItem(window, IDC_YOURSIDE));
+				int house = Side_From_Box(window);
 
 				Session.PrefColor = color;
 
 				char dest[64];
-				sprintf(dest, "R%d,%d", house, color);
+				snprintf(dest, sizeof(dest), "R%d,%d", house, color);
 				SendPrivateGameopts(Session.GameName, dest);
 			}
 			return(0);
 		}
 
-		case IDCANCEL: {
+		case DIALOG_CANCEL: {
 			if (!Net2GameStarted) {
-				_netresponse = IDCANCEL;
+				_netresponse = DIALOG_CANCEL;
 			}
 			return(0);
 		}
@@ -3507,11 +3466,11 @@ INT_PTR CALLBACK MPlayer_Guest_Dialog_Proc(HWND window, UINT message, WPARAM wpa
 		case IDC_INPUT: {
 			char text[260];
 
-			SendDlgItemMessage(window, IDC_INPUT, WM_GETTEXT, 256, (LPARAM)text);
+			Lobby_Send(window, IDC_INPUT, LOBBY_MSG_GET_TEXT, 256, (LobbyLParam)text);
 
 			int len = strlen(text);
-			if (HIWORD(wparam) == EN_MAXTEXT) {
-				SendDlgItemMessage(window, IDC_INPUT, WM_SETTEXT, 0, (LPARAM)"");
+			if (Lobby_High_Word(wparam) == LOBBY_NOTIFY_MAX_TEXT) {
+				Lobby_Send(window, IDC_INPUT, LOBBY_MSG_SET_TEXT, 0, (LobbyLParam)"");
 
 				if (len > 2) {
 					PMessagePrintf(ColorMe, "[%s] %s", Session.Handle, text);
@@ -3546,55 +3505,27 @@ INT_PTR CALLBACK MPlayer_Guest_Dialog_Proc(HWND window, UINT message, WPARAM wpa
 		return(0);
 	}
 
-	case OD_SUBCLASSED: {
-		Net2_g_Col_Accept = 5;
-		Net2_g_Col_Name = 45;
-		Net2_g_Col_House = 25;
-
-		SendDlgItemMessage(window, IDC_USERS, OD_ADDCOLUMN, 0, 45);
-		SendDlgItemMessage(window, IDC_USERS, OD_ADDCOLUMN, 0, Net2_g_Col_House);
-		SendDlgItemMessage(window, IDC_USERS, OD_ADDCOLUMN, 0, Net2_g_Col_Accept);
-		SendDlgItemMessage(window, IDC_USERS, OD_TOOLTIPS, 0, 1);
-
+	case LOBBY_MSG_SUBCLASSED: {
 		for (int i = 0; i < ARRAY_SIZE(PlayerColorTable); i++) {
-			SendDlgItemMessage(window, IDC_YOURCOLOR, OD_SETCOLOR, i, (LPARAM)PlayerColorTable[i]);
+			Lobby_Send(window, IDC_YOURCOLOR, LOBBY_MSG_SET_COLOR, i, (LobbyLParam)PlayerColorTable[i]);
 		}
 
 		_Net2DisplayUsers();
 		Net2DisplayGameList();
 		DisplayGameopts(window, 1);
 
-		HWND combo = GetDlgItem(window, IDC_YOURSIDE);
-		SendMessage(window, WM_COMMAND, MAKEWPARAM(IDC_YOURSIDE, CBN_SELCHANGE), (LPARAM)combo);
+		Lobby_Command(window, MPlayer_Guest_Dialog_Proc, IDC_YOURSIDE, LOBBY_NOTIFY_SELCHANGE);
 
 		return(0);
 	}
 
-	case WM_DRAWITEM:
-		OwnerDraw::Draw_Item((DRAWITEMSTRUCT *)lparam);
-		return(1);
-
-	case WM_DESTROY: {
+	case LOBBY_MSG_DESTROY: {
 		if (MultiplayerMapPreview != NULL) {
 			delete MultiplayerMapPreview;
 			MultiplayerMapPreview = 0;
 		}
 		return(0);
 	}
-
-	case WM_PAINT: {
-		OwnerDraw::Draw_Dialog_Back(window);
-
-		if (MultiplayerMapPreview) {
-			MultiplayerMapPreview->Blit_Preview(window);
-		}
-
-		ValidateRect(window, NULL);
-		return(0);
-	}
-
-	case WM_ERASEBKGND:
-		return(1);
 	}
 
 	return(0);

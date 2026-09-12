@@ -54,11 +54,12 @@
  *   Load_Prolog_Page -- Loads the special pre-prolog "please wait" page.                      *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "hostwindow.h"
 #include "utf8.h"
 #include "mstimer.h"
 #include "always.h"
 
-#include <windowsx.h>
+#include "init.h"
 
 #include "ui/uicampaign.h"
 #include "ui/uimenus.h"

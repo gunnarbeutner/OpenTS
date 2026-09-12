@@ -187,7 +187,6 @@ class DisplayClass: public MapClass
 		void Reinit_Cell_Drawers(void);
 		void Update_Cell_Colors(void);
 
-		LRESULT Windows_Message_Proc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 		void Active_Click(ObjectClass * object, Cell cell, ActionType action);
 		ActionType Action_To_Waypoint_Action(ActionType action, Cell const & cell);
 		void Update_Waypoint_Color(int index);
