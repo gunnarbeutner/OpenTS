@@ -71,6 +71,7 @@
 #include "incdec.h"
 #include "inline.h"
 #include "lightcon.h"
+#include "mainwindow.h"
 #include "rect.h"
 #include "rules.h"
 #include "savestream.h"
@@ -839,7 +840,7 @@ void TerrainClass::Write_INI(CCINIClass & ini)
 		if (terrain != NULL && !terrain->IsInLimbo && terrain->IsActive) {
 			char	uname[10];
 			Cell cell = terrain->Get_Cell();
-			sprintf(uname, "%d", cell.X + cell.Y * 1000);
+			snprintf(uname, sizeof(uname), "%d", cell.X + cell.Y * 1000);
 			TPut_Class<TerrainTypeClass>(ini, INI_NAME, uname, terrain->Class);
 		}
 	}
@@ -861,7 +862,7 @@ bool TerrainClass::Render(Rect & cliprect, bool forced, bool extras_only) const
 {
 	assert(this != NULL);
 
-	if (Debug_Map || !MainWindow || ((forced || IsToDisplay) && IsDown && !IsInLimbo)) {
+	if (Debug_Map || !Has_Main_Window() || ((forced || IsToDisplay) && IsDown && !IsInLimbo)) {
 		IsToDisplay = false;
 
 		Point2D point;

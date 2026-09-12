@@ -58,53 +58,22 @@
 
 #include "wwmouse.h"
 
+#include "_xmouse.h"
 #include "dbgprint.h"
 #include "misc.h"
 #include "video.h"
+#include "hostwindow.h"
 #include "vidscale.h"
-#include "win.h"
 #include "wincursor.h"
 
 
 /// <summary>
-/// Constructs the mouse handler object.
-/// The handler is bound to the game window and derives the confining rectangle from it.
-/// The mouse begins in a non-captured state.
+/// Constructs the mouse handler object. The mouse begins in a non-captured state.
 /// </summary>
-/// <param name="window">Handle to the game window that the mouse is bound to.</param>
-WWMouseClass::WWMouseClass(HWND window) :
+WWMouseClass::WWMouseClass(void) :
 	MouseState(-1),
-	IsCaptured(false),
-	Window(window),
-	ConfiningRect(RECT_NONE)
+	IsCaptured(false)
 {
-	Calc_Confining_Rect();
-}
-
-
-/// <summary>
-/// Recalculates the screen rectangle that the mouse is confined to.
-/// This routine converts the game window's client area into screen coordinates. The mouse
-/// capture logic clips the cursor to this rectangle, so the window creation and window
-/// move handlers call this routine to keep it current.
-/// </summary>
-void WWMouseClass::Calc_Confining_Rect(void)
-{
-	RECT rect;
-	GetClientRect(Window, &rect);
-
-	POINT point;
-	point.x = rect.left;
-	point.y = rect.top;
-	ClientToScreen(Window, &point);
-
-	POINT lr;
-	lr.x = rect.right;
-	lr.y = rect.bottom;
-	ClientToScreen(Window, &lr);
-
-	ConfiningRect = Rect(point.x, point.y, lr.x-point.x, lr.y-point.y);
-	DebugString("Calc_Confining_Rect(%d,%d,%d,%d)\n", point.x, point.y, lr.x-point.x, lr.y-point.y);
 }
 
 
@@ -127,8 +96,8 @@ void WWMouseClass::Calc_Confining_Rect(void)
 int WWMouseClass::Get_Mouse_State(void) const
 {
 	if (!Is_Captured()) {
-		ShowCursor(FALSE);
-		int state = ShowCursor(TRUE);
+		Host_Show_Pointer(false);
+		int state = Host_Show_Pointer(true);
 		return(state);
 	}
 	return(MouseState);
@@ -182,7 +151,7 @@ void WWMouseClass::Set_Cursor(Point2D const & hotspot, ShapeSet const * cursor, 
 void WWMouseClass::Show_Mouse(void)
 {
 	if (!Is_Captured()) {
-		ShowCursor(TRUE);
+		Host_Show_Pointer(true);
 	} else {
 		MouseState++;
 		if (MouseState > 0) MouseState = 0;
@@ -209,7 +178,7 @@ void WWMouseClass::Show_Mouse(void)
 void WWMouseClass::Hide_Mouse(void)
 {
 	if (!Is_Captured()) {
-		ShowCursor(FALSE);
+		Host_Show_Pointer(false);
 	} else {
 		MouseState--;
 		Win_Cursor_Set_Visible(!Is_Hidden());
@@ -244,18 +213,14 @@ void WWMouseClass::Capture_Mouse(void)
 		 * The game's pointer is the O/S pointer, so its display count has to come
 		 * back up; it was left negative while the game drew a pointer of its own.
 		 */
-		while (ShowCursor(TRUE) < 0) {}
+		while (Host_Show_Pointer(true) < 0) {}
 
 		/*
 		 * There is no exclusive display mode any more, so the pointer is kept inside
 		 * the window by hand while the game covers the screen.
 		 */
 		if (!WindowedMode) {
-			RECT clip_rect;
-			GetClientRect(Window, &clip_rect);
-			ClientToScreen(Window, (LPPOINT)&clip_rect.left);
-			ClientToScreen(Window, (LPPOINT)&clip_rect.right);
-			ClipCursor(&clip_rect);
+			Host_Confine_Pointer(true);
 		}
 
 		Show_Mouse();
@@ -290,9 +255,9 @@ void WWMouseClass::Release_Mouse(void)
 		DebugString("Release_Mouse()\n");
 		Hide_Mouse();
 		IsCaptured = false;
-		ClipCursor(NULL);
-		if (GetCapture() == Window) ReleaseCapture();
-		while (ShowCursor(TRUE) < 0) {}
+		Host_Confine_Pointer(false);
+		Host_Release_Pointer();
+		while (Host_Show_Pointer(true) < 0) {}
 		Show_Mouse();
 	}
 }
@@ -351,7 +316,7 @@ void WWMouseClass::Conditional_Show_Mouse(void)
  *                                                                                             *
  * OUTPUT:  none                                                                               *
  *                                                                                             *
- * WARNINGS:   The coordinates will be bound as well as transformed by the confining rectangle.*
+ * WARNINGS:   The coordinates come from the window's client area and are bound to the frame. *
  *                                                                                             *
  * HISTORY:                                                                                    *
  *   03/10/1997 JLB : Created.                                                                 *
@@ -361,14 +326,12 @@ void WWMouseClass::Convert_Coordinate(int & x, int & y) const
 	/*
 	**	Convert the mouse position to legal bounds.
 	*/
-	POINT point;
-	point.x = x - ConfiningRect.X;
-	point.y = y - ConfiningRect.Y;
+	Point2D point(x, y);
 	Window_Point_To_Game(point);
 
 	VideoScaleInfo const & scale = Video_Get_Scale_Info();
-	x = point.x;
-	y = point.y;
+	x = point.X;
+	y = point.Y;
 	if (x < 0) x = 0;
 	if (y < 0) y = 0;
 	if (x >= scale.GameWidth) x = scale.GameWidth-1;
@@ -395,9 +358,33 @@ void WWMouseClass::Get_Bounded_Position(int & x, int & y) const
 	/*
 	**	Get the mouse's current real cursor position
 	*/
-	POINT pt;
-	GetCursorPos(&pt);			// get the current cursor position
-	x = pt.x;
-	y = pt.y;
+	Point2D const point = Host_Pointer_Position();
+	x = point.X;
+	y = point.Y;
 	Convert_Coordinate(x, y);
+}
+
+
+static int _MenuCaptures = 0;
+
+
+int Menu_Capture_Mouse(void)
+{
+	if (MouseCursor != nullptr && MouseCursor->Is_Captured()) {
+		MouseCursor->Release_Mouse();
+	}
+	_MenuCaptures++;
+	return(_MenuCaptures);
+}
+
+
+int Menu_Release_Mouse(void)
+{
+	if (_MenuCaptures > 0) {
+		_MenuCaptures--;
+	}
+	if (_MenuCaptures == 0 && MouseCursor != nullptr && !MouseCursor->Is_Captured()) {
+		MouseCursor->Capture_Mouse();
+	}
+	return(_MenuCaptures);
 }

@@ -399,6 +399,13 @@ test('A campaign spawn writes the game its own state and nothing more', () => {
 	], 'a spawned mission is named by the file and starts with the flags it carried');
 });
 
+// The Internet game's block of the in-game options screen.
+function internetOptions() {
+	const screen = source('ui/gameopt.rml');
+	const body = screen.slice(screen.indexOf('<div class="wol" data-if="Internet">'));
+	return body.slice(0, body.indexOf('<div class="mp"'));
+}
+
 test('A resume is judged before it is loaded, and the save answers for the rest', () => {
 	assertOrdered(functionBody(source('code/spawner.cpp'), 'static bool Spawner_Resume(bool & gameloaded)'), [
 		'SpawnConfig.SaveGameName.empty()',
@@ -414,15 +421,11 @@ test('A resume is judged before it is loaded, and the save answers for the rest'
 		'gameloaded = true;',
 	], 'a network resume seats the players and opens the network before the save is read');
 
-	for (const dialog of ['IDD_OPT_CTRL_WOL']) {
-		const template = source('code/language/language.rc');
-		const body = template.slice(template.indexOf(dialog + ' DIALOG'));
-		assert.match(
-			body.slice(0, body.indexOf('END')),
-			/IDC_SAVE_GAME/,
-			`${dialog} offers the synchronized save the options handler has always known`,
-		);
-	}
+	assert.match(
+		internetOptions(),
+		/act\('save'\)/,
+		'the internet options offer the synchronized save the options handler has always known',
+	);
 
 	assertOrdered(functionBody(source('code/saveload.cpp'), 'bool Reconcile_Players(void)'), [
 		'stricmp(Session.Players[i]->Name, Houses[house]->IniName) == 0',
@@ -456,14 +459,14 @@ test('Saved games are named in one folder rather than searched for', () => {
 
 	assertOrdered(functionBody(gamedirs, 'std::string Saved_Game_Name(char const * filename)'), [
 		'UserDirectory + SavedGamesFolder',
-		'CreateDirectory(folder.c_str(), NULL);',
+		'Platform_Create_Directory(folder.c_str());',
 	], 'a saved game is named inside the user directory, and the folder is made on the way');
 
 	for (const [file, signature] of [
 		['code/saveload.cpp', 'bool Save_Game(const char *file_name, char const * descr)'],
 		['code/saveload.cpp', 'bool Load_Game(const char *file_name)'],
 		['code/saveload.cpp', 'bool Get_Savefile_Info(char const * name, SaveVersionInfo * info)'],
-		['code/loaddlg.cpp', 'void LoadOptionsClass::Fill_List(HWND window)'],
+		['code/ui/uimission.cpp', 'void UIMissionPresenter::Fill(UIMissionFieldRequest request)'],
 		['code/loaddlg.cpp', 'bool LoadOptionsClass::Files_Present(void)'],
 		['code/loaddlg.cpp', 'bool LoadOptionsClass::Delete_File(const char * file_name)'],
 	]) {
@@ -475,7 +478,7 @@ test('Saved games are named in one folder rather than searched for', () => {
 	}
 
 	assert.doesNotMatch(
-		functionBody(source('code/loaddlg.cpp'), 'void LoadOptionsClass::Fill_List(HWND window)') +
+		functionBody(source('code/ui/uimission.cpp'), 'void UIMissionPresenter::Fill(UIMissionFieldRequest request)') +
 			functionBody(source('code/loaddlg.cpp'), 'bool LoadOptionsClass::Files_Present(void)'),
 		/Search_Files\(/,
 		'the listing no longer scans the folders the game reads from',
@@ -527,17 +530,15 @@ test('A multiplayer load replaces the match around the seats it keeps', () => {
 		'Reset_Multiplayer_Save_State();',
 	], 'the old traffic is discarded, the save read, the seats matched, and the connections rebuilt in that order');
 
-	const template = source('code/language/language.rc');
-	const body = template.slice(template.indexOf('IDD_OPT_CTRL_WOL DIALOG'));
 	assert.match(
-		body.slice(0, body.indexOf('END')),
-		/IDC_LOAD_GAME/,
+		internetOptions(),
+		/act\('load'\)/,
 		'the internet options offer the load the master starts for every machine',
 	);
 
-	assertOrdered(definitionFrom(source('code/goptions.cpp'), 'INT_PTR CALLBACK Game_Options_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)'), [
+	assertOrdered(functionBody(source('code/ui/uigameopt.cpp'), 'void UIGameOptionsPresenter::Press(int control)'), [
 		'case IDC_LOAD_GAME:',
-		'LoadOptionsClass().Load()',
+		'Local = UI_GAMEOPT_LOCAL_LOAD;',
 		'Multiplayer_Load_Is_Allowed()',
 		'SpecialDialog = SDLG_LOAD;',
 	], 'a network game defers the list to the menu loop rather than nesting it in the options dialog');
@@ -580,8 +581,8 @@ test('A match against other machines is assembled whole and wired to its network
 
 	assertOrdered(functionBody(spawner, 'static void Spawner_Seat_Human(int index)'), [
 		'if (SpawnConfig.TunnelPort != 0) {',
-		'node->Address.Set_Address(0, htons((unsigned short)seat.Port));',
-		'inet_addr(seat.Address.c_str())',
+		'node->Address.Set_Address(0, Socket_Network_Port((unsigned short)seat.Port));',
+		'Socket_Parse_Address(seat.Address.c_str(), seat_address);',
 	], 'a tunnelled machine is named by its tunnel number before an address is read');
 
 	assertOrdered(functionBody(spawner, 'static void Spawner_Seat_Humans(void)'), [
@@ -819,10 +820,13 @@ test('A computer player draws a country from the lobby roster', () => {
 test('A lobby side entry carries its country', () => {
 	const netdlg = source('code/netdlg2.cpp');
 
-	assertOrdered(functionBody(netdlg, 'void Fill_Country_Box(HWND combo)'), ['CB_INSERTSTRING', 'CB_SETITEMDATA'], 'each entry carries its country');
-	assert.match(functionBody(netdlg, 'int Country_From_Box(HWND combo)'), /CB_GETITEMDATA/, 'the selection is read back through its country');
-	assert.doesNotMatch(netdlg, /CB_SETCURSEL, Session\.House/, 'no box is positioned by a country index');
-	assert.doesNotMatch(source('code/skirmish.cpp'), /Session\.House = ComboBox_GetCurSel/, 'the skirmish box stores a country, not a position');
+	assertOrdered(functionBody(netdlg, 'static void Fill_Side_Box(WSScreenHandle dialog)'), ['LOBBY_MSG_COMBO_INSERT', 'LOBBY_MSG_COMBO_SET_ITEM_DATA'], 'each entry carries its country');
+	assert.match(functionBody(netdlg, 'static int Side_From_Box(WSScreenHandle dialog)'), /LOBBY_MSG_COMBO_GET_ITEM_DATA/, 'the selection is read back through its country');
+	assert.doesNotMatch(netdlg, /LOBBY_MSG_COMBO_SET_CUR_SEL, Session\.House/, 'no box is positioned by a country index');
+
+	const skirmish = source('code/ui/uiskirmish.cpp');
+	assert.match(skirmish, /side\.Country = index;/, 'each skirmish side carries its country');
+	assert.match(skirmish, /Session\.House = Country;/, 'the skirmish box stores a country, not a position');
 });
 
 test('A side is declared in the side list alone', () => {

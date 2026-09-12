@@ -174,6 +174,7 @@
 #include "language/language.h"
 #include "laser.h"
 #include "lightcon.h"
+#include "mainwindow.h"
 #include "mono.h"
 #include "overtype.h"
 #include "partsys.h"
@@ -210,7 +211,6 @@
 #include "tube.hh"
 
 #include <algorithm>
-#include <intrin.h>
 
 CDTimerClass<FrameTimerClass> TechnoClass::ActionLineTimer;
 bool TechnoClass::ActionLines = true;
@@ -1408,7 +1408,7 @@ bool TechnoClass::Is_Decoration_Visible(void) const
 		}
 	}
 
-	if (Map.Is_Shrouded(Center_Coord()) && MainWindow != NULL) {
+	if (Map.Is_Shrouded(Center_Coord()) && Has_Main_Window()) {
 		return(false);
 	}
 
@@ -3434,7 +3434,7 @@ bool TechnoClass::Is_Ready_To_Cloak(void) const
  *=============================================================================================*/
 bool TechnoClass::Select(void)
 {
-	if (!IsDiscoveredByPlayer && !House->Is_Player_Control() && MainWindow) {
+	if (!IsDiscoveredByPlayer && !House->Is_Player_Control() && Has_Main_Window()) {
 		return(false);
 	}
 
@@ -5540,7 +5540,7 @@ VisualType TechnoClass::Visual_Character(bool raw, HouseClass const * house) con
 	*/
 	if (Cloak == CLOAKED) {
 		if (raw && house != NULL && Map[Get_Coord().As_Cell()].Is_Sensed(house->HeapID)) return(VISUAL_SHADOWY);
-		if (!raw && !MainWindow) return(VISUAL_SHADOWY);
+		if (!raw && !Has_Main_Window()) return(VISUAL_SHADOWY);
 		if (!raw && IsOwnedByPlayer) return(VISUAL_SHADOWY);
 		if (!raw && Is_Sensed_By_Player()) return(VISUAL_SHADOWY);
 		if (!raw && (Session.Type != GAME_NORMAL && House != NULL && PlayerPtr != NULL && PlayerPtr->Shares_View_With(House) && House->Shares_View_With(PlayerPtr))) return(VISUAL_SHADOWY);
@@ -7683,7 +7683,7 @@ void TechnoClass::Draw_Pips(Point2D const & bottomleft, Point2D const & center, 
 		if (group == 10) group = 0;
 
 		char group_text[12];
-		sprintf(group_text, "%d", group < 10 ? group : 0);
+		snprintf(group_text, sizeof(group_text), "%d", group < 10 ? group : 0);
 
 		Plain_Text_Print(group_text, *LogicalSurface, rect, bottomleft + Point2D(-4, yval-3), WHITE, TBLACK, TextPrintType(TPF_FULLSHADOW|TPF_EFNT), 0, 1);
 	}
@@ -7701,7 +7701,7 @@ void TechnoClass::Draw_Text_Overlay(Point2D const & point1, Point2D const & poin
 {
 	if (RTTI == RTTI_BUILDING && ((BuildingClass*)this)->Class->Power > 0) {
 		char buffer[128];
-		sprintf(buffer, Fetch_String(TXT_POWER_DRAIN), House->Power_Output(), House->Power_Drain());
+		snprintf(buffer, sizeof(buffer), Fetch_String(TXT_POWER_DRAIN), House->Power_Output(), House->Power_Drain());
 		Plain_Text_Print(buffer, *LogicalSurface, cliprect, point2, WHITE, TBLACK, TextPrintType(TPF_CENTER|TPF_FULLSHADOW|TPF_EFNT), 0, 1);
 	}
 
@@ -8744,7 +8744,7 @@ bool TechnoClass::Is_Radar_Visible(DetectedType & detected) const
 
 		int height = HeightAGL;
 		bool ability_radar_invisible = Has_Ability(ABILITY_RADAR_INVISIBLE);
-		bool is_shrouded = Map.Is_Shrouded(Get_Coord()) && MainWindow;
+		bool is_shrouded = Map.Is_Shrouded(Get_Coord()) && Has_Main_Window();
 		bool is_fogged = Scen->Special.IsFogOfWar && Map.Is_Fogged(Get_Coord());
 
 		if (!is_fogged && Cloak != CLOAKED && height >= -20 && !ability_radar_invisible && !is_shrouded) {

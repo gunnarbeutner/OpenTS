@@ -233,7 +233,7 @@ fixed_controls:
     context: Classic main menu
     availability: *all
     sites:
-      - { file: code/init.cpp, function: Main_Menu, expression: KN_V+KN_CTRL_BIT }
+      - { file: code/init.cpp, function: Main_Menu_Keys, expression: KN_V+KN_CTRL_BIT }
   - id: fixed:main-menu-credits
     title: Open credits
     description: Opens the credits from the classic main menu.
@@ -242,7 +242,7 @@ fixed_controls:
     context: Classic main menu
     availability: *all
     sites:
-      - { file: code/init.cpp, function: Main_Menu, expression: VK_C+KN_CTRL_BIT+KN_ALT_BIT }
+      - { file: code/init.cpp, function: Main_Menu_Keys, expression: VK_C+KN_CTRL_BIT+KN_ALT_BIT }
   - id: fixed:skip-credits
     title: Exit credits
     description: Stops the credits and returns to the menu.
@@ -349,7 +349,7 @@ fixed_exclusions:
     reason: Generic graphic-menu polling and activation, not a named application control.
   - site: { file: code/grphmsct.cpp, function: GM_Build_Key, expression: VK_NONE }
     reason: Sentinel used while translating a menu accelerator into a virtual key.
-  - site: { file: code/init.cpp, function: Main_Menu, expression: KN_RLSE_BIT }
+  - site: { file: code/init.cpp, function: Main_Menu_Keys, expression: KN_RLSE_BIT }
     reason: Filters release events before the classic main-menu cheat handler.
   - sites:
       - { file: code/init.cpp, function: Init_Commands, expression: KN_DELETE }
@@ -389,17 +389,6 @@ fixed_exclusions:
       - { file: code/msglist.cpp, function: MessageListClass::Input, expression: KN_BACKSPACE }
       - { file: code/msglist.cpp, function: MessageListClass::Input, expression: KN_ESC }
     reason: Message editor polling, cursor placement, and text-edit termination.
-  - site: { file: code/ownrdraw.cpp, function: CtrlProc_Internal, expression: VK_TAB }
-    reason: Windows dialog focus traversal handled by the shared control procedure.
-  - sites:
-      - { file: code/ownrdraw.cpp, function: EditBoxCtrlProc, expression: VK_TAB }
-      - { file: code/ownrdraw.cpp, function: EditBoxCtrlProc, expression: VK_RETURN }
-    reason: Windows edit-control navigation handled by the shared dialog procedure.
-  - sites:
-      - { file: code/ownrdraw.cpp, function: Build_Hotkey_String, expression: VK_MENU }
-      - { file: code/ownrdraw.cpp, function: Build_Hotkey_String, expression: VK_CONTROL }
-      - { file: code/ownrdraw.cpp, function: Build_Hotkey_String, expression: VK_SHIFT }
-    reason: Converts modifier virtual keys to display names; it does not consume input.
   - sites:
       - { file: code/restate.cpp, function: RestateMission::User_Input, expression: KN_NONE }
       - { file: code/restate.cpp, function: RestateMission::User_Input, expression: KN_BUTTON }
@@ -428,6 +417,39 @@ fixed_exclusions:
     reason: World Domination Tour territory-screen polling and hit-testing.
   - site: { file: code/winstub.cpp, function: Create_Main_Window, expression: VK_M }
     reason: Registers a Windows hotkey that has no WM_HOTKEY handler in the current source tree.
+      - { file: code/ui/uihotkey.cpp, function: UIHotkeyPresenter::Service, expression: VK_LBUTTON }
+      - { file: code/ui/uihotkey.cpp, function: UIHotkeyPresenter::Service, expression: VK_RBUTTON }
+      - { file: code/ui/uihotkey.cpp, function: UIHotkeyPresenter::Service, expression: VK_MBUTTON }
+      - { file: code/ui/uihotkey.cpp, function: UIHotkeyPresenter::Service, expression: VK_SHIFT }
+      - { file: code/ui/uihotkey.cpp, function: UIHotkeyPresenter::Service, expression: VK_CONTROL }
+      - { file: code/ui/uihotkey.cpp, function: UIHotkeyPresenter::Service, expression: VK_MENU }
+      - { file: code/ui/uihotkey.cpp, function: UIHotkeyPresenter::Service, expression: VK_TAB }
+      - { file: code/ui/uihotkey.cpp, function: UIHotkeyPresenter::Service, expression: VK_ESCAPE }
+    reason: Keys the hotkey screen's capture box refuses to assign; it binds no control of its own.
+  - sites:
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_TAB }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_RETURN }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_ESCAPE }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_SPACE }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_BACK }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_DELETE }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_INSERT }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_HOME }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_END }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_PRIOR }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_NEXT }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_LEFT }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_RIGHT }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_UP }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_DOWN }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_F1 }
+      - { file: code/ui/uikeymap.cpp, function: UI_Key_From_Virtual, expression: VK_F12 }
+    reason: Translates host key codes for the UI shell, not a command.
+  - sites:
+      - { file: code/ui/uiwin32.cpp, function: Current_Modifiers, expression: VK_SHIFT }
+      - { file: code/ui/uiwin32.cpp, function: Current_Modifiers, expression: VK_CONTROL }
+      - { file: code/ui/uiwin32.cpp, function: Current_Modifiers, expression: VK_MENU }
+    reason: UI-shell modifier-state encoding, not separate controls.
 
 launch_options:
   - id: launch:help

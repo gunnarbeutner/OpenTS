@@ -30,6 +30,7 @@
 #include "house.h"
 #include "inline.h"
 #include "lightcon.h"
+#include "mainwindow.h"
 #include "objtype.h"
 #include "rect.h"
 #include "savestream.h"
@@ -281,7 +282,7 @@ FoggedObjectClass::~FoggedObjectClass(void)
 /// <param name="rect">The dirty rectangle currently being redrawn.</param>
 void Draw_Fogged_Objects(Rect const & rect)
 {
-	if (MainWindow == NULL) {
+	if (!Has_Main_Window()) {
 		return;
 	}
 

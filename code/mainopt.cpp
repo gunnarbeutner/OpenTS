@@ -23,6 +23,7 @@
 #include "dsurface.h"
 #include "gamedlg.h"
 #include "globals.h"
+#include "hostwindow.h"
 #include "init.h"
 #include "language/language.h"
 #include "misc.h"
@@ -35,7 +36,10 @@
 #include "sounddlg.h"
 #include "stimer.h"
 #include "surface.h"
-#include "wwmouse.h"
+#include "ui/uidisplay.h"
+#include "ui/uimainopt.h"
+#include "ui/uimodeconfirm.h"
+#include "ui/uishell.h"
 
 #include "color.hh"
 

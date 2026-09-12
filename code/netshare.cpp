@@ -18,6 +18,7 @@
 #include "dialogresult.h"
 #include "globals.h"
 #include "goptions.h"
+#include "hostwindow.h"
 #include "ipxmgr.h"
 #include "language/language.h"
 #include "lobbymsg.h"
@@ -66,15 +67,15 @@ const std::uint32_t ColorNoJoin     = Lobby_Color(128, 128, 128);            ///
  */
 int IsColorChangePending;
 
-COLORREF PlayerColorTable[MAX_PLAYERS] = {
-	RGB(255, 223, 94),	/// 0x005EDFFF
-	RGB(255, 26, 20),	/// 0x00141AFF
-	RGB(39, 60, 179),	/// 0x00B33C27
-	RGB(11, 148, 11),	/// 0x000B940B
-	RGB(218, 137, 26),	/// 0x001A89DA
-	RGB(20, 177, 255),	/// 0x00FFB114
-	RGB(185, 20, 255),	/// 0x00FF14B9
-	RGB(255, 70, 173)	/// 0x00AD46FF
+std::uint32_t PlayerColorTable[MAX_PLAYERS] = {
+	Lobby_Color(255, 223, 94),	/// 0x005EDFFF
+	Lobby_Color(255, 26, 20),	/// 0x00141AFF
+	Lobby_Color(39, 60, 179),	/// 0x00B33C27
+	Lobby_Color(11, 148, 11),	/// 0x000B940B
+	Lobby_Color(218, 137, 26),	/// 0x001A89DA
+	Lobby_Color(20, 177, 255),	/// 0x00FFB114
+	Lobby_Color(185, 20, 255),	/// 0x00FF14B9
+	Lobby_Color(255, 70, 173)	/// 0x00AD46FF
 };
 
 
@@ -105,6 +106,158 @@ unsigned int Wstring_Hash(Wstring & string)
 }
 
 
+/*
+ * The lobby screens' controls are reached through the routines below; see
+ * code/ui/uilobby.h. A screen answers the messages the lobby sends as the owner-draw control
+ * did, and a control the screen does not have, or a handle that names no lobby screen,
+ * answers as a missing child window did: with nothing done and zero returned.
+ */
+LobbyResult Lobby_Send(WSScreenHandle window, int id, unsigned int message, LobbyWParam wparam, LobbyLParam lparam)
+{
+	if (!UI_Lobby_Has_Control(window, id)) {
+		return(0);
+	}
+
+	switch (message) {
+		case LOBBY_MSG_SET_TEXT:
+			UI_Lobby_Set_Text(window, id, (char const *)lparam);
+			return(true);
+
+		case LOBBY_MSG_GET_TEXT: {
+			std::string const text = UI_Lobby_Get_Text(window, id);
+			int const size = (int)wparam;
+			if (size <= 0 || lparam == 0) {
+				return(0);
+			}
+			int const length = (int)UTF8::Boundary_Before(text.c_str(), (std::size_t)(size - 1));
+			memcpy((char *)lparam, text.data(), length);
+			((char *)lparam)[length] = '\0';
+			return(length);
+		}
+
+		case LOBBY_MSG_SET_TEXT_LIMIT:
+			UI_Lobby_Set_Limit(window, id, (int)wparam);
+			return(0);
+
+		case LOBBY_MSG_GET_CHECK:
+			return(UI_Lobby_Get_Check(window, id) ? LOBBY_CHECKED : LOBBY_UNCHECKED);
+
+		case LOBBY_MSG_SET_CHECK:
+			UI_Lobby_Set_Check(window, id, wparam == LOBBY_CHECKED);
+			return(0);
+
+		case LOBBY_MSG_TRACK_SET_RANGE:
+			UI_Lobby_Set_Range(window, id, Lobby_Low_Word(lparam), Lobby_High_Word(lparam));
+			return(0);
+
+		case LOBBY_MSG_TRACK_SET_POS:
+			UI_Lobby_Set_Position(window, id, (int)lparam);
+			return(0);
+
+		case LOBBY_MSG_TRACK_GET_POS:
+			return(UI_Lobby_Get_Position(window, id));
+
+		case LOBBY_MSG_TRACK_SET_STEP:
+			UI_Lobby_Set_Step(window, id, (int)lparam);
+			return(0);
+
+		case LOBBY_MSG_LIST_RESET:
+		case LOBBY_MSG_COMBO_RESET:
+			UI_Lobby_Reset(window, id);
+			return(0);
+
+		case LOBBY_MSG_LIST_INSERT:
+		case LOBBY_MSG_COMBO_INSERT: {
+			UILobbyItem item;
+			item.Text = (lparam != 0) ? (char const *)lparam : "";
+			UI_Lobby_Add(window, id, item);
+			return(UI_Lobby_Get_Count(window, id) - 1);
+		}
+
+		case LOBBY_MSG_LIST_GET_COUNT:
+		case LOBBY_MSG_COMBO_GET_COUNT:
+			return(UI_Lobby_Get_Count(window, id));
+
+		case LOBBY_MSG_LIST_GET_CUR_SEL:
+		case LOBBY_MSG_COMBO_GET_CUR_SEL:
+			return(UI_Lobby_Get_Cur_Sel(window, id));
+
+		case LOBBY_MSG_LIST_SET_CUR_SEL:
+		case LOBBY_MSG_COMBO_SET_CUR_SEL:
+			UI_Lobby_Set_Cur_Sel(window, id, (int)wparam);
+			return(0);
+
+		case LOBBY_MSG_LIST_GET_SEL:
+			return(UI_Lobby_Get_Sel(window, id, (int)wparam) ? 1 : 0);
+
+		case LOBBY_MSG_LIST_SET_SEL:
+			UI_Lobby_Set_Sel(window, id, wparam != 0, (int)lparam);
+			return(0);
+
+		case LOBBY_MSG_LIST_SELECT_RANGE:
+			UI_Lobby_Select_Range(window, id, wparam != 0, Lobby_Low_Word(lparam), Lobby_High_Word(lparam));
+			return(0);
+
+		case LOBBY_MSG_COMBO_SET_ITEM_DATA:
+			UI_Lobby_Set_Item_Data(window, id, (int)wparam, (int)lparam);
+			return(0);
+
+		case LOBBY_MSG_COMBO_GET_ITEM_DATA:
+			return(UI_Lobby_Get_Item_Data(window, id, (int)wparam));
+
+		case LOBBY_MSG_COMBO_GET_DROPPED:
+			return(UI_Lobby_Is_Dropped(window, id) ? 1 : 0);
+
+		case LOBBY_MSG_SET_COLOR:
+			UI_Lobby_Set_Item_Color(window, id, (int)wparam, (int)lparam);
+			return(0);
+
+		default:
+			return(0);
+	}
+}
+
+
+void Lobby_Enable_Item(WSScreenHandle window, int id, bool enable)
+{
+	UI_Lobby_Enable(window, id, enable);
+}
+
+
+bool Lobby_Is_Item_Enabled(WSScreenHandle window, int id)
+{
+	return(UI_Lobby_Is_Enabled(window, id));
+}
+
+
+// A lobby screen or the map picker shows the new map preview. Any other handle, such as the
+// main window the skirmish screen names, is repainted.
+void Lobby_Invalidate(WSScreenHandle window)
+{
+	if (UI_Lobby_Is_Open(window) || WS_Is_Screen(window)) {
+		UI_Lobby_Preview_Changed();
+		return;
+	}
+	Host_Invalidate_Window();
+}
+
+
+void Lobby_Show(WSScreenHandle window, bool show)
+{
+	UI_Lobby_Show(window, show);
+}
+
+
+// Sends WM_COMMAND on a control's behalf, calling the screen's dialog procedure as
+// SendMessage would have called the dialog's.
+void Lobby_Command(WSScreenHandle window, LobbyProc proc, int id, int notify)
+{
+	if (UI_Lobby_Is_Open(window)) {
+		proc(window, LOBBY_MSG_COMMAND, Lobby_Make_Param(id, notify), 0);
+	}
+}
+
+
 /// <summary>
 /// Fetches the game options dialog that is currently up.
 /// The same options are presented by four different dialogs depending on how the game was
@@ -113,7 +266,7 @@ unsigned int Wstring_Hash(Wstring & string)
 /// </summary>
 /// <returns>Returns with the handle of the open game options dialog. NULL is returned if
 /// none of them is up.</returns>
-HWND GameoptWindow(void)
+WSScreenHandle GameoptWindow(void)
 {
 	WSScreenHandle dialog;
 

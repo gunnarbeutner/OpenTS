@@ -250,15 +250,7 @@ target_link_libraries(OpenTS PRIVATE
     bimg
     miniaudio
     lzo
-    comctl32
-    dbghelp
-    iphlpapi
-    psapi
-    version
-    winmm
-    ws2_32
-    kernel32 user32 gdi32 winspool comdlg32 advapi32 shell32
-    odbc32 odbccp32
+    rmlui
 )
 
 if(MSVC)
