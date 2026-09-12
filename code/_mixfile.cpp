@@ -44,5 +44,7 @@ MFCD * SideCMix = NULL;
 MFCD * SideNCMix = NULL;
 MFCD * SideCDMix = NULL;
 
+DynamicVectorClass<MFCD *> DeferredCacheMix;
+
 DynamicVectorClass<MFCD *> MapsMixLocal;
 DynamicVectorClass<MFCD *> MoviesMixLocal;

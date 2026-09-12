@@ -26,6 +26,10 @@ class ObjectClass;
 bool Parse_Command_Line(int argc, char * argv[]);
 
 int Init_Game(int argc, char * argv[]);
+
+// Caches the bulk game data and runs the one-time systems that read it. Idempotent.
+bool Init_Bulk_Data(void);
+
 bool Select_Game(bool fade);
 
 int Main_Menu(unsigned int timeout);

@@ -54,6 +54,12 @@ extern MFCD * SideNCMix;
 extern MFCD * SideCDMix;
 
 /*
+ * Archives registered with a cache that only a running game needs. Init_Bulk_Data
+ * caches and empties this.
+ */
+extern DynamicVectorClass<MFCD *> DeferredCacheMix;
+
+/*
  * Every MAPS*.MIX and MOVIES*.MIX beyond the first one found.
  */
 extern DynamicVectorClass<MFCD *> MapsMixLocal;

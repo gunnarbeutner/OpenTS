@@ -361,6 +361,13 @@ bool Start_Scenario(char const * name, bool briefing, CampaignType campaign)
 		}
 	}
 
+	// The unit and building art, the samples and the systems that hold pointers into them
+	// are made resident here rather than at startup, since nothing before this point draws
+	// or plays any of it.
+	if (!Init_Bulk_Data()) {
+		return(false);
+	}
+
 	if (Debug_Skip_Briefing) {
 		briefing = false;
 	}
