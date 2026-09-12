@@ -1,0 +1,446 @@
+/*
+ * The shared look for OpenTS documents. Sizes are in density-independent pixels, one to a
+ * game logical unit, so a document covers the same part of the picture at every window
+ * size while its text is rasterized at the window's own resolution.
+ */
+
+/*
+ * The body fills the context, so a document that centres itself has something to take a
+ * percentage of, and nothing is drawn behind a screen: the game's own frame is the
+ * background the overlay sits on.
+ */
+body
+{
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	/*
+	 * The dialogs' own lettering, drawn from the game's glyph sheets as the dialogs drew it,
+	 * shading and dark shadow included. 17dp is the sheets' own line at the frame's scale.
+	 *
+	 * The sheets serve what the dialogs' painter drew itself. What it wrote through the
+	 * device context instead -- list rows at 12 pixels, group box captions, tooltips and the
+	 * hotkey box at 14 -- asks for `opents-sans`, the shipped Liberation Sans. MS Sans Serif
+	 * is a Windows bitmap face that cannot be shipped, and Liberation Sans is the metric
+	 * match for Arial, which Windows itself substitutes once the bitmap sizes run out.
+	 */
+	font-family: opents-dialog;
+	font-size: 17dp;
+
+	/* The dialogs' text green, RGB(112,255,0) in ownrdraw.cpp's ODColorText. */
+	color: #70ff00ff;
+}
+
+/*
+ * A dialog wears the backdrop the owner-draw dialogs composed: the wallpaper sampled at
+ * the dialog's own position, the two tiled bars, the four corner pieces and the glow. It
+ * is one texture, named for the size it was composed at, so each screen asks for its own:
+ *
+ *     decorator: image(frame:408x172);
+ *
+ * The padding clears the side bars, which are 24 pixels wide, and the corner pieces.
+ */
+.dialog
+{
+	position: absolute;
+
+	/* The size a screen asks for is the size the backdrop was composed at, so the padding
+	   that clears the bars has to come out of it rather than be added to it. */
+	box-sizing: border-box;
+	padding: 14dp 28dp;
+	color: #70ff00ff;
+}
+
+/*
+ * RmlUi's own stylesheet leaves an unknown element inline, and these are lines of text
+ * rather than a run, so each is asked for a line of its own.
+ */
+/* The owner-draw lists stepped their rows 14 pixels apart, measured against the dialog. */
+.dialog p
+{
+	display: block;
+	line-height: 14dp;
+}
+
+/*
+ * A row of buttons along the bottom of a dialog. The last child carries no right margin so
+ * that a row right-aligns cleanly whatever it holds.
+ */
+.buttons
+{
+	margin-top: 12dp;
+	text-align: right;
+}
+
+/*
+ * A button wears the dialogs' own skin: a left cap, a tiled middle and a right cap, in the
+ * raised set until it is pressed. The artwork comes in two heights, 24 and 30; a button
+ * taller than 30 takes the taller set, as the dialog's painter chose. The caps are seven
+ * pixels wide, which is what the painter used as its margin.
+ *
+ * The caption is the dialogs' own lettering in their green, inherited from the body.
+ */
+button
+{
+	display: inline-block;
+
+	/* A screen gives a button the size of its skin, so the padding comes out of that. */
+	box-sizing: border-box;
+	height: 24dp;
+	min-width: 60dp;
+	color: #70ff00ff;
+	padding: 0 10dp;
+	margin-left: 6dp;
+	text-align: center;
+	vertical-align: middle;
+	line-height: 24dp;
+
+	/*
+	 * The skin is composed rather than tiled by the stylesheet, because the painter
+	 * sampled the middle strip from its own centre and a stylesheet cannot say that. A
+	 * screen names the size it gave the button.
+	 */
+	decorator: image(button:u:60x24);
+}
+
+button:hover
+{
+	color: #ffffffff;
+}
+
+/*
+ * A pressed button's caption sits two pixels right and four down, where the painter put it.
+ * A button held down with the pointer dragged off it is drawn raised again, as a Windows
+ * button was.
+ */
+button:active:hover,
+button:checked
+{
+	color: #70ff00ff;
+	padding: 4dp 10dp 0 12dp;
+	decorator: image(button:d:60x24);
+}
+
+/*
+ * A disabled button was dimmed by half-transparent black laid over the skin and the caption
+ * alike, which halving the skin's colour and the caption's reproduces whatever skin size a
+ * screen gave the button. RmlUi gives a <button> no :disabled state, so the attribute is
+ * selected directly; the view base keeps a disabled button from taking a click.
+ */
+button[disabled],
+button[disabled]:active:hover
+{
+	color: #388000ff;
+	image-color: #808080ff;
+	padding: 0 10dp;
+}
+
+
+
+
+/*
+ * Form controls, in the dialogs' own artwork. RmlUi builds a range input out of a track, a
+ * progress element, a bar and two arrows, and gives none of them a size or a colour of its
+ * own, so a control with no styling draws nothing at all. The arrows are dropped: the
+ * track bars these replace had none.
+ */
+input.slider
+{
+	display: inline-block;
+}
+
+/*
+ * A track bar showed the dialog behind it blended 180 parts in 255 toward black, inside a
+ * frame in RGB(78,182,220). The track fills the control's height because the widget acts
+ * on a press only when the press landed on the track or on the progress element, and a
+ * groove a few pixels tall leaves most of the row dead to a click.
+ */
+input.slider slidertrack
+{
+	height: 24dp;
+	background-color: #000000b4;
+	border: 1dp #4eb6dcff;
+}
+
+/*
+ * A track bar that shows its value had the number in a trough to the right of the track,
+ * 50 pixels wide, built from the trough's three pieces. A screen wraps the slider and a
+ * .number in a .numbered box sized as the template's control.
+ */
+.numbered
+{
+	box-sizing: border-box;
+	padding-right: 50dp;
+}
+
+/* A range input takes no width from its offsets, so it fills the box's content instead. */
+.numbered input.slider
+{
+	width: 100%;
+}
+
+.numbered .number
+{
+	position: absolute;
+	right: 0;
+	top: 0;
+	width: 48dp;
+	height: 23dp;
+	line-height: 23dp;
+	text-align: center;
+	decorator: tiled-horizontal(trofl.pcx, trofm.pcx, trofr.pcx);
+}
+
+input.slider sliderprogress
+{
+	height: 24dp;
+}
+
+/* The grip is trakgrip.pcx at the artwork's own width, stretched to the control's height. */
+input.slider sliderbar
+{
+	width: 12dp;
+	height: 24dp;
+	decorator: image(trakgrip.pcx);
+}
+
+input.slider sliderarrowdec,
+input.slider sliderarrowinc
+{
+	display: none;
+}
+
+/* The box is the dialogs' own 18 by 18 check art, with its caption 20 pixels to its right. */
+input[type="checkbox"]
+{
+	display: inline-block;
+	width: 18dp;
+	height: 18dp;
+	decorator: image(cue_i.pcx);
+}
+
+input[type="checkbox"]:checked
+{
+	decorator: image(cce_i.pcx);
+}
+
+/*
+ * A disabled control wears half-transparent black over its artwork, which is the artwork at
+ * half brightness, and its frame in ODColorDisabled RGB(144,144,144). Opacity would let the
+ * backdrop through the control instead of dimming it.
+ */
+input:disabled
+{
+	image-color: #808080ff;
+	border-color: #909090ff;
+}
+
+input.slider:disabled slidertrack
+{
+	background-color: #000000da;
+	border-color: #909090ff;
+}
+
+input.slider:disabled sliderbar
+{
+	image-color: #808080ff;
+}
+
+/*
+ * A list dims the dialog behind it as a text field does, inside the frame colour, with its
+ * rows in the dialogs' green and the selected row filled; a row does not light up under the
+ * pointer. The colours are measured against the legacy view.
+ */
+.list
+{
+	background-color: #000000b4;
+	border: 1dp #4eb6dcff;
+	overflow-y: auto;
+}
+
+/*
+ * Rows step at ODListFontSize + 2, so they hold the 12 pixel face rather than the sheets'
+ * 17 pixel line.
+ */
+.list p
+{
+	display: block;
+	font-family: opents-sans;
+	font-size: 12dp;
+	line-height: 14dp;
+	padding: 0 2dp;
+	white-space: nowrap;
+	color: #70ff00ff;
+}
+
+.list p.picked
+{
+	background-color: #225061ff;
+}
+
+/*
+ * A list longer than its box had the owner-draw scroll bar down its right edge: a framed
+ * track, a grip built from its top, middle and bottom pieces, and 22 pixel arrow buttons
+ * with the arrow drawn from their top left corner.
+ */
+/*
+ * The painter narrowed the list and created the bar beside it, so the list's frame closed
+ * against the bar's. RmlUi lays a scroll bar inside the element it scrolls, which would nest
+ * the two frames, so the negative margin puts the bar's own frame on the list's right edge.
+ */
+scrollbarvertical
+{
+	width: 20dp;
+	margin-right: -1dp;
+}
+
+/*
+ * The track lightens what is behind it by 40 parts in 255, as ODColorSteps did. Behind it is
+ * the list's own dimming as well as the dialog, so it is darker than the painter's.
+ */
+scrollbarvertical slidertrack
+{
+	background-color: #ffffff28;
+	border: 1dp #4eb6dcff;
+}
+
+/*
+ * RmlUi sizes the grip by the visible fraction; the painter sized it by the range. The floor
+ * is the painter's 14 pixels.
+ */
+scrollbarvertical sliderbar
+{
+	width: 20dp;
+	min-height: 14dp;
+	decorator: tiled-vertical(sbgript.pcx, sbgripm.pcx, sbgripb.pcx);
+}
+
+scrollbarvertical sliderarrowdec,
+scrollbarvertical sliderarrowinc
+{
+	width: 20dp;
+	height: 22dp;
+}
+
+scrollbarvertical sliderarrowdec { decorator: image(uparrowr.pcx scale-none left top); }
+scrollbarvertical sliderarrowdec:active:hover { decorator: image(uparrowp.pcx scale-none left top); }
+scrollbarvertical sliderarrowinc { decorator: image(dnarrowr.pcx scale-none left top); }
+scrollbarvertical sliderarrowinc:active:hover { decorator: image(dnarrowp.pcx scale-none left top); }
+
+
+/*
+ * A tooltip, as OwnerDraw::Show_Tooltip drew one: a box in ODTooltipBoxColor RGB(11,27,34)
+ * under a darkening bevel, framed in white. The painter placed it under the pointer after
+ * the pointer had rested; a document places it against the control it belongs to and shows
+ * it on hover.
+ */
+.tooltip
+{
+	position: absolute;
+	display: none;
+	z-index: 1;
+	padding: 3dp 4dp;
+	background-color: #0b1b22ff;
+	border: 1dp #ffffffff;
+	font-family: opents-sans;
+	font-size: 14dp;
+	line-height: 16dp;
+	color: #70ff00ff;
+	white-space: nowrap;
+	pointer-events: none;
+}
+
+/*
+ * Text fields and combo boxes, as the owner-draw edit and combo boxes drew them: the
+ * dialog behind them dimmed, a one pixel frame in the frame colour (OD_Draw_Rect takes -1
+ * for it), and the text in the dialogs' green. The dimming is ODDrawDimmedBackground's
+ * blend toward black, measured against the legacy view; the combo box laid a further
+ * half-transparent black over that, which is why it is the darker of the two.
+ */
+input.text
+{
+	display: inline-block;
+	height: 20dp;
+	padding: 2dp 4dp;
+	box-sizing: border-box;
+	background-color: #000000b4;
+	border: 1dp #4eb6dcff;
+	color: #70ff00ff;
+
+	/* The edit box drew its line two pixels inside the frame, shadow and all, which a line
+	   this much shorter than the face's 17 places. */
+	line-height: 13dp;
+}
+
+/* The caret was a bar in the text colour. */
+input.text:focus
+{
+	caret-color: #70ff00ff;
+}
+
+/* A closed combo box was 24 pixels tall whatever its template gave it. */
+select
+{
+	display: inline-block;
+	height: 24dp;
+	padding: 0;
+	box-sizing: border-box;
+	background-color: #000000d9;
+	border: 1dp #4eb6dcff;
+	color: #70ff00ff;
+}
+
+/* The text sat two pixels in and three down from the box's own corner, clear of the arrow. */
+select selectvalue
+{
+	height: 20dp;
+	line-height: 17dp;
+	padding: 2dp 0 0 1dp;
+	margin-right: 19dp;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+/*
+ * The arrow was blitted at its own size, 18 by 22, one pixel down from the top of the box
+ * and against the inside of the frame on the right.
+ */
+select selectarrow
+{
+	width: 18dp;
+	height: 22dp;
+	decorator: image(dnarrowr.pcx);
+}
+
+select selectarrow:active:hover,
+select selectarrow:checked
+{
+	decorator: image(dnarrowp.pcx);
+}
+
+select selectbox
+{
+	margin-top: 1dp;
+	background-color: #000000d9;
+	border: 1dp #4eb6dcff;
+	max-height: 160dp;
+	overflow-y: auto;
+}
+
+/* A dropped row was ODFontSize + 2 pixels tall, its text three pixels in. */
+select selectbox option
+{
+	display: block;
+	height: 16dp;
+	line-height: 16dp;
+	padding: 0 3dp;
+	color: #70ff00ff;
+}
+
+select selectbox option:hover,
+select selectbox option:checked
+{
+	background-color: #225061ff;
+}

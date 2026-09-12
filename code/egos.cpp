@@ -37,8 +37,6 @@
 
 #include "always.h"
 
-#include <windows.h>
-
 #include "egos.h"
 
 #include "_keyboar.h"
@@ -58,17 +56,17 @@
 #include "gscreen.h"
 #include "language/language.h"
 #include "misc.h"
-#include "ownrdraw.h"
 #include "scheme.h"
+#include "sheettext.h"
 #include "theme.h"
 #include "utf8.h"
 #include "vector.h"
-#include "windlg.h"
 
 #include "color.hh"
 #include "dialog.hh"
 
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 
 /*
@@ -189,26 +187,23 @@ bool EgoClass::Scroll(int distance)
 void EgoClass::Render(bool fresh)
 {
 	if ((YPos < LogicalSurface->Get_Height() && YPos > LogicalSurface->Get_Height() - 52) || YPos >= -16 && YPos <= 32 || fresh) {
-		static HFONT font;
-		if (font == NULL) {
-			HDC dc = GetDC(MainWindow);
-			font = WS_Get_Font(dc, "Arial", 0, 16, 1);
-			ReleaseDC(MainWindow, dc);
-		}
+		// Drawn from the dialogs' glyph sheets; the text is placed at XPos by its left edge,
+		// its middle, or its right edge.
+		std::uint32_t const color = 0x0080FFFF;
+		int const wide = VideoModeWidth;
+		Rect textrect(XPos, YPos, XPos + wide, YPos);
+		int flags = 0;
 
-		Rect textrect(XPos, YPos, VideoModeWidth, 0);
-
-		int alignment = 0;
 		if (Flags & TPF_CENTER) {
-			alignment = OD_TEXT_ALIGN_CENTER;
-		}else{
-			if (Flags & TPF_RIGHT){
-				alignment = OD_TEXT_ALIGN_MAX;
-			}
+			textrect = Rect(XPos - wide, YPos, XPos + wide, YPos);
+			flags = SHEET_TEXT_CENTER;
+		} else if (Flags & TPF_RIGHT) {
+			textrect = Rect(0, YPos, XPos, YPos);
+			flags = SHEET_TEXT_RIGHT;
 		}
 
 		if (GameInFocus) {
-			OD_Draw_Text(RGB(255, 255, 128), font, textrect, Text, strlen(Text), alignment, 0, BackgroundSurface);
+			Sheet_Draw_Line(*BackgroundSurface, Text, (int)strlen(Text), textrect, "dlgsys", color, flags);
 		}
 	}
 }
@@ -592,8 +587,8 @@ void Show_Who_Was_Responsible (void)
 				xidx = step * fade_y;
 				yidx = step * (VideoModeHeight - fade_y - 1);
 				for (fade_x = 0; fade_x < VideoModeWidth; fade_x++) {
-					(bsurf + xidx)[fade_x] = OD_Blend_Color((bsurf + xidx)[fade_x], 0, alpha);
-					(bsurf + yidx)[fade_x] = OD_Blend_Color((bsurf + yidx)[fade_x], 0, alpha);
+					(bsurf + xidx)[fade_x] = Sheet_Blend_Pixel((bsurf + xidx)[fade_x], 0, alpha);
+					(bsurf + yidx)[fade_x] = Sheet_Blend_Pixel((bsurf + yidx)[fade_x], 0, alpha);
 				}
 				fade_y++;
 			}

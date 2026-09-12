@@ -63,5 +63,9 @@ ThemeType Fetch_Map_Select_Theme(void);
 
 void Draw_Version_Text(Surface * surface);
 
+// Shows the version information screen and returns when the player dismisses it. Declared
+// here rather than only in init.cpp because the UI register names it.
+void Version_Dialog(void);
+
 ObjectClass * Best_Selected_Object(void);
 int New_Main_Menu(void);
