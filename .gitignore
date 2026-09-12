@@ -66,3 +66,12 @@ manual/data/.manual-generate-*/
 
 # Owner-local documents (untracked adjudication material)
 /docs/local/
+# The engine-signing keys, provided per build and never committed: the private key reaches
+# the image build as a secret, and the public key is baked from .sigkey.pub.
+.sigkey*
+*.sigkey
+
+# Published native installers, which are build output and are never committed
+/downloads/
+
+# Deployment credentials: the Cloudflare purge token deploy.py reads
