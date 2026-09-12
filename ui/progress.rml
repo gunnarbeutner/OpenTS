@@ -1,0 +1,70 @@
+<rml>
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * The template this replaces is 192 by 53 dialog units at MS Sans Serif 8, which is
+		 * 288 by 86 logical pixels, and it was centred on the frame.
+		 */
+		#progress
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -144dp;
+			margin-top: -43dp;
+			width: 288dp;
+			height: 86dp;
+			decorator: image(frame:288x86);
+		}
+
+		/* The template centred its caption in a 222 by 18 box at the top. */
+		#caption
+		{
+			position: absolute;
+			left: 33dp;
+			top: 18dp;
+			width: 222dp;
+			text-align: center;
+		}
+
+		/*
+		 * The bar is PROGBAR2.SHP, 147 by 21, drawn through PALETTE.PAL as the normal drawer
+		 * draws it, centred in a 150 by 24 frame and cut off at the fraction done.
+		 */
+		/* The frame is the template's group box, drawn in the dialogs' frame colour. */
+		#track
+		{
+			position: absolute;
+			left: 69dp;
+			top: 42dp;
+			width: 150dp;
+			height: 24dp;
+			box-sizing: border-box;
+			border: 1dp #4eb6dcff;
+		}
+
+		#fill
+		{
+			position: absolute;
+			left: 1dp;
+			top: 1dp;
+			height: 21dp;
+			overflow: hidden;
+		}
+
+		#fill img
+		{
+			width: 147dp;
+			height: 21dp;
+		}
+	</style>
+</head>
+<body>
+	<div id="progress" class="dialog" data-model="progress">
+		<p id="caption">Working - Please Wait</p>
+		<div id="track">
+			<div id="fill" data-style-width="Width + 'dp'"><img src="progbar2.shp#0@palette.pal"/></div>
+		</div>
+	</div>
+</body>
+</rml>
