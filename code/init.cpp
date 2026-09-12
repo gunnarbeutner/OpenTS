@@ -402,6 +402,9 @@ int Init_Game(int , char * [])
 
 	DebugStringNoPrefix(" ...OK\n");
 
+	// The dialog lettering is built from glyph sheets in these mix files.
+	UI_Load_Game_Fonts();
+
 	DebugString("Init Campaigns\n");
 	Init_Campaigns();
 
