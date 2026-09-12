@@ -236,8 +236,7 @@ int NewMenuClass::Display_Menu(char const * section, DynamicVectorClass<int> & o
 /// Handles the choice between Tiberian Sun and Firestorm.
 /// This routine will display the game select page and put the addon system into the state
 /// that matches the player's choice. Firestorm needs its disc, so the page is shown again
-/// if the player cannot supply one. The scenario descriptions are reloaded before
-/// returning, since they differ between the two games.
+/// if the player cannot supply one.
 /// </summary>
 /// <returns>Returns with the game the player selected.</returns>
 int NewMenuClass::Select_Game_Type(void)
@@ -269,7 +268,6 @@ int NewMenuClass::Select_Game_Type(void)
 		}
 	}
 
-	Session.Read_Scenario_Descriptions();
 	return(result);
 }
 
