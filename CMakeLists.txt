@@ -26,9 +26,14 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
             "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/clang-cl-msvc.cmake.")
     endif()
 elseif(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    # The native macOS target is in progress and unsupported; docs/BUILDING.md records
-    # its state.
-    set(OPENTS_MACOS ON)
+    # The native macOS and iOS targets are in progress and unsupported; docs/BUILDING.md
+    # records their state.
+    if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+        set(OPENTS_IOS ON)
+        include(cmake/IOS.cmake)
+    else()
+        set(OPENTS_MACOS ON)
+    endif()
 elseif(MSVC)
     if(MSVC_VERSION LESS 1930)
         message(FATAL_ERROR "OpenTS requires MSVC 19.30 or newer.")
@@ -59,7 +64,7 @@ if(NOT OPENTS_ARCH)
 endif()
 
 # Only the Windows toolchains have a resource compiler.
-if(NOT OPENTS_MACOS)
+if(NOT APPLE)
     enable_language(RC)
 endif()
 
@@ -113,19 +118,48 @@ add_custom_target(OpenTSBuildStamp ALL
     VERBATIM
 )
 
-if(OPENTS_MACOS)
+# The names a UI document may use for a string. Generated from the language header, which is
+# where the identifiers are declared, so no list of them is kept by hand. It follows that
+# header rather than HEAD, so it runs at configure time and again when the header changes.
+set(OPENTS_STRING_NAME_HEADER "${OPENTS_GENERATED_DIR}/opents_stringnames.h")
+set(OPENTS_LANGUAGE_HEADER "${CMAKE_SOURCE_DIR}/code/language/language.h")
+
+set(OPENTS_STRING_NAME_ARGS
+    "-DOPENTS_LANGUAGE_HEADER=${OPENTS_LANGUAGE_HEADER}"
+    "-DOPENTS_STRING_NAME_HEADER=${OPENTS_STRING_NAME_HEADER}"
+    -P "${CMAKE_SOURCE_DIR}/cmake/StringNames.cmake"
+)
+
+execute_process(COMMAND ${CMAKE_COMMAND} ${OPENTS_STRING_NAME_ARGS})
+
+add_custom_command(
+    OUTPUT "${OPENTS_STRING_NAME_HEADER}"
+    COMMAND ${CMAKE_COMMAND} ${OPENTS_STRING_NAME_ARGS}
+    DEPENDS "${OPENTS_LANGUAGE_HEADER}" "${CMAKE_SOURCE_DIR}/cmake/StringNames.cmake"
+    COMMENT "Collecting the string identifier names"
+    VERBATIM
+)
+
+add_custom_target(OpenTSStringNames DEPENDS "${OPENTS_STRING_NAME_HEADER}")
+
+# The Apple targets build with clang against POSIX rather than the Windows SDK.
+if(APPLE)
     set(OPENTS_POSIX ON)
 endif()
 
-# The SDL host in code/sdlhost.cpp answers code/hostwindow.h on macOS, which puts the
-# executable back into the default build.
-if(OPENTS_MACOS)
+# The SDL host in code/sdlhost.cpp answers code/hostwindow.h on both Apple targets, which
+# puts the executable back into the default build.
+if(APPLE)
     set(OPENTS_HOST sdl)
 endif()
 
 add_subdirectory(thirdparty)
 add_subdirectory(code)
 
-enable_testing()
+# The harnesses are console programs with no bundle, and nothing runs them on a device or a
+# simulator.
+if(NOT OPENTS_IOS)
+    enable_testing()
 
-add_subdirectory(tests)
+    add_subdirectory(tests)
+endif()

@@ -14,7 +14,7 @@ C++ standard library.
 | Interface | Covers | Windows | Other targets |
 | --- | --- | --- | --- |
 | `code/platform/` | Files, directory searches, file times, free space, waits, the process (its path, the single-instance lock, the timer resolution), the debug log's console and debugger output, and the machine registry | `*_win32.cpp` | `*_posix.cpp` |
-| `code/hostwindow.h` | The game window, the pointer and cursor, key state, message boxes and display modes | `code/hostwindow_win32.cpp` | `code/sdlhost.cpp`, on macOS |
+| `code/hostwindow.h` | The game window, the pointer and cursor, key state, message boxes and display modes | `code/hostwindow_win32.cpp` | `code/sdlhost.cpp`, on macOS and iOS |
 | `code/crtcompat.h`, `code/crtcompat.cpp` | The MSVC runtime spellings the tree is written against | Inert under MSVC | Defined here |
 
 Each implementation file guards itself on the platform it serves and compiles
@@ -122,10 +122,17 @@ opening and closing it (`Host_Create_Window` makes `Has_Main_Window` in
 pointer's position, visibility, confinement and capture, the cursor image, the
 modifier and key state and the character a key types, a message box, and the
 display modes. `code/hostwindow_win32.cpp` answers it on Windows and holds the
-window procedure. `code/sdlhost.cpp` answers it on macOS with an SDL window. A
+window procedure. `code/sdlhost.cpp` answers it on macOS with an SDL window, and
+on iOS with the same window under UIKit ([Native iOS port](IOS-PORT.md)). A
 POSIX target with no host leaves this header's functions unanswered, and until
 one supplies them the executable is not built there
 ([Building OpenTS](BUILDING.md#other-toolchains)).
+
+`Host_Pointer_Is_Hovering` tells the engine whether the pointer's position is
+one left resting there. A host with a mouse answers true throughout; a touch
+host answers false once the finger lifts, and `Mouse_Is_Hovering` in
+`code/_xmouse.h` carries that to the edge scrolling, the tooltips and the rest
+of the code that reads the pointer with no event behind it.
 
 A host feeds input into shared code. Keys go to
 `Keyboard->Post_Key_Event`. Mouse buttons go to `Game_Window_Mouse_Button` in

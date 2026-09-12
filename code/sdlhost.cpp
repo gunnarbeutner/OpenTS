@@ -7,10 +7,13 @@
  * See LICENSE.md for applicable additional terms and warranty disclaimers.
  ******************************************************************************/
 
-// The host the native macOS build runs under. An SDL window answers code/hostwindow.h, and
-// the event pump makes the same calls into the game that the Windows window procedure makes
-// from its messages. The pump runs in engine context, from Windows_Message_Handler, so an
-// event never reaches the keyboard buffer part way through a read of it.
+// The host the native macOS and iOS builds run under. An SDL window answers
+// code/hostwindow.h, and the event pump makes the same calls into the game that the Windows
+// window procedure makes from its messages. The pump runs in engine context, from
+// Windows_Message_Handler, so an event never reaches the keyboard buffer part way through a
+// read of it. OPENTS_IOS_HOST marks what is true of the app under UIKit alone, where the
+// window is the whole screen, the renderer takes a Metal layer of its own, and a finger
+// stands in for the mouse.
 
 #include "always.h"
 
@@ -37,6 +40,9 @@
 
 #include <SDL.h>
 #include <SDL_syswm.h>
+#if defined(OPENTS_IOS_HOST)
+#include <SDL_metal.h>
+#endif
 #include <cctype>
 #include <cstring>
 
@@ -47,6 +53,16 @@
 static int const WHEEL_NOTCH_DELTA = 120;
 
 static SDL_Window * _Window = nullptr;
+
+#if defined(OPENTS_IOS_HOST)
+// bgfx is handed this layer rather than the window, because SDL owns the view UIKit draws
+// through and attaches the layer to it.
+static SDL_MetalView _MetalView = nullptr;
+#endif
+
+// Whether the pointer is resting where the player left it. A touch is not, so the last press
+// stops answering for the pointer's position once the finger lifts.
+static bool _Hovering = true;
 
 // ShowCursor's display count and the image last handed to Host_Set_Cursor. The pointer shows
 // only while the count is not negative and an image is wanted, which is how the two Windows
@@ -342,6 +358,12 @@ void Host_Create_Window(int width, int height)
 	int clientwidth = width;
 	int clientheight = height;
 
+#if defined(OPENTS_IOS_HOST)
+	// An app has one window, it covers the screen, and the renderer reaches it through Metal.
+	// The frame is scaled to fit at presentation time, whatever the settings asked for.
+	SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
+	flags |= SDL_WINDOW_METAL | SDL_WINDOW_FULLSCREEN_DESKTOP;
+#else
 	if (WindowedMode) {
 		flags |= SDL_WINDOW_RESIZABLE;
 		if (Options.WindowWidth > 0) clientwidth = Options.WindowWidth;
@@ -351,6 +373,7 @@ void Host_Create_Window(int width, int height)
 		// scaled to fit at presentation time.
 		flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 	}
+#endif
 
 	_Window = SDL_CreateWindow(WINDOW_NAME, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 		clientwidth, clientheight, flags);
@@ -359,12 +382,25 @@ void Host_Create_Window(int width, int height)
 		return;
 	}
 
+#if defined(OPENTS_IOS_HOST)
+	_MetalView = SDL_Metal_CreateView(_Window);
+	if (_MetalView == nullptr) {
+		DebugString("Host: SDL_Metal_CreateView failed: %s\n", SDL_GetError());
+		SDL_DestroyWindow(_Window);
+		_Window = nullptr;
+		return;
+	}
+#endif
+
 	memset(_Ascii, '\0', sizeof(_Ascii));
 	memset(_ShiftedAscii, '\0', sizeof(_ShiftedAscii));
 
+#if !defined(OPENTS_IOS_HOST)
 	// Text input stays on for the life of the window, so that every press reports the
-	// character the layout gives it.
+	// character the layout gives it. It is left off on iOS, where it would raise the software
+	// keyboard over the game and keep it there.
 	SDL_StartTextInput();
+#endif
 	SDL_RaiseWindow(_Window);
 
 	GameInFocus = true;
@@ -386,6 +422,12 @@ void Host_Close_Window(void)
 	}
 
 	SDL_StopTextInput();
+
+#if defined(OPENTS_IOS_HOST)
+	SDL_Metal_DestroyView(_MetalView);
+	_MetalView = nullptr;
+#endif
+
 	SDL_DestroyWindow(_Window);
 	_Window = nullptr;
 
@@ -395,6 +437,9 @@ void Host_Close_Window(void)
 
 NativeWindow Host_Native_Window(void)
 {
+#if defined(OPENTS_IOS_HOST)
+	return(NativeWindow{ NATIVE_WINDOW_DEFAULT, nullptr, SDL_Metal_GetLayer(_MetalView) });
+#else
 	SDL_SysWMinfo info;
 	SDL_VERSION(&info.version);
 
@@ -407,6 +452,7 @@ NativeWindow Host_Native_Window(void)
 	return(NativeWindow{ NATIVE_WINDOW_DEFAULT, nullptr, info.info.cocoa.window });
 #else
 	return(NativeWindow{ NATIVE_WINDOW_DEFAULT, nullptr, nullptr });
+#endif
 #endif
 }
 
@@ -564,6 +610,13 @@ Point2D Host_Pointer_Position(void)
 {
 	int pointerx = 0;
 	int pointery = 0;
+
+#if defined(OPENTS_IOS_HOST)
+	// UIKit has no pointer to ask after and no screen the window sits inside part of, so the
+	// position is the one SDL kept from the last touch.
+	SDL_GetMouseState(&pointerx, &pointery);
+	return(Client_Point(pointerx, pointery));
+#else
 	SDL_GetGlobalMouseState(&pointerx, &pointery);
 
 	int windowx = 0;
@@ -573,6 +626,13 @@ Point2D Host_Pointer_Position(void)
 	}
 
 	return(Client_Point(pointerx - windowx, pointery - windowy));
+#endif
+}
+
+
+bool Host_Pointer_Is_Hovering(void)
+{
+	return(_Hovering);
 }
 
 
@@ -721,6 +781,10 @@ static void Handle_Mouse_Button(SDL_Event const & event)
 {
 	Point2D const client = Client_Point(event.button.x, event.button.y);
 
+	// A finger is over the game only while it is down, so edge scrolling, the tooltips and
+	// everything else reading the resting pointer stops at the release.
+	_Hovering = (event.button.which != SDL_TOUCH_MOUSEID) || (event.type == SDL_MOUSEBUTTONDOWN);
+
 	unsigned short key;
 	switch (event.button.button) {
 		case SDL_BUTTON_MIDDLE:	key = VK_MBUTTON;	break;
@@ -858,6 +922,8 @@ void Host_Pump_Events(void)
 				break;
 
 			case SDL_MOUSEMOTION:
+				_Hovering = true;
+
 				// A move is never consumed: the game goes on tracking the cursor whatever a
 				// document is doing with it.
 				UI_Handle_SDL_Event(event, Client_Point(event.motion.x, event.motion.y), VK_NONE);
