@@ -9,8 +9,10 @@
 
 #pragma once
 
-bool Change_Display_Mode(int width, int height);
-void Main_Options_Dialog(void);
 
-// Asks the player to keep a display mode just set, and puts the old one back unless they do.
-bool Test_Display_Mode_Dialog(int width, int height);
+// Shows the game settings and does not return until the player leaves them. Accepting, or
+// leaving for the sound or keyboard settings in a game, applies every control and writes the
+// settings file, as the dialog did; cancelling applies nothing.
+//
+// False means the screen could not be prepared.
+bool UI_Game_Controls_Screen(void);

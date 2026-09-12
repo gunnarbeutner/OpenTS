@@ -1,0 +1,266 @@
+<rml>
+<!--
+	The templates this replaces carried their captions as literal control text rather than as
+	string identifiers, so they stay literal here and a localized build ships a translated
+	copy of this document. The track bar labels are string identifiers and come from the
+	presenter.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * Three templates, all centred on the frame, at MS Sans Serif 8: the frontend one is
+		 * 292 by 179 dialog units, 438 by 291 logical pixels; the in-game one is 292 by 175,
+		 * 438 by 284; the Westwood Online one is 294 by 144, 441 by 234.
+		 */
+		#gamectrl
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -219dp;
+			margin-top: -145dp;
+			width: 438dp;
+			height: 291dp;
+			decorator: image(frame:438x291);
+		}
+
+		#gamectrl.mp
+		{
+			margin-top: -142dp;
+			height: 284dp;
+			decorator: image(frame:438x284);
+		}
+
+		#gamectrl.wol
+		{
+			margin-left: -220dp;
+			margin-top: -117dp;
+			width: 441dp;
+			height: 234dp;
+			decorator: image(frame:441x234);
+		}
+
+		.row
+		{
+			position: absolute;
+			left: 33dp;
+			display: flex;
+			align-items: center;
+		}
+
+		.row .name,
+		.row .value
+		{
+			display: block;
+			white-space: nowrap;
+		}
+
+		/* The frontend template's rows: 13 dialog units tall, the names left-aligned. */
+		.sp .row { height: 21dp; }
+		.sp .row .name { width: 87dp; }
+		.sp .row .value { width: 67dp; margin-left: 1dp; text-align: right; }
+
+		.sp .row input.slider,
+		.sp .row input.slider slidertrack,
+		.sp .row input.slider sliderprogress,
+		.sp .row input.slider sliderbar
+		{
+			height: 21dp;
+		}
+
+		.sp .row input.slider { width: 222dp; }
+
+		/* The in-game templates' rows: 15 units tall, the names right-aligned. */
+		.ig .row { height: 24dp; }
+		.ig .row .name { width: 94dp; margin-right: 8dp; text-align: right; }
+		.ig .row .value { width: 75dp; margin-left: 9dp; }
+		.ig .row input.slider { width: 192dp; }
+
+		.check
+		{
+			position: absolute;
+			height: 16dp;
+			display: flex;
+			align-items: center;
+		}
+
+		.check label
+		{
+			display: block;
+			margin-left: 2dp;
+		}
+
+		#gamectrl button
+		{
+			position: absolute;
+			margin-left: 0;
+		}
+
+		.sp button
+		{
+			left: 121dp;
+			top: 248dp;
+			width: 195dp;
+			decorator: image(button:u:195x24);
+		}
+
+		.sp button:active:hover
+		{
+			decorator: image(button:d:195x24);
+		}
+
+		.ig button
+		{
+			width: 116dp;
+			decorator: image(button:u:116x24);
+		}
+
+		.ig button:active:hover
+		{
+			decorator: image(button:d:116x24);
+		}
+
+		.mp button { top: 242dp; }
+		.wol button { top: 192dp; }
+	</style>
+</head>
+<body>
+	<div id="gamectrl" class="dialog" data-model="gamectrl" data-class-mp="Multi" data-class-wol="Internet">
+		<div class="sp" data-if="Frontend">
+			<div class="row" style="top: 19dp;">
+				<div class="name">Game Speed</div>
+				<input type="range" class="slider" min="0" max="6" step="1"
+					data-attr-value="Speed" data-event-change="act('speed')"/>
+				<div class="value">{{SpeedLabel}}</div>
+			</div>
+			<div class="row" style="top: 55dp;">
+				<div class="name">Scroll Rate</div>
+				<input type="range" class="slider" min="0" max="6" step="1"
+					data-attr-value="Scroll" data-event-change="act('scroll')"/>
+				<div class="value">{{ScrollLabel}}</div>
+			</div>
+			<div class="row" style="top: 91dp;">
+				<div class="name">Visual Details</div>
+				<input type="range" class="slider" min="0" max="2" step="1"
+					data-attr-value="Detail" data-event-change="act('detail')"/>
+				<div class="value">{{DetailLabel}}</div>
+			</div>
+			<div class="row" style="top: 127dp;">
+				<div class="name">Difficulty</div>
+				<input type="range" class="slider" min="0" max="2" step="1"
+					data-attr-value="Difficulty" data-event-change="act('difficulty')"/>
+				<div class="value">{{DifficultyLabel}}</div>
+			</div>
+
+			<div class="check" style="left: 33dp; top: 167dp;">
+				<input type="checkbox" data-attrif-checked="CameoText" data-event-change="act('cameo')"/>
+				<label>Cameo Text</label>
+			</div>
+			<div class="check" style="left: 33dp; top: 193dp;">
+				<input type="checkbox" data-attrif-checked="TargetLines" data-event-change="act('lines')"/>
+				<label>Target Lines</label>
+			</div>
+			<div class="check" style="left: 219dp; top: 167dp;">
+				<input type="checkbox" data-attrif-checked="Tips" data-event-change="act('tips')"/>
+				<label>Tooltips</label>
+			</div>
+			<div class="check" style="left: 219dp; top: 193dp;">
+				<input type="checkbox" data-attrif-checked="Coasting" data-event-change="act('coasting')"/>
+				<label>Scroll Coasting</label>
+			</div>
+			<div class="check" style="left: 33dp; top: 219dp;">
+				<input type="checkbox" data-attrif-checked="EdgeScroll" data-event-change="act('edge')"/>
+				<label>Edge Scrolling</label>
+			</div>
+
+			<button data-event-click="act('accept')">Main Menu</button>
+		</div>
+
+		<div class="ig mp" data-if="Multi">
+			<div class="row" style="top: 19dp;">
+				<div class="name">Game Speed:</div>
+				<input type="range" class="slider" min="0" max="6" step="1"
+					data-attr-value="Speed" data-event-change="act('speed')"/>
+				<div class="value">{{SpeedLabel}}</div>
+			</div>
+			<div class="row" style="top: 70dp;">
+				<div class="name">Scroll Rate:</div>
+				<input type="range" class="slider" min="0" max="6" step="1"
+					data-attr-value="Scroll" data-event-change="act('scroll')"/>
+				<div class="value">{{ScrollLabel}}</div>
+			</div>
+			<div class="row" style="top: 120dp;">
+				<div class="name">Visual Details:</div>
+				<input type="range" class="slider" min="0" max="2" step="1"
+					data-attr-value="Detail" data-event-change="act('detail')"/>
+				<div class="value">{{DetailLabel}}</div>
+			</div>
+
+			<div class="check" style="left: 33dp; top: 153dp;">
+				<input type="checkbox" data-attrif-checked="CameoText" data-event-change="act('cameo')"/>
+				<label>Sidebar Text</label>
+			</div>
+			<div class="check" style="left: 33dp; top: 182dp;">
+				<input type="checkbox" data-attrif-checked="TargetLines" data-event-change="act('lines')"/>
+				<label>Target Lines</label>
+			</div>
+			<div class="check" style="left: 220dp; top: 153dp;">
+				<input type="checkbox" data-attrif-checked="Tips" data-event-change="act('tips')"/>
+				<label>Tooltips</label>
+			</div>
+			<div class="check" style="left: 220dp; top: 182dp;">
+				<input type="checkbox" data-attrif-checked="Coasting" data-event-change="act('coasting')"/>
+				<label>Scroll Coasting</label>
+			</div>
+			<div class="check" style="left: 33dp; top: 211dp;">
+				<input type="checkbox" data-attrif-checked="EdgeScroll" data-event-change="act('edge')"/>
+				<label>Edge Scrolling</label>
+			</div>
+
+			<button style="left: 33dp;" data-attrif-disabled="!SoundEnabled" data-event-click="act('sound')">Sound</button>
+			<button style="left: 164dp;" data-event-click="act('keyboard')">Keyboard</button>
+			<button style="left: 294dp;" data-event-click="act('accept')">Options Menu</button>
+		</div>
+
+		<div class="ig wol" data-if="Internet">
+			<div class="row" style="top: 19dp;">
+				<div class="name">Scroll Rate:</div>
+				<input type="range" class="slider" min="0" max="6" step="1"
+					data-attr-value="Scroll" data-event-change="act('scroll')"/>
+				<div class="value">{{ScrollLabel}}</div>
+			</div>
+			<div class="row" style="top: 70dp;">
+				<div class="name">Visual Details:</div>
+				<input type="range" class="slider" min="0" max="2" step="1"
+					data-attr-value="Detail" data-event-change="act('detail')"/>
+				<div class="value">{{DetailLabel}}</div>
+			</div>
+
+			<div class="check" style="left: 33dp; top: 102dp;">
+				<input type="checkbox" data-attrif-checked="CameoText" data-event-change="act('cameo')"/>
+				<label>Sidebar Text</label>
+			</div>
+			<div class="check" style="left: 33dp; top: 132dp;">
+				<input type="checkbox" data-attrif-checked="TargetLines" data-event-change="act('lines')"/>
+				<label>Target Lines</label>
+			</div>
+			<div class="check" style="left: 220dp; top: 102dp;">
+				<input type="checkbox" data-attrif-checked="Tips" data-event-change="act('tips')"/>
+				<label>Tooltips</label>
+			</div>
+			<div class="check" style="left: 220dp; top: 132dp;">
+				<input type="checkbox" data-attrif-checked="Coasting" data-event-change="act('coasting')"/>
+				<label>Scroll Coasting</label>
+			</div>
+			<div class="check" style="left: 33dp; top: 161dp;">
+				<input type="checkbox" data-attrif-checked="EdgeScroll" data-event-change="act('edge')"/>
+				<label>Edge Scrolling</label>
+			</div>
+
+			<button style="left: 33dp;" data-attrif-disabled="!SoundEnabled" data-event-click="act('sound')">Sound</button>
+			<button style="left: 164dp;" data-event-click="act('keyboard')">Keyboard</button>
+			<button style="left: 294dp;" data-event-click="act('accept')">Options Menu</button>
+		</div>
+	</div>
+</body>
+</rml>

@@ -9,8 +9,10 @@
 
 #pragma once
 
-bool Change_Display_Mode(int width, int height);
-void Main_Options_Dialog(void);
 
-// Asks the player to keep a display mode just set, and puts the old one back unless they do.
-bool Test_Display_Mode_Dialog(int width, int height);
+// Shows the frontend options hub and waits for the player to choose. The choice is the
+// control identifier the dialog answered with, IDC_OPTMAIN_* or IDOK and IDCANCEL for Enter
+// and Escape, and -1 when the session ended under the screen.
+//
+// False means the screen could not be prepared.
+bool UI_Main_Options_Screen(int & choice);

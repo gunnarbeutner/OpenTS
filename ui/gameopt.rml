@@ -1,0 +1,236 @@
+<rml>
+<!--
+	The templates this replaces carried their captions as literal control text rather than as
+	string identifiers, so they stay literal here and a localized build ships a translated
+	copy of this document. The track bar labels are string identifiers and come from the
+	presenter.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * Three templates, all centred on the frame, at MS Sans Serif 8: the single player one
+		 * is 209 by 140 dialog units, 314 by 228 logical pixels; the Westwood Online one is 340
+		 * by 185, 510 by 301; the multiplayer one is 209 by 75, 314 by 122.
+		 */
+		#gameopt
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -157dp;
+			margin-top: -114dp;
+			width: 314dp;
+			height: 228dp;
+			decorator: image(frame:314x228);
+		}
+
+		#gameopt.wol
+		{
+			margin-left: -255dp;
+			margin-top: -150dp;
+			width: 510dp;
+			height: 301dp;
+			decorator: image(frame:510x301);
+		}
+
+		#gameopt.mp
+		{
+			margin-top: -61dp;
+			height: 122dp;
+			decorator: image(frame:314x122);
+		}
+
+		#gameopt button
+		{
+			position: absolute;
+			margin-left: 0;
+		}
+
+		/* The single player buttons are 115 by 14 dialog units. */
+		.sp button
+		{
+			left: 70dp;
+			width: 173dp;
+			decorator: image(button:u:173x24);
+		}
+
+		.sp button:active:hover
+		{
+			decorator: image(button:d:173x24);
+		}
+
+		/* The other two templates use buttons of 99 by 14. */
+		.wol button,
+		.mp button
+		{
+			width: 149dp;
+			decorator: image(button:u:149x24);
+		}
+
+		.wol button:active:hover,
+		.mp button:active:hover
+		{
+			decorator: image(button:d:149x24);
+		}
+
+		.wol button { left: 180dp; }
+		.mp button { left: 82dp; }
+
+		/*
+		 * The group box around the track bars. The painter drew its top edge through the
+		 * middle of the caption's line, broken for the caption: eight pixels of line, the
+		 * caption two pixels further in, and the line again twelve pixels past its end.
+		 */
+		#internet
+		{
+			position: absolute;
+			left: 42dp;
+			top: 150dp;
+			width: 424dp;
+			height: 110dp;
+		}
+
+		.group .frame
+		{
+			position: absolute;
+			left: 0;
+			right: 0;
+			top: 7dp;
+			bottom: 0;
+			border: 1dp #4eb6dcff;
+			border-top-width: 0;
+		}
+
+		.group .head
+		{
+			position: absolute;
+			left: 0;
+			right: 0;
+			top: 0;
+			height: 14dp;
+			display: flex;
+			align-items: center;
+		}
+
+		.group .head .edge
+		{
+			width: 9dp;
+			height: 0;
+			border-top: 1dp #4eb6dcff;
+		}
+
+		.group .head .legend
+		{
+			display: block;
+			margin-left: 1dp;
+			margin-right: 2dp;
+		}
+
+		.group .head .rest
+		{
+			flex: 1;
+			height: 0;
+			border-top: 1dp #4eb6dcff;
+		}
+
+		.track
+		{
+			position: absolute;
+			left: 16dp;
+			width: 400dp;
+			height: 21dp;
+			display: flex;
+			align-items: center;
+		}
+
+		.track .name
+		{
+			display: block;
+			width: 84dp;
+		}
+
+		/*
+		 * These bars were never told to hide their value, so each showed it in the trough at
+		 * its right end, inside the template's 148 by 13 dialog units.
+		 */
+		.track .numbered
+		{
+			position: relative;
+			width: 222dp;
+			height: 21dp;
+			margin-right: 6dp;
+		}
+
+		.track input.slider,
+		.track input.slider slidertrack,
+		.track input.slider sliderprogress,
+		.track input.slider sliderbar
+		{
+			height: 21dp;
+		}
+
+		.track .numbered .number
+		{
+			height: 21dp;
+			line-height: 21dp;
+		}
+
+		.track .value
+		{
+			display: block;
+			width: 68dp;
+			text-align: right;
+		}
+	</style>
+</head>
+<body>
+	<div id="gameopt" class="dialog" data-model="gameopt" data-class-wol="Internet" data-class-mp="Multi">
+		<div class="sp" data-if="Single">
+			<button style="top: 19dp;" data-event-click="act('controls')">Game Controls</button>
+			<button style="top: 47dp;" data-attrif-disabled="!BriefingEnabled" data-event-click="act('briefing')">Restate Briefing</button>
+			<button style="top: 75dp;" data-attrif-disabled="!LoadEnabled" data-event-click="act('load')">Load Game</button>
+			<button style="top: 102dp;" data-attrif-disabled="!SaveEnabled" data-event-click="act('save')">Save Game</button>
+			<button style="top: 130dp;" data-attrif-disabled="!DeleteEnabled" data-event-click="act('delete')">Delete Game</button>
+			<button style="top: 158dp;" data-event-click="act('abort')">Abort Mission</button>
+			<button style="top: 185dp;" data-event-click="act('resume')">Resume Mission</button>
+		</div>
+
+		<div class="wol" data-if="Internet">
+			<button style="top: 13dp;" data-event-click="act('controls')">Game Controls</button>
+			<button style="top: 41dp;" data-attrif-disabled="!LoadEnabled" data-event-click="act('load')">Load Game</button>
+			<button style="top: 68dp;" data-attrif-disabled="!SaveEnabled" data-event-click="act('save')">Save Game</button>
+			<button style="top: 96dp;" data-event-click="act('abort')">Abort Mission</button>
+			<button style="top: 124dp;" data-event-click="act('resume')">Resume Mission</button>
+
+			<div id="internet" class="group">
+				<div class="frame"/>
+				<div class="head"><div class="edge"/><div class="legend">Internet Game Controls</div><div class="rest"/></div>
+				<div class="track" style="top: 29dp;">
+					<div class="name">Connection</div>
+					<div class="numbered">
+						<input type="range" class="slider" min="1" max="10" step="1" disabled=""
+							data-attr-value="Connection"/>
+						<span class="number">{{ConnectionNumber}}</span>
+					</div>
+					<div class="value">{{ConnectionLabel}}</div>
+				</div>
+				<div class="track" style="top: 65dp;">
+					<div class="name">Game Speed</div>
+					<div class="numbered">
+						<input type="range" class="slider" min="0" max="6" step="1"
+							data-attr-value="Speed" data-event-change="act('speed')"/>
+						<span class="number">{{SpeedNumber}}</span>
+					</div>
+					<div class="value">{{SpeedLabel}}</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="mp" data-if="Multi">
+			<button style="top: 19dp;" data-event-click="act('controls')">Game Controls</button>
+			<button style="top: 49dp;" data-event-click="act('abort')">Abort Mission</button>
+			<button style="top: 78dp;" data-event-click="act('resume')">Resume Mission</button>
+		</div>
+	</div>
+</body>
+</rml>

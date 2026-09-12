@@ -9,8 +9,10 @@
 
 #pragma once
 
-bool Change_Display_Mode(int width, int height);
-void Main_Options_Dialog(void);
 
-// Asks the player to keep a display mode just set, and puts the old one back unless they do.
-bool Test_Display_Mode_Dialog(int width, int height);
+// Asks the player to keep a display mode that has just been put up. The answer is IDOK to
+// keep it and IDCANCEL to go back; saying nothing for ten seconds answers IDCANCEL, because
+// a bad mode can leave the screen unreadable. -1 means the session ended under the screen.
+//
+// False means the screen could not be prepared.
+bool UI_Mode_Confirm_Screen(int & result);
