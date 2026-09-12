@@ -47,7 +47,7 @@ Wstring::Wstring(void) :str(NULL)
 /// The text is copied into memory this string owns, so the source may be discarded
 /// once construction is complete.
 /// </summary>
-Wstring::Wstring(IN char const* string) :str(NULL)
+Wstring::Wstring(char const* string) :str(NULL)
 {
 	set(string);
 }
@@ -57,7 +57,7 @@ Wstring::Wstring(IN char const* string) :str(NULL)
 /// Constructs a copy of another string.
 /// The text is duplicated, so the two strings share no memory afterwards.
 /// </summary>
-Wstring::Wstring(IN const Wstring& other) :str(NULL)
+Wstring::Wstring(const Wstring& other) :str(NULL)
 {
 	if (other.str != NULL)
 	{
@@ -82,14 +82,14 @@ Wstring::~Wstring(void)
 /// <returns>bool; Does the text match this string?</returns>
 /// <remarks>Unless both are NULL, this string and the text supplied must each have been
 /// set.</remarks>
-bool Wstring::operator==(IN char const* other) const
+bool Wstring::operator==(char const* other) const
 {
 	if ((str == NULL) && (other == NULL))
-		return(TRUE);
+		return(true);
 	if (strcmp(str, other) != 0)
-		return(FALSE);
+		return(false);
 	else
-		return(TRUE);
+		return(true);
 }
 
 
@@ -99,18 +99,18 @@ bool Wstring::operator==(IN char const* other) const
 /// never matches one that has not.
 /// </summary>
 /// <returns>bool; Are the two strings the same?</returns>
-bool Wstring::operator==(IN Wstring const& other) const
+bool Wstring::operator==(Wstring const& other) const
 {
 	if ((str == NULL) && (other.str == NULL))
-		return(TRUE);
+		return(true);
 
 	if ((str == NULL) || (other.str == NULL))
-		return(FALSE);
+		return(false);
 
 	if (strcmp(str, other.str) != 0)
-		return(FALSE);
+		return(false);
 	else
-		return(TRUE);
+		return(true);
 }
 
 
@@ -120,12 +120,12 @@ bool Wstring::operator==(IN Wstring const& other) const
 /// <returns>bool; Does the text differ from this string?</returns>
 /// <remarks>This string and the text supplied must each have been set; neither may be
 /// NULL.</remarks>
-bool Wstring::operator!=(IN char const* other) const
+bool Wstring::operator!=(char const* other) const
 {
 	if (strcmp(str, other) != 0)
-		return(TRUE);
+		return(true);
 	else
-		return(FALSE);
+		return(false);
 }
 
 
@@ -135,18 +135,18 @@ bool Wstring::operator!=(IN char const* other) const
 /// always differs from one that has not.
 /// </summary>
 /// <returns>bool; Do the two strings differ?</returns>
-bool Wstring::operator!=(IN Wstring const& other) const
+bool Wstring::operator!=(Wstring const& other) const
 {
 	if ((str == NULL) && (other.str == NULL))
-		return(FALSE);
+		return(false);
 
 	if ((str == NULL) || (other.str == NULL))
-		return(TRUE);
+		return(true);
 
 	if (strcmp(str, other.str) != 0)
-		return(TRUE);
+		return(true);
 	else
-		return(FALSE);
+		return(false);
 }
 
 
@@ -167,7 +167,7 @@ Wstring& Wstring::operator=(char const* other)
 /// The text is copied, so the two strings share no memory afterwards.
 /// </summary>
 /// <returns>Returns with a reference to this string.</returns>
-Wstring& Wstring::operator=(IN Wstring const& other)
+Wstring& Wstring::operator=(Wstring const& other)
 {
 	if (*this == other)
 		return(*this);
@@ -182,13 +182,13 @@ Wstring& Wstring::operator=(IN Wstring const& other)
 /// A NULL source is quietly ignored rather than treated as an error.
 /// </summary>
 /// <param name="s">The text to append.</param>
-char Wstring::cat(IN char const* s)
+char Wstring::cat(char const* s)
 {
 	char* oldStr;
 	unsigned int   len;
 
 	if (s == NULL)   // it's OK to cat nothing
-		return(TRUE);
+		return(true);
 
 	// Save the contents of the string.
 	oldStr = str;
@@ -212,7 +212,7 @@ char Wstring::cat(IN char const* s)
 	if (oldStr)
 		delete[](oldStr);
 
-	return(TRUE);
+	return(true);
 }
 
 
@@ -223,7 +223,7 @@ char Wstring::cat(IN char const* s)
 /// </summary>
 /// <param name="size">The number of characters to take from the source.</param>
 /// <param name="s">The characters to append.</param>
-char Wstring::cat(unsigned int size, IN char const* s)
+char Wstring::cat(unsigned int size, char const* s)
 {
 	char* oldStr;
 	unsigned int   len;
@@ -252,14 +252,14 @@ char Wstring::cat(unsigned int size, IN char const* s)
 	if (oldStr)
 		delete[](oldStr);
 
-	return(TRUE);
+	return(true);
 }
 
 
 /// <summary>
 /// Appends another string onto the end of this one.
 /// </summary>
-char Wstring::cat(IN Wstring const& other)
+char Wstring::cat(Wstring const& other)
 {
 	return(cat(other.get()));
 }
@@ -269,7 +269,7 @@ char Wstring::cat(IN Wstring const& other)
 /// Appends a block of text onto the end of this string.
 /// </summary>
 /// <returns>Returns with a reference to this string, so that appends may be chained.</returns>
-Wstring& Wstring::operator+=(IN char const* string)
+Wstring& Wstring::operator+=(char const* string)
 {
 	cat(string);
 	return(*this);
@@ -280,7 +280,7 @@ Wstring& Wstring::operator+=(IN char const* string)
 /// Appends another string onto the end of this one.
 /// </summary>
 /// <returns>Returns with a reference to this string, so that appends may be chained.</returns>
-Wstring& Wstring::operator+=(IN Wstring const& other)
+Wstring& Wstring::operator+=(Wstring const& other)
 {
 	cat(other.get());
 	return(*this);
@@ -292,7 +292,7 @@ Wstring& Wstring::operator+=(IN Wstring const& other)
 /// Neither operand is disturbed.
 /// </summary>
 /// <returns>Returns with a new string holding this string followed by the text.</returns>
-Wstring Wstring::operator+(IN char const* string) const
+Wstring Wstring::operator+(char const* string) const
 {
 	Wstring temp = *this;
 	temp.cat(string);
@@ -305,7 +305,7 @@ Wstring Wstring::operator+(IN char const* string) const
 /// Neither operand is disturbed.
 /// </summary>
 /// <returns>Returns with a new string holding this string followed by the other.</returns>
-Wstring Wstring::operator+(IN Wstring const& s) const
+Wstring Wstring::operator+(Wstring const& s) const
 {
 	Wstring temp = *this;
 	temp.cat(s);
@@ -336,7 +336,7 @@ char Wstring::remove(int pos, int count)
 		pos = 0;
 	}
 	if (count <= 0)
-		return(FALSE);
+		return(false);
 
 	s = new char[len - count + 1];
 
@@ -351,7 +351,7 @@ char Wstring::remove(int pos, int count)
 	delete[](str);
 	str = s;
 
-	return(TRUE);
+	return(true);
 }
 
 
@@ -360,10 +360,10 @@ char Wstring::removeChar(char c)
 {
 	int     len = 0;
 	char* cptr = NULL;
-	char    removed = FALSE;
+	char    removed = false;
 
 	if (str == NULL)
-		return(FALSE);
+		return(false);
 
 	len = strlen(str);
 	while ((cptr = strchr(str, c)) != NULL)
@@ -371,7 +371,7 @@ char Wstring::removeChar(char c)
 		memmove(cptr, cptr + 1, len - 1 - ((int)(cptr - str)));
 		len--;
 		str[len] = 0;
-		removed = TRUE;
+		removed = true;
 	}
 	if (removed)
 	{
@@ -500,7 +500,7 @@ char Wstring::insert(char const* instring, unsigned int pos)
 	memmove(newstr + pos, instring, strlen(instring));
 	delete[](str);
 	str = newstr;
-	return(TRUE);
+	return(true);
 }
 
 
@@ -539,7 +539,7 @@ char Wstring::insert(char k, unsigned int pos)
 	delete[](str);
 	str = s;
 
-	return(TRUE);
+	return(true);
 }
 
 
@@ -562,16 +562,16 @@ char Wstring::replace(char const* replaceThis, char const* withThis)
 			if (len)
 			{
 				if (!dest.cat(len, src))
-					return(FALSE);
+					return(false);
 			}
 			if (!dest.cat(withThis))
-				return(FALSE);
+				return(false);
 			src = foundStr + strlen(replaceThis);
 		}
 		else
 		{
 			if (!dest.cat(src))
-				return(FALSE);
+				return(false);
 
 			src = NULL;
 		}
@@ -586,7 +586,7 @@ char Wstring::replace(char const* replaceThis, char const* withThis)
 /// routine returns. Any previous contents are freed.
 /// </summary>
 /// <param name="s">The text to copy.</param>
-char Wstring::set(IN char const* s)
+char Wstring::set(char const* s)
 {
 	unsigned int len;
 
@@ -597,7 +597,7 @@ char Wstring::set(IN char const* s)
 	str = new char[len];
 	strcpy(str, s);
 
-	return(TRUE);
+	return(true);
 }
 
 
@@ -611,11 +611,11 @@ char Wstring::set(IN char const* s)
 char Wstring::set(char c, unsigned int index)
 {
 	if (index >= (unsigned int)strlen(str))
-		return(FALSE);
+		return(false);
 
 	str[index] = c;
 
-	return(TRUE);
+	return(true);
 }
 
 
@@ -626,7 +626,7 @@ char Wstring::set(char c, unsigned int index)
 /// </summary>
 /// <param name="size">The number of characters to copy from the source.</param>
 /// <param name="string">The characters to copy.</param>
-char Wstring::set(unsigned int size, IN char const* string)
+char Wstring::set(unsigned int size, char const* string)
 {
 	unsigned int len;
 
@@ -639,7 +639,7 @@ char Wstring::set(unsigned int size, IN char const* string)
 	strncpy(str, string, size);
 	str[size] = 0;
 
-	return(TRUE);
+	return(true);
 }
 
 
@@ -677,8 +677,8 @@ char Wstring::truncate(unsigned int len)
 {
 	Wstring tmp;
 	if (!tmp.set(len, get()) || !set(tmp.get()))
-		return(FALSE);
-	return(TRUE);
+		return(false);
+	return(true);
 }
 
 
@@ -689,14 +689,14 @@ char Wstring::truncate(char c)
 	int  len;
 
 	if (str == NULL)
-		return(FALSE);
+		return(false);
 
 	char* cptr = strchr(str, c);
 	if (cptr == NULL)
-		return(FALSE);
+		return(false);
 	len = (int)(cptr - str);
 	truncate((unsigned int)len);
-	return(TRUE);
+	return(true);
 }
 
 

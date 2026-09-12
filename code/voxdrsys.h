@@ -35,8 +35,8 @@ typedef TRect<int> Rect;
 
 namespace VoxelDrawSystem
 {
-	extern BOOL EnableLighting;
-	extern BOOL EnableZBuffer;
+	extern bool EnableLighting;
+	extern bool EnableZBuffer;
 
 	int Load_VPL_File(FileClass & file);
 

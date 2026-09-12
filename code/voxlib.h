@@ -177,8 +177,8 @@ class VoxelPaletteLibrary
 		 * These flags record which of the two buffers this library allocated for itself. A
 		 * buffer the creator supplied is left alone when the library is destroyed.
 		 */
-		BOOL ColorsAllocated;
-		BOOL LUTAllocated;
+		bool ColorsAllocated;
+		bool LUTAllocated;
 
 	enum {
 		VPL_NUM_COLORS = 256,
