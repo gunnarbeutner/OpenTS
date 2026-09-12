@@ -55,6 +55,7 @@
 #include "overtype.h"
 #include "particle.h"
 #include "partsys.h"
+#include "platform/localtime.h"
 #include "psystype.h"
 #include "ptype.h"
 #include "queue.h"
@@ -90,7 +91,11 @@
 #include "waypoint.h"
 #include "weapon.h"
 
+#include <cerrno>
+#include <chrono>
 #include <cstdio>
+#include <cstring>
+#include <filesystem>
 #include <float.h>
 
 
@@ -196,12 +201,11 @@ void Print_CRCs(EventClass const * events, int count, unsigned const * crc_ring,
 	char filename[512];
 	char const * debug_dir = Debug_Directory();
 	if (debug_dir != NULL && debug_dir[0] != '\0') {
-		SYSTEMTIME now;
-		GetLocalTime(&now);
+		std::tm const now = Local_Calendar_Time(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
 		Delete_Files_Older_Than(debug_dir, "SYNC_*.LOG", SYNC_REPORT_MAX_AGE_DAYS);
-		snprintf(filename, sizeof(filename), "%s\\SYNC_H%d_%02u-%02u-%04u_%02u-%02u-%02u_F%d.LOG",
-			debug_dir, PlayerPtr->HeapID,
-			now.wDay, now.wMonth, now.wYear, now.wHour, now.wMinute, now.wSecond, Frame);
+		snprintf(filename, sizeof(filename), "%s%cSYNC_H%d_%02d-%02d-%04d_%02d-%02d-%02d_F%d.LOG",
+			debug_dir, char(std::filesystem::path::preferred_separator), PlayerPtr->HeapID,
+			now.tm_mday, now.tm_mon + 1, now.tm_year + 1900, now.tm_hour, now.tm_min, now.tm_sec, Frame);
 	} else {
 		snprintf(filename, sizeof(filename), "SYNC%01d.TXT", PlayerPtr->HeapID);
 	}
@@ -211,8 +215,8 @@ void Print_CRCs(EventClass const * events, int count, unsigned const * crc_ring,
 
 	fp = fopen(filename,"wt");
 	if (fp==NULL) {
-		DWORD const error = GetLastError();
-		DebugString("Failed to open the out-of-sync report %s. Error %d - %s\n", filename, error, Last_Error_Text(error));
+		int const error = errno;
+		DebugString("Failed to open the out-of-sync report %s. Error %d - %s\n", filename, error, std::strerror(error));
 		return;
 	}
 	DebugString("Writing out-of-sync report to %s\n", filename);

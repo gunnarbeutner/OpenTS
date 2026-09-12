@@ -98,7 +98,7 @@ ADAPTER_UNITS = [
           "GraphicName": section_selectors.image(),
           "Graphic_Name()": section_selectors.image(),
       }}),
-    ("startup.cpp", "Startup", [":WinMain"],
+    ("startup.cpp", "Startup", [":main"],
      {"file": "sun.ini", "group": "client settings"}),
     # Outside campaign the house holding a start position reads its own spawn house
     # section, [Spawn1]..[Spawn8]; the section name is the house identifier.

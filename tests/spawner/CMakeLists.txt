@@ -9,7 +9,7 @@ opents_add_test(SpawnContract
         spawnerconfig.cpp
         ini.cpp
         utf8.cpp
-        dbgprint.cpp
+        ${OPENTS_LOGGER_SOURCES}
         trim.cpp
         buff.cpp
         straw.cpp

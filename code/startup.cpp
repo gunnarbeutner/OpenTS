@@ -102,6 +102,7 @@
 #include "ovrlight.h"
 #include "particle.h"
 #include "partsys.h"
+#include "platform/process.h"
 #include "psystype.h"
 #include "ptype.h"
 #include "rules.h"
@@ -162,7 +163,9 @@
 #include <conio.h>
 #include <io.h>
 #include <cfloat>
+#include <filesystem>
 #include <string>
+#include <system_error>
 #include <vector>
 
 extern	HINSTANCE LanguageResources;
@@ -359,17 +362,11 @@ static int Build_Arguments(char const * path_to_exe, char ** & argv)
  *=============================================================================================*/
 int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_show )
 {
-	int		argc;       //Command line argument count
-	char **	argv;       //Pointers to command line arguments
-	char	path_to_exe[MAX_PATH];
 	char	buffer[512];
 
-	// First, so that everything after it is covered, including the rest of this function.
-	Install_Exception_Handler();
+	Debug_Init(argc, argv);
 
-	ProgramInstance = instance;
-
-	Debug_Init();
+	Raise_Timer_Resolution();
 
 	// Handed over now because the exception path may not ask the logger for anything: the
 	// thread that crashed may be the one holding the logger's lock.
@@ -464,26 +461,10 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 	RegisterClasses();
 
 	/*
-	**	Get the full path to the .EXE
+	**	Change directory to the where the executable is located.
 	*/
-	GetModuleFileName (instance, &path_to_exe[0], sizeof(path_to_exe));
-
-	/*
-	**	Get pointers to command line arguments just like if we were in DOS
-	**
-	*/
-	argc = Build_Arguments(path_to_exe, argv);
-
-	/*
-	**	Change directory to the where the executable is located. Handle the
-	**	case where there is no path attached to argv[0].
-	*/
-	char drive[_MAX_DRIVE];
-	char path[_MAX_PATH];
-	char dir[_MAX_DIR];
-	_splitpath(argv[0], drive, dir, NULL, NULL);
-	_makepath(path, drive, dir, NULL, NULL);
-	SetCurrentDirectory(path);
+	std::error_code directory_error;
+	std::filesystem::current_path(std::filesystem::path(Executable_Directory()), directory_error);
 
 	int error_code = EXIT_FAILURE;
 
@@ -682,6 +663,8 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 void __cdecl Prog_End(void)
 {
 	int i;
+
+	Restore_Timer_Resolution();
 
 	GameActive = false;
 

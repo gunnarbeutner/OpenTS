@@ -31,8 +31,9 @@
 
 #pragma once
 
-#include "win.h"
-
+// The monochrome adapter this drew on, and the Windows NT driver that reached it, no longer
+// exist, so every drawing call does nothing. The enabled flag is kept because callers decide
+// what else to do by it.
 class MonoClass {
 	public:
 		enum MonoClassPageEnums {
@@ -49,27 +50,26 @@ class MonoClass {
 			INVERSE=0x70    // Black on white.
 		};
 
-		MonoClass(void);
-		~MonoClass(void);
+		MonoClass(void) = default;
 
 		static void Enable(void) {Enabled = true;};
 		static void Disable(void) {Enabled = false;};
 		static bool Is_Enabled(void) {return(Enabled);};
 
-		void Sub_Window(int x=0, int y=0, int w=80, int h=25);
-		void Fill_Attrib(int x, int y, int w, int h, MonoAttribute attrib);
-		void Clear(void);
-		void Set_Cursor(int x, int y);
-		void Print(char const *text);
-		void Print(int text);
-		void __cdecl Printf(char const *text, ...);
-		void __cdecl Printf(int text, ...);
-		void Text_Print(char const *text, int x, int y, MonoAttribute attrib=NORMAL);
-		void Text_Print(int text, int x, int y, MonoAttribute attrib=NORMAL);
-		void View(void);
-		void Scroll(int lines=1);
-		void Pan(int cols=1);
-		void Set_Default_Attribute(MonoAttribute attrib);
+		void Sub_Window(int = 0, int = 0, int = 80, int = 25) {}
+		void Fill_Attrib(int, int, int, int, MonoAttribute) {}
+		void Clear(void) {}
+		void Set_Cursor(int, int) {}
+		void Print(char const *) {}
+		void Print(int) {}
+		void Printf(char const *, ...) {}
+		void Printf(int, ...) {}
+		void Text_Print(char const *, int, int, MonoAttribute = NORMAL) {}
+		void Text_Print(int, int, int, MonoAttribute = NORMAL) {}
+		void View(void) {}
+		void Scroll(int = 1) {}
+		void Pan(int = 1) {}
+		void Set_Default_Attribute(MonoAttribute) {}
 
 		/*
 		**	This merely makes a duplicate of the mono object into a newly created mono
@@ -77,20 +77,13 @@ class MonoClass {
 		*/
 		MonoClass (MonoClass const &);
 
-		static MonoClass * Current;
-
 	private:
-
-		/*
-		**	Handle of the mono page.
-		*/
-		HANDLE Handle;
 
 		/*
 		**	If this is true, then monochrome output is allowed. It defaults to false
 		**	so that monochrome output must be explicitly enabled.
 		*/
-		static bool Enabled;
+		inline static bool Enabled = false;
 
 		MonoClass & operator = (MonoClass const & );
 };
