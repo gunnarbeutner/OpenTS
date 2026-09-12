@@ -68,6 +68,11 @@ class UDPInterfaceClass : public WinsockInterfaceClass {
 		 */
 		void Configure_Tunnel(unsigned short local_id, unsigned long tunnel_ip, unsigned short tunnel_port);
 
+		// The recipient id that means every player at once. A CnCNet tunnel has none and
+		// leaves this at zero; a relayed broadcast arrives naming this id rather than the
+		// receiver.
+		void Set_Tunnel_Broadcast(unsigned short id);
+
 		virtual ProtocolEnum Get_Protocol (void) override {
 			return(PROTOCOL_UDP);
 		};
@@ -113,6 +118,7 @@ class UDPInterfaceClass : public WinsockInterfaceClass {
 
 		// A tunnel is in use when TunnelPort is non-zero.
 		unsigned short TunnelID;
+		unsigned short TunnelBroadcast;
 		unsigned long TunnelIP;
 		unsigned short TunnelPort;
 };

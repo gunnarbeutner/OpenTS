@@ -80,8 +80,12 @@
 #include "vector.h"
 #include "wsproto.h"
 #include "wspudp.h"
+#if defined(__EMSCRIPTEN__)
+#include "wsrelay.h"
+#endif
 
 #include <algorithm>
+#include <memory>
 
 
 /***************************************************************************
@@ -212,12 +216,46 @@ void IPXManagerClass::Configure_LAN(unsigned short port)
 		port = static_cast<unsigned short>(WestwoodOnline_PortNumber);
 	}
 
+#if defined(__EMSCRIPTEN__)
+	// A page has no network to broadcast onto, so a relay is the broadcast
+	// domain and the port has no meaning.
+	(void)port;
+
+	UDPInterfaceClass *udp = new UDPInterfaceClass;
+
+	auto relay = std::make_unique<RelaySocketClass>();
+	relay->Set_Relay(Relay_Configured_Url(), Relay_Configured_Room());
+
+	// The relay names this client only once it has seated it, and the tunnel
+	// header has to carry that id from the first packet on, so the connection
+	// is made here rather than left to Open_Socket.
+	if (relay->Open(0)) {
+
+		// The relay routes on the header alone. The server address is unused,
+		// but its port must be nonzero to engage the framing.
+		udp->Configure_Tunnel(relay->Local_Id(), 0, Socket_Network_Port(1));
+
+		// A relayed broadcast arrives naming the broadcast id, not the
+		// receiver, so the interface must accept it as its own.
+		udp->Set_Tunnel_Broadcast(RELAY_BROADCAST_ID);
+
+		// One address the relay explodes to the room.
+		IPXAddressClass everyone;
+		everyone.Set_Port(RELAY_BROADCAST_ID);
+		udp->Set_Broadcast_Address(everyone);
+	}
+
+	udp->Set_Socket(std::move(relay));
+
+	PacketTransport = udp;
+#else
 	UDPInterfaceClass *udp = new UDPInterfaceClass;
 	udp->Set_Local_Port(port);
 	udp->Set_Destination_Port(port);
 	udp->Enable_Broadcast(true);
 
 	PacketTransport = udp;
+#endif
 
 	TransportMode = TRANSPORT_LAN;
 }
