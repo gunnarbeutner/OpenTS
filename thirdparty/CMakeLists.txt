@@ -121,6 +121,15 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 # FreeType reaches for compression and shaping libraries when it finds them on the host.
 # The engine rasterizes plain TrueType faces, so every optional dependency is refused
 # rather than left to whatever the build machine happens to have installed.
+set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_PNG ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
+set(FT_DISABLE_BROTLI ON CACHE BOOL "" FORCE)
+
+add_subdirectory(freetype)
+
+# RmlUi looks for the target that the CMake FindFreetype module defines, and FreeType's own
 # build does not define it. The alias supplies it from the submodule target.
 if(NOT TARGET Freetype::Freetype)
     add_library(Freetype::Freetype ALIAS freetype)

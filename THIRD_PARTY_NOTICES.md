@@ -20,6 +20,7 @@ remains under its own license and copyright notices.
 | [robin_hood](https://github.com/martinus/robin-hood-hashing)       | Hash containers bundled with RmlUi        | MIT |
 | [itlib](https://github.com/iboB/itlib)                             | Containers bundled with RmlUi             | MIT |
 | [FreeType](https://freetype.org/)                                  | Glyph rasterization for RmlUi             | FTL or GPL-2.0-or-later |
+| [Liberation Fonts](https://github.com/liberationfonts/liberation-fonts) | The user interface text face          | OFL-1.1 |
 | [ICU charset data](https://github.com/unicode-org/icu-data)        | The code page 437 table in `code/codepage.cpp` | Unicode-3.0 |
 | [Windows best fit tables](https://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/WindowsBestFit/) | The Windows-1252 table in `code/codepage.cpp` | Unicode data terms |
 

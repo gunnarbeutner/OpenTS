@@ -159,7 +159,6 @@ set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/bgfxbackend.cpp" PROPER
         "${BGFX_ROOT}/include;${CMAKE_SOURCE_DIR}/thirdparty/bgfx.cmake/bx/include;${BGFX_ROOT}/examples/common/imgui"
     COMPILE_DEFINITIONS
         "BX_CONFIG_DEBUG=$<IF:$<CONFIG:Debug>,1,$<BOOL:${BX_CONFIG_DEBUG}>>"
-    COMPILE_OPTIONS "/Zc:preprocessor"
 )
 
 # bx rewrites __stdcall while its headers are being parsed by clang-cl.  Force the
@@ -170,6 +169,54 @@ if(OPENTS_EXPERIMENTAL_CLANG_CL AND CMAKE_SIZEOF_VOID_P EQUAL 4)
         COMPILE_OPTIONS "/FI${CMAKE_SOURCE_DIR}/thirdparty/bx-clang-compat.h"
     )
 endif()
+
+# The UI shell is the only part of the engine that sees RmlUi, so the library's headers go
+# on those files rather than on the whole target.
+file(GLOB OPENTS_UI_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/ui/*.cpp")
+set_source_files_properties(${OPENTS_UI_SOURCES} PROPERTIES
+    INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/thirdparty/RmlUi/Include;${OPENTS_GENERATED_DIR}"
+)
+
+# The shell reads the generated string-name table, so the collector runs before it compiles.
+add_dependencies(OpenTS OpenTSStringNames)
+
+# The shell's renderer is the second translation unit that sees bgfx, so it takes the same
+# headers, shaders, and build settings that bgfxbackend.cpp does.
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/ui/uirender.cpp" PROPERTIES
+    INCLUDE_DIRECTORIES
+        "${CMAKE_SOURCE_DIR}/thirdparty/RmlUi/Include;${BGFX_ROOT}/include;${CMAKE_SOURCE_DIR}/thirdparty/bgfx.cmake/bx/include;${CMAKE_SOURCE_DIR}/thirdparty/bgfx.cmake/bimg/include;${BGFX_ROOT}/examples/common/imgui"
+    COMPILE_DEFINITIONS
+        "BX_CONFIG_DEBUG=$<IF:$<CONFIG:Debug>,1,$<BOOL:${BX_CONFIG_DEBUG}>>"
+)
+
+if(MSVC)
+    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/ui/uirender.cpp" APPEND PROPERTY
+        COMPILE_OPTIONS "/Zc:preprocessor"
+    )
+endif()
+
+if(OPENTS_EXPERIMENTAL_CLANG_CL AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/ui/uirender.cpp" APPEND PROPERTY
+        COMPILE_OPTIONS "/FI${CMAKE_SOURCE_DIR}/thirdparty/bx-clang-compat.h"
+    )
+endif()
+
+#
+# ---------------------------------------------------------
+# Shipped UI files
+# ---------------------------------------------------------
+#
+# The documents, styles, and fonts the UI shell reads. They are looked up by basename
+# through CCFileClass, so the directory is a packaging convenience: startup registers it as
+# a search folder, and a mod overrides one of these by placing a file earlier in that order
+# or by shipping it in a mix.
+set(OPENTS_UI_DATA_DIR "${CMAKE_SOURCE_DIR}/ui")
+
+add_custom_command(TARGET OpenTS POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${OPENTS_UI_DATA_DIR}" "$<TARGET_FILE_DIR:OpenTS>/ui"
+    COMMENT "Copying the UI files beside the executable"
+)
 
 message(STATUS "${PROJECT_NAME}: Adding compilier definitions...")
 target_compile_definitions(OpenTS PRIVATE

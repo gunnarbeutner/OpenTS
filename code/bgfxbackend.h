@@ -7,9 +7,8 @@
  * See LICENSE.md for applicable additional terms and warranty disclaimers.
  ******************************************************************************/
 
-// The renderer's private interface. Only bgfxbackend.cpp includes bgfx, so no bgfx type
-// appears here and no other translation unit needs the library's headers or its build
-// settings. video.cpp is the only caller.
+// The renderer's private interface. No bgfx type appears here, so a caller needs neither
+// the library's headers nor its build settings. video.cpp is the engine's only caller.
 
 #pragma once
 
@@ -39,8 +38,17 @@ void Backend_Shutdown(void);
 bool Backend_Set_Frame_Size(int width, int height);
 void Backend_On_Resize(int drawablewidth, int drawableheight);
 
-// Uploads the frame and presents it. The pixels are 16 bit 565 and stay owned by the
-// caller; they are consumed before this returns.
-void Backend_Present(void const * pixels, int pitch, int destx, int desty, int destwidth, int destheight, BackendScaleMode mode);
+// Submits the frame. The pixels are 16 bit 565 and stay owned by the caller; they are
+// consumed before this returns. Nothing reaches the screen until Backend_End_Frame, so the
+// UI shell can submit over the frame in between.
+//
+// upload says whether the pixels changed since the last present. A present that only the
+// overlay asked for passes false and reuses the texture already on the device, which is
+// what keeps a menu over a still frame from costing a full upload per refresh.
+void Backend_Present(void const * pixels, int pitch, int destx, int desty, int destwidth, int destheight, BackendScaleMode mode, bool upload);
+
+// Ends the bgfx frame that Backend_Present opened, putting everything submitted to it on
+// the screen. No other code begins or ends a bgfx frame.
+void Backend_End_Frame(void);
 
 char const * Backend_Renderer_Name(void);
