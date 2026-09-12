@@ -39,6 +39,10 @@ foreach(f ${OPENTS_RAW})
         endif()
     endforeach()
 
+    if(f MATCHES "/platform/[^/]*\\.cpp$")
+        set(EXCLUDED TRUE)
+    endif()
+
     if(NOT EXCLUDED)
         list(APPEND OPENTS_SRC "${f}")
     endif()

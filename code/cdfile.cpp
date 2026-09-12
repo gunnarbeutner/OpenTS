@@ -37,12 +37,14 @@
  *   harderr_handler -- Handles hard DOS errors.                                               *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "utf8.h"
 #include "always.h"
 
 #include "cdfile.h"
+#include "platform/file.h"
 
-#include <filesystem>
 #include <string>
+#include <vector>
 
 /*
 **	Pointer to the first search path record.
@@ -115,6 +117,14 @@ int CDFileClass::Open(int rights)
 }
 
 
+int CDFileClass::Create(void)
+{
+	Point_At_Own_Copy();
+
+	return(BASECLASS::Create());
+}
+
+
 /***********************************************************************************************
  * CDFC::Add_Search_Drive -- Add a new path to the search path list                            *
  *                                                                                             *
@@ -131,6 +141,8 @@ int CDFileClass::Open(int rights)
  *=============================================================================================*/
 void CDFileClass::Add_Search_Drive(char const * path)
 {
+	if (path == NULL) return;
+
 	SearchDriveType *srch;					// Working pointer to path object.
 	/*
 	**	Allocate a record structure.
@@ -181,7 +193,7 @@ void CDFileClass::Set_User_Path(char const * path)
 			break;
 
 		default:
-			UserPath += std::filesystem::path::preferred_separator;
+			UserPath += '\\';
 			break;
 	}
 }
@@ -365,12 +377,8 @@ char const * CDFileClass::Set_Name(char const *filename)
 		// A directory and a name that will not make one pathname between them are passed
 		// over rather than truncated into a different name.
 		if (strlen(srch->Path) + strlen(filename) < sizeof(path)) {
-
-			/*
-			**	Build a pathname to search for.
-			*/
-			strcpy(path, srch->Path);
-			strcat(path, filename);
+			UTF8::Copy(path, srch->Path);
+			UTF8::Append(path, filename);
 
 			// Check this path. Is_Available returns false when the file cannot be opened,
 			// allowing the search to continue with the next configured path.
@@ -434,9 +442,8 @@ int CDFileClass::Open(char const *filename, int rights)
 	**	If writing is requested, then multiple drive searching is not performed.
 	*/
 	if (IsDisabled || (rights & WRITE) != 0) {
-
-		BASECLASS::Set_Name( Capture_Name(filename) );
-		return( CDFileClass::Open( rights ) );
+		BASECLASS::Set_Name(Capture_Name(filename));
+		return(CDFileClass::Open(rights));
 	}
 
 	/*
@@ -444,7 +451,7 @@ int CDFileClass::Open(char const *filename, int rights)
 	**	using the normal procedure.
 	*/
 	Set_Name(filename);
-	return(BASECLASS::Open(rights));
+	return(CDFileClass::Open(rights));
 }
 
 
@@ -459,4 +466,106 @@ int CDFileClass::Delete(void)
 	Point_At_Own_Copy();
 
 	return(BASECLASS::Delete());
+}
+
+
+// The search Find_Next_File continues, and how far it has come.
+static std::vector<PlatformFileInfoType> FindMatches;
+static std::size_t FindPosition = 0;
+
+
+// Only the first match decides whether a search path answers; Find_Next_File passes on
+// whatever follows it.
+static bool Is_Plain_File(PlatformFileInfoType const & entry)
+{
+	return(!entry.IsDirectory && !entry.IsHidden);
+}
+
+
+/// <summary>
+/// Begins a search for the files matching the wildcard specified.
+/// This routine will look in the current directory first and then work along the search
+/// drive list, settling on the first drive that has a match. Only ordinary files qualify;
+/// directories and system, hidden, or temporary files are passed over. Any search still
+/// in progress is closed off first.
+/// </summary>
+/// <param name="fname">The wildcard to search for; filled in with the file found.</param>
+/// <returns>bool; Was a matching file found?</returns>
+/// <remarks>Be sure that the buffer is big enough to hold the filename returned.</remarks>
+bool CDFileClass::Find_First_File(char *fname)
+{
+	char scan_path[_MAX_PATH];
+	SearchDriveType *entry;
+
+	if (fname) {
+
+		Find_Close();
+
+		UTF8::Copy(scan_path, fname);
+
+		std::vector<PlatformFileInfoType> found = Platform_Find_Files(scan_path);
+		if (!found.empty() && Is_Plain_File(found.front())) {
+
+			strcpy(fname, found.front().Name.c_str());
+			FindMatches = std::move(found);
+			FindPosition = 1;
+
+			return(true);
+		}
+
+		entry = First;
+
+		while (entry != NULL) {
+
+			UTF8::Copy(scan_path, entry->Path);
+			UTF8::Append(scan_path, fname);
+
+			found = Platform_Find_Files(scan_path);
+			if (!found.empty() && Is_Plain_File(found.front())) {
+				strcpy(fname, found.front().Name.c_str());
+				FindMatches = std::move(found);
+				FindPosition = 1;
+				return(true);
+			}
+
+			entry = (SearchDriveType *)entry->Next;
+		}
+	}
+	return(false);
+}
+
+
+/// <summary>
+/// Fetches the next file that matches the search in progress.
+/// This routine continues the scan begun by Find_First_File, working through the rest of
+/// the matches on whichever drive that routine settled upon.
+/// </summary>
+/// <param name="buffer">Buffer to fill in with the name of the file found.</param>
+/// <returns>bool; Was another matching file found?</returns>
+/// <remarks>Be sure that the buffer is big enough to hold the filename returned.</remarks>
+bool CDFileClass::Find_Next_File(char *buffer)
+{
+	if (buffer) {
+
+		if (FindPosition < FindMatches.size()) {
+			strcpy(buffer, FindMatches[FindPosition].Name.c_str());
+			FindPosition++;
+			return(true);
+		}
+
+		buffer[0] = '\0';
+	}
+	return(false);
+}
+
+
+/// <summary>
+/// Closes off the file search that is in progress.
+/// Call this routine when the results of a Find_First_File scan are no longer wanted, so
+/// that the matches held on the game's behalf are given back.
+/// </summary>
+void CDFileClass::Find_Close(void)
+{
+	FindMatches.clear();
+	FindPosition = 0;
 }

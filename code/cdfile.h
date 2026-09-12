@@ -59,9 +59,10 @@ class CDFileClass : public BufferIOFileClass
 		CDFileClass & operator = (CDFileClass const & file) = delete;
 
 		virtual char const * Set_Name(char const *filename) override;
+		virtual int Create(void) override;
+		virtual int Delete(void) override;
 		virtual int Open(char const *filename, int rights=READ) override;
 		virtual int Open(int rights=READ) override;
-		virtual int Delete(void) override;
 
 		void Searching(int on) {IsDisabled = !on;};
 

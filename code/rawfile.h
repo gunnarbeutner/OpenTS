@@ -2,12 +2,10 @@
  *                                O P E N  T S
  *******************************************************************************
  * SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright 2020, 2025 Electronic Arts Inc.
- * Copyright 2020-2024 Vanilla Conquer contributors
+ * Copyright 2025 Electronic Arts Inc.
  * Copyright 2026 OpenTS contributors
  *
- * Contains material derived from Electronic Arts source code and from Vanilla
- * Conquer (https://github.com/TheAssemblyArmada/Vanilla-Conquer).
+ * Contains material derived from Electronic Arts source code.
  * Modified by OpenTS contributors, 2026.
  * EA's GPLv3 Section 7 additional terms and supplemental warranty
  * disclaimers apply; see LICENSE.md.
@@ -39,10 +37,11 @@
 
 #include "wwfile.h"
 
+#include "platform/file.h"
+
 #include <cerrno>
 #include <climits>
 #include <cstddef>
-#include <cstdio>
 #include <cstdlib>
 
 #ifndef WWERROR
@@ -92,10 +91,10 @@ class RawFileClass : public FileClass
 		virtual int Write(void const *buffer, int size) override;
 		virtual void Close(void) override;
 		virtual unsigned int Get_Date_Time(void) override;
-		virtual bool Set_Date_Time(unsigned int datetime);
+		virtual bool Set_Date_Time(unsigned int datetime) override;
 		virtual void Error(int error, int canretry = false, char const * filename=NULL) override;
 		void Bias(int start, int length=-1);
-		FILE *Get_File_Handle(void) { return(Handle); };
+		PlatformFileClass & Get_File_Handle(void) { return(Handle); };
 
 		/*
 		**	These bias values enable a sub-portion of a file to appear as if it
@@ -117,20 +116,14 @@ class RawFileClass : public FileClass
 
 	private:
 
-		/*
-		**	This is the file handle.  A nullptr indicates an empty condition.
-		*/
-		FILE *Handle;
+		// The open file, if there is one.
+		PlatformFileClass Handle;
 
 		/*
-		**	This points to a copy of the filename as a NULL terminated string.
+		**	This points to the filename as a NULL terminated string. It may point to either a
+		**	constant or an allocated string as indicated by the "Allocated" flag.
 		*/
-		char *Filename;
-
-		/*
-		**	The type of the last file access operation.  Reset by fseek().
-		*/
-		int LastAccessType;
+		char const * Filename;
 
 		//
 		// file date and time are in the following formats:
@@ -145,6 +138,15 @@ class RawFileClass : public FileClass
 		//
 		unsigned short Date;
 		unsigned short Time;
+
+		/*
+		**	Filenames that were assigned as part of the construction process
+		**	are not allocated. It is assumed that the filename string is a
+		**	constant in that case and thus making duplication unnecessary.
+		**	This value will be non-zero if the filename has be allocated
+		**	(using strdup()).
+		*/
+		bool Allocated;
 };
 
 
@@ -190,11 +192,10 @@ inline RawFileClass::RawFileClass(void) :
 	Rights(READ),
 	BiasStart(0),
 	BiasLength(-1),
-	Handle(nullptr),
-	Filename(nullptr),
+	Filename(0),
 	Date(0),
 	Time(0),
-	LastAccessType(0)
+	Allocated(false)
 {
 }
 
@@ -216,5 +217,5 @@ inline RawFileClass::RawFileClass(void) :
  *=============================================================================================*/
 inline bool RawFileClass::Is_Open(void) const
 {
-	return(Handle != nullptr);
+	return(Handle.Is_Open());
 }

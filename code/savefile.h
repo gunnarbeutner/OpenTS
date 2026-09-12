@@ -9,10 +9,7 @@
 
 #pragma once
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
+#include "platform/filetime.h"
 
 #include <cstdint>
 #include <vector>
@@ -42,10 +39,10 @@ class SaveFileClass
 
 		void Set_String(int id, char const * text);
 		void Set_Int(int id, int value);
-		void Set_Time(int id, FILETIME const & time);
+		void Set_Time(int id, FileTimeType time);
 		bool Get_String(int id, char * text, int size) const;
 		bool Get_Int(int id, int * value) const;
-		bool Get_Time(int id, FILETIME * time) const;
+		bool Get_Time(int id, FileTimeType * time) const;
 		void Clear_Fields(void);
 
 		ResultType Write(char const * path) const;
