@@ -41,7 +41,7 @@ The fields are what the load dialog lists a save by. Each is:
 | 2 | Identifier |
 | 2 | Kind: 1 string, 2 integer, 3 file time |
 | 4 | Length of the value |
-| | The value: string bytes without a terminator, a 4-byte integer, or an 8-byte `FILETIME` |
+| | The value: string bytes without a terminator, a 4-byte integer, or an 8-byte file time |
 
 The identifiers are the `PIDSI_` values in `code/savever.h`, the same ones the
 compound-document property set carried before this format. A field holds at
@@ -50,6 +50,10 @@ first field that matches both identifier and kind and ignores the rest, so a
 field it does not know costs nothing. A string longer than the buffer it is
 read into is cut on a character boundary, so a shortened description stays
 UTF-8. `SaveVersionInfo` in `code/savever.cpp` is the only writer and reader.
+
+A file time counts 100-nanosecond intervals from the start of 1601 UTC, as a
+Windows `FILETIME` does, and is stored as two 4-byte words, the low word first.
+The engine holds it as a `FileTimeType` (`code/platform/filetime.h`).
 
 ## Content
 
@@ -158,7 +162,8 @@ load dialog leaves the file out of its list. Nothing converts those files.
 
 `SaveFileClass::Write` builds the whole image in memory, writes it to the
 target name with `.tmp` appended, flushes and closes it, and then moves it over
-the target with `MoveFileExA` and `MOVEFILE_REPLACE_EXISTING`. A save
+the target with `Platform_Replace_File`: `MoveFileExA` with
+`MOVEFILE_REPLACE_EXISTING` on Windows, `rename` elsewhere. A save
 interrupted at any point leaves the previous file untouched under its name,
 and at most a `.tmp` beside it, which the next successful save replaces.
 The reader's limits bind the writer too: content above 256 MiB, a field above
@@ -174,5 +179,7 @@ and of a stale `.tmp`, and each refusal above, including a later version, an
 unknown flag, a file cut at every boundary, a byte flipped in the header, the
 table and the content, a field table above its limit, a gap before the
 content, a block that ends before or expands past its declared length, and a
-write above each limit that leaves the earlier save in place. It reads no game
-data.
+write above each limit that leaves the earlier save in place. One save written
+from fixed fields and content is compared by length and checksum with a
+recorded image of that file, and its time field byte for byte. It reads no
+game data.
