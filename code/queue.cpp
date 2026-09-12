@@ -135,7 +135,6 @@
 #include "opents_build.h"
 #include "overlay.h"
 #include "overtype.h"
-#include "ownrdraw.h"
 #include "particle.h"
 #include "partsys.h"
 #include "psystype.h"
@@ -164,6 +163,8 @@
 #include "trigger.h"
 #include "trigtype.h"
 #include "tube.h"
+#include "ui/uidisconnect.h"
+#include "ui/uishell.h"
 #include "unit.h"
 #include "unittype.h"
 #include "vanim.h"
@@ -330,8 +331,12 @@ static int Process_Reconnect_Dialog(CDTimerClass<SystemTimerClass> *timeout_time
 	BasicTimerClass<SystemTimerClass> *timer);
 static int Handle_Timeout(ConnManClass *net, FrameSyncStruct *their);
 static void Stop_Game(bool=false);
-INT_PTR CALLBACK Reconnect_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 static void Close_Reconnect_Dialog(void);
+static void Update_Sync_Bars(void);
+static int Sync_Bar_Share(int index, int & red, int & green);
+static void Add_Reconnect_Line(char const * text);
+static void Trim_Reconnect_Lines(void);
+void Propose_Kick_Player(int id);
 void Kick_Player_Now(ConnManClass *net, int kickee, FrameSyncStruct * their, bool error);
 bool Cast_Kick_Vote(int kicker, int kickee);
 void Multiplayer_Debug_Print(void);
@@ -2053,8 +2058,7 @@ static int Process_Reconnect_Dialog(CDTimerClass<SystemTimerClass> *timeout_time
 {
 	static int displayed_time = 0;	// time value currently displayed
 
-	static HWND disconnect_dialog;  /// the disconnect/kick dialog
-	static int disconnect_return;   /// set to IDCANCEL by Reconnect_Dialog_Proc
+	static int disconnect_return;   /// set to IDCANCEL by the box's Cancel
 
 	int new_time;
 	int oldest_index;						// index of person requiring a reconnect
@@ -2062,7 +2066,7 @@ static int Process_Reconnect_Dialog(CDTimerClass<SystemTimerClass> *timeout_time
 	char buf[256];							// for dialog text
 
 	//------------------------------------------------------------------------
-	/// Update the frame-sync progress info for Draw_Sync_Bars.
+	/// Update the frame-sync progress info for Update_Sync_Bars.
 	//------------------------------------------------------------------------
 	SyncWaitElapsed = *timer;
 	for (i = 0; i < num_conn; i++) {
@@ -2107,13 +2111,14 @@ static int Process_Reconnect_Dialog(CDTimerClass<SystemTimerClass> *timeout_time
 	if (fresh || new_time != displayed_time) {
 		displayed_time = new_time;
 
-		HWND item = GetDlgItem(disconnect_dialog, IDC_DISCONNECT_TIME_REMAINING);
-		if (item) {
-			sprintf(buf, Fetch_String(TXT_TIME_ALLOWED), displayed_time);
-			SendMessage(item, WM_SETTEXT, 0, (LPARAM)buf);
-		}
-		if (!(displayed_time & 1)) {
-			PostMessage(disconnect_dialog, WM_PAINT, 0, 0);
+		if (UI_Disconnect_Is_Open()) {
+			snprintf(buf, sizeof(buf), Fetch_String(TXT_TIME_ALLOWED), displayed_time);
+			UI_Disconnect_Set_Time(buf);
+
+			// The dialog repainted its bars when it was created and on every even second.
+			if (fresh || !(displayed_time & 1)) {
+				Update_Sync_Bars();
+			}
 		}
 
 		/*
@@ -2128,8 +2133,7 @@ static int Process_Reconnect_Dialog(CDTimerClass<SystemTimerClass> *timeout_time
 			memset(Session.KickVoteCount, 0, sizeof(Session.KickVoteCount));
 			memset(Session.KickVoteWho, 0xFF, sizeof(Session.KickVoteWho));
 
-			HWND listbox = GetDlgItem(disconnect_dialog, IDC_DISCONNECT_MESSAGES);
-			if (listbox) {
+			if (UI_Disconnect_Is_Open()) {
 				if (reconn) {
 					//...............................................................
 					// Find the index of the person we're trying to reconnect to
@@ -2143,30 +2147,30 @@ static int Process_Reconnect_Dialog(CDTimerClass<SystemTimerClass> *timeout_time
 						}
 					}
 					if (Session.Type == GAME_IPX || Session.Type == GAME_INTERNET) {
-						sprintf(buf, Fetch_String(TXT_RECONNECTING_TO), Ipx.Connection_Name(Ipx.Connection_ID(oldest_index)));
+						snprintf(buf, sizeof(buf), Fetch_String(TXT_RECONNECTING_TO), Ipx.Connection_Name(Ipx.Connection_ID(oldest_index)));
 					} else {
-						sprintf(buf, Fetch_String(TXT_RECONNECTING_TO), Session.Players[1]->Name);
+						snprintf(buf, sizeof(buf), Fetch_String(TXT_RECONNECTING_TO), Session.Players[1]->Name);
 					}
-					ListBox_AddString(listbox, buf);
-					ListBox_AddString(listbox, "");
+					Add_Reconnect_Line(buf);
+					Add_Reconnect_Line("");
 					if (Session.Type == GAME_INTERNET) {
-						ListBox_AddString(listbox, Fetch_String(TXT_RECONNECT_HELP3));
-						ListBox_AddString(listbox, Fetch_String(TXT_RECONNECT_HELP3B));
-						ListBox_AddString(listbox, Fetch_String(TXT_RECONNECT_HELP3C));
+						Add_Reconnect_Line(Fetch_String(TXT_RECONNECT_HELP3));
+						Add_Reconnect_Line(Fetch_String(TXT_RECONNECT_HELP3B));
+						Add_Reconnect_Line(Fetch_String(TXT_RECONNECT_HELP3C));
 					}
-					ListBox_AddString(listbox, Fetch_String(TXT_RECONNECT_HELP2));
+					Add_Reconnect_Line(Fetch_String(TXT_RECONNECT_HELP2));
 					if (Session.Type == GAME_INTERNET) {
-						ListBox_AddString(listbox, Fetch_String(TXT_RECONNECT_HELP2B));
+						Add_Reconnect_Line(Fetch_String(TXT_RECONNECT_HELP2B));
 					} else if (Session.Type == GAME_IPX) {
-						ListBox_AddString(listbox, Fetch_String(TXT_RECONNECT_HELP4));
+						Add_Reconnect_Line(Fetch_String(TXT_RECONNECT_HELP4));
 					}
-					ListBox_AddString(listbox, "");
-					ListBox_AddString(listbox, Fetch_String(TXT_RECONNECT_HELP5));
-					ListBox_AddString(listbox, Fetch_String(TXT_RECONNECT_HELP1));
-					ListBox_AddString(listbox, "");
+					Add_Reconnect_Line("");
+					Add_Reconnect_Line(Fetch_String(TXT_RECONNECT_HELP5));
+					Add_Reconnect_Line(Fetch_String(TXT_RECONNECT_HELP1));
+					Add_Reconnect_Line("");
 				} else {
-					sprintf(buf, Fetch_String(TXT_WAITING_FOR_CONNECTIONS));
-					ListBox_AddString(listbox, buf);
+					snprintf(buf, sizeof(buf), Fetch_String(TXT_WAITING_FOR_CONNECTIONS));
+					Add_Reconnect_Line(buf);
 				}
 			}
 		}
@@ -2176,26 +2180,6 @@ static int Process_Reconnect_Dialog(CDTimerClass<SystemTimerClass> *timeout_time
 
 }	// end of Process_Reconnect_Dialog
 
-static int SyncNameButtonControlsIDs[MAX_PLAYERS] = {
-	IDC_DISCONNECT_PLAYER1,
-	IDC_DISCONNECT_PLAYER2,
-	IDC_DISCONNECT_PLAYER3,
-	IDC_DISCONNECT_PLAYER4,
-	IDC_DISCONNECT_PLAYER5,
-	IDC_DISCONNECT_PLAYER6,
-	IDC_DISCONNECT_PLAYER7,
-	IDC_DISCONNECT_PLAYER8
-};
-static int SyncBarControlIDs[MAX_PLAYERS] = {
-	IDC_DISCONNECT_PLAYER1_BOX,
-	IDC_DISCONNECT_PLAYER2_BOX,
-	IDC_DISCONNECT_PLAYER3_BOX,
-	IDC_DISCONNECT_PLAYER4_BOX,
-	IDC_DISCONNECT_PLAYER5_BOX,
-	IDC_DISCONNECT_PLAYER6_BOX,
-	IDC_DISCONNECT_PLAYER7_BOX,
-	IDC_DISCONNECT_PLAYER8_BOX
-};
 
 
 /// <summary>
@@ -2210,44 +2194,46 @@ static int Connection_Index(int player)
 
 
 /// <summary>
-/// Draws the frame sync bars on the reconnect dialog.
-/// Every player in the game gets a bar that shrinks and changes color as the wait on that
-/// player drags on, so the humans can see who the game is actually stalled on.
+/// Reports how much of a player's sync bar is left, from 0 to 100, and its colour, which
+/// goes from green to yellow to red as the wait on that player drags on.
 /// </summary>
-/// <param name="window">The reconnect dialog that owns the bar controls.</param>
-void Draw_Sync_Bars(HWND window)
+/// <param name="index">The player's index in Session.Players.</param>
+static int Sync_Bar_Share(int index, int & red, int & green)
 {
-	for (int i = 0; i < Session.Players.Count(); i++) {
-		RECT bar_winrect;
-		Get_Display_Rect(GetDlgItem(window, SyncBarControlIDs[i]), &bar_winrect);
+	int playerid = Connection_Index(Session.Players[index]->Player.ID);
 
-		Rect bar_rect;
-		bar_rect.X = bar_winrect.left;
-		bar_rect.Y = bar_winrect.top;
-		bar_rect.Width = bar_winrect.right - bar_winrect.left;
-		bar_rect.Height = bar_winrect.bottom - bar_winrect.top;
+	unsigned progress;
+	if (index == 0) {
+		progress = 0;
+	} else {
+		progress = SyncWaitElapsed - SyncBarFrameSync[playerid].timing;
+	}
 
-		int playerid = Connection_Index(Session.Players[i]->Player.ID);
+	red = 0;
+	green = 200;
+	if (progress > 240) {
+		red = 200;
+		if (progress > 480) {
+			green = 0;
+		}
+	}
 
-		unsigned progress;
-		if (i == 0) {
-			progress = 0;
+	return(std::max(100 - (int)(100 * progress / 1200), 0));
+}
+
+
+// A slot past the players now in the session is left empty, as the dialog's painter left it.
+static void Update_Sync_Bars(void)
+{
+	for (int i = 0; i < MAX_PLAYERS; i++) {
+		int red = 0;
+		int green = 0;
+		if (i < Session.Players.Count()) {
+			int const share = Sync_Bar_Share(i, red, green);
+			UI_Disconnect_Set_Bar(i, share, red, green, 0);
 		} else {
-			progress = SyncWaitElapsed - SyncBarFrameSync[playerid].timing;
+			UI_Disconnect_Set_Bar(i, -1, 0, 0, 0);
 		}
-
-		unsigned short color = DSurface::Build_Hicolor_Pixel(0, 200, 0);
-		if (progress > 240) {
-			color = DSurface::Build_Hicolor_Pixel(200, 200, 0);
-			if (progress > 480) {
-				color = DSurface::Build_Hicolor_Pixel(200, 0, 0);
-			}
-		}
-
-		int w = std::max(100 - (int)(100 * progress / 1200), 0) * bar_rect.Width;
-		bar_rect.Width = std::max(6, w / 100);
-
-		AlternateSurface->Fill_Rect(AlternateSurface->Get_Rect(), bar_rect, color);
 	}
 }
 
@@ -2355,20 +2341,20 @@ void Forget_Kick_Player(int player)
 	}
 }
 
-/// <summary>
-/// Trims the message list box and scrolls it to the end.
-/// Use this routine after adding a line to the reconnect dialog's message list, so that
-/// the list stays a manageable length and the newest message stays in view.
-/// </summary>
-/// <param name="listbox">The list box to trim.</param>
-void ListBox_Trim(HWND listbox)
+// A line for the disconnect box; nothing when the box is closed.
+static void Add_Reconnect_Line(char const * text)
 {
-	int string_count = ListBox_GetCount(listbox);
-	if (string_count > 50) {
-		ListBox_DeleteString(listbox, 0);
-		string_count--;
+	if (UI_Disconnect_Is_Open()) {
+		UI_Disconnect_Add_Message(text);
 	}
-	ListBox_SetTopIndex(listbox, string_count - 1);
+}
+
+
+static void Trim_Reconnect_Lines(void)
+{
+	if (UI_Disconnect_Is_Open()) {
+		UI_Disconnect_Trim_Messages();
+	}
 }
 
 
@@ -2379,26 +2365,23 @@ void ListBox_Trim(HWND listbox)
 /// Proposing to kick yourself, or to kick anybody at all during a tournament game, earns
 /// nothing but a message in the dialog.
 /// </summary>
-/// <param name="window">The reconnect dialog to report the outcome in.</param>
 /// <param name="id">Index into the session player list of the one to be kicked.</param>
-void Propose_Kick_Player(HWND window, int id)
+void Propose_Kick_Player(int id)
 {
 	if (id < 0 || id >= Session.Players.Count()) {
 		return;
 	}
 
 	DebugString("Propose_Kick_Player %d - %s. Local id is %d\n", id, Session.Players[id]->Name, Session.Players[0]->Player.ID);
-	HWND listbox = GetDlgItem(window, IDC_DISCONNECT_MESSAGES);
-
 	if (id == 0) {
-		ListBox_AddString(listbox, Fetch_String(TXT_RECONNECT_KICK_SELF));
-		ListBox_Trim(listbox);
+		Add_Reconnect_Line(Fetch_String(TXT_RECONNECT_KICK_SELF));
+		Trim_Reconnect_Lines();
 		return;
 	}
 
 	if (Session.Type == GAME_INTERNET && WestwoodOnline_Tournament) {
-		ListBox_AddString(listbox, Fetch_String(TXT_CANT_KICK));
-		ListBox_Trim(listbox);
+		Add_Reconnect_Line(Fetch_String(TXT_CANT_KICK));
+		Trim_Reconnect_Lines();
 		return;
 	}
 
@@ -2501,125 +2484,11 @@ bool Cast_Kick_Vote(int kicker, int kickee)
 		snprintf(buffer, sizeof(buffer), Fetch_String(TXT_RECONNECT_KICK_RECEIVED),
 			kicker_player->Name, kickee_player->Name);
 
-		HWND topwindow = WS_Top_Window();
-		HWND listbox = GetDlgItem(topwindow, IDC_DISCONNECT_MESSAGES);
-		ListBox_AddString(listbox, buffer);
-		ListBox_Trim(listbox);
+		Add_Reconnect_Line(buffer);
+		Trim_Reconnect_Lines();
 	}
 
 	return(true);
-}
-
-
-/// <summary>
-/// Handles the messages for the reconnect dialog.
-/// This is the dialog that appears when the game stalls waiting on somebody. It paints the
-/// per-player sync bars and offers a kick button for each player in the game.
-/// </summary>
-INT_PTR CALLBACK Reconnect_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
-{
-	int * rc = (int *)GetWindowLongPtr(window, DWLP_USER);
-
-	switch (message) {
-		case IDCANCEL:
-			Remove_Modeless_Dialog(window);
-			break;
-
-		case WM_DRAWITEM:
-			OwnerDraw::Draw_Item((DRAWITEMSTRUCT *)lparam);
-			return(TRUE);
-
-		case WM_PAINT:
-			OwnerDraw::Draw_Dialog_Back(window);
-			Draw_Sync_Bars(window);
-			ValidateRect(window, NULL);
-			break;
-
-		case WM_INITDIALOG: {
-			OwnerDraw::Subclass_Dialog(window, 0);
-			Center_Window_Within_Window(window);
-			Add_Modeless_Dialog(window);
-
-			int i;
-			for (i = 0; i < MAX_PLAYERS; i++) {
-				HWND button = GetDlgItem(window, SyncNameButtonControlsIDs[i]);
-				EnableWindow(button, FALSE);
-				HWND bar = GetDlgItem(window, SyncBarControlIDs[i]);
-				EnableWindow(bar, FALSE);
-			}
-
-			for (i = 0; i < MAX_PLAYERS; i++) {
-				HWND button = GetDlgItem(window, SyncNameButtonControlsIDs[i]);
-				HWND bar = GetDlgItem(window, SyncBarControlIDs[i]);
-				if (i < Session.Players.Count()) {
-					SendMessage(button, WM_SETTEXT, 0, (LPARAM)Session.Players[i]->Name);
-					EnableWindow(button, TRUE);
-					EnableWindow(bar, TRUE);
-				} else {
-					DestroyWindow(button);
-					DestroyWindow(bar);
-				}
-			}
-			break;
-		}
-
-		case WM_MOVING:
-			return(On_WM_MOVING(window, wparam, lparam));
-
-		case WM_CTLCOLORMSGBOX:
-		case WM_CTLCOLOREDIT:
-		case WM_CTLCOLORLISTBOX:
-		case WM_CTLCOLORBTN:
-		case WM_CTLCOLORDLG:
-		case WM_CTLCOLORSCROLLBAR:
-		case WM_CTLCOLORSTATIC:
-			return((INT_PTR)GetStockObject(BLACK_BRUSH));
-
-		case WM_ERASEBKGND:
-			return(TRUE);
-
-		case WM_COMMAND:
-			switch (LOWORD(wparam)) {
-				case IDC_DISCONNECT_PLAYER1:
-					Propose_Kick_Player(window, 0);
-					break;
-
-				case IDC_DISCONNECT_PLAYER2:
-					Propose_Kick_Player(window, 1);
-					break;
-
-				case IDC_DISCONNECT_PLAYER3:
-					Propose_Kick_Player(window, 2);
-					break;
-
-				case IDC_DISCONNECT_PLAYER4:
-					Propose_Kick_Player(window, 3);
-					break;
-
-				case IDC_DISCONNECT_PLAYER5:
-					Propose_Kick_Player(window, 4);
-					break;
-
-				case IDC_DISCONNECT_PLAYER6:
-					Propose_Kick_Player(window, 5);
-					break;
-
-				case IDC_DISCONNECT_PLAYER7:
-					Propose_Kick_Player(window, 6);
-					break;
-
-				case IDC_DISCONNECT_PLAYER8:
-					Propose_Kick_Player(window, 7);
-					break;
-
-				case IDCANCEL:
-					*rc = IDCANCEL;
-					break;
-			}
-			break;
-	}
-
-	return(FALSE);
 }
 
 
@@ -2635,9 +2504,8 @@ static void Close_Reconnect_Dialog(void)
 	//------------------------------------------------------------------------
 	// If the reconnect dialog was shown, force the map to redraw.
 	//------------------------------------------------------------------------
-	HWND dialog = WS_Find_Dialog(IDD_MPLAYER_DISCONNECT);
-	if (dialog) {
-		WS_Destroy_Dialog(dialog, false);
+	if (UI_Disconnect_Is_Open()) {
+		UI_Disconnect_Close();
 		TacticalActive = true;
 		Map.Flag_To_Redraw(GS_REDRAW_ALL);
 		Map.Render();
