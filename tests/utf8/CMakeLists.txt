@@ -5,7 +5,7 @@ opents_add_test(UTF8Contract
     NAME utf8contract
     SOURCES utf8contract.cpp
     ENGINE
+        codepage.cpp
         utf8.cpp
-    DEFINITIONS WIN32 _WINDOWS NOMINMAX
     UTF8
 )

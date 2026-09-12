@@ -15,7 +15,18 @@
 #include <cstring>
 #include <string>
 
+#include "codepage.h"
 #include "utf8.h"
+
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 namespace {
 
@@ -46,6 +57,33 @@ bool Encodes_To(char32_t code, char const * expected)
 	int count = UTF8::Encode(code, buffer);
 	return(count == (int)std::strlen(expected) && std::memcmp(buffer, expected, count) == 0);
 }
+
+
+#if defined(_WIN32)
+
+// Counts the UTF-16 code units whose table byte differs from the one Windows writes, and
+// prints the first few.
+int Table_Differences(unsigned page, int (*table)(char32_t))
+{
+	int differences = 0;
+	for (char32_t code = 0; code <= 0xFFFF; code++) {
+		wchar_t wide = (wchar_t)code;
+		char narrow = 0;
+		BOOL defaulted = FALSE;
+		int written = WideCharToMultiByte(page, 0, &wide, 1, &narrow, 1, NULL, &defaulted);
+		int windows = (written == 1 && !defaulted) ? (int)(unsigned char)narrow : -1;
+		int ours = table(code);
+		if (ours != windows) {
+			if (differences < 8) {
+				std::printf("    code page %u, U+%04X: table %d, Windows %d\n", page, (unsigned)code, ours, windows);
+			}
+			differences++;
+		}
+	}
+	return(differences);
+}
+
+#endif
 
 }
 
@@ -147,6 +185,25 @@ int main(void)
 	Check(UTF8::Windows_1252_Glyph(0x20AC) == 0x80 && UTF8::Windows_1252_Glyph(0x0153) == 0x9C, "a Windows-1252 font has the euro sign and oe ligature in the high row");
 	Check(UTF8::Windows_1252_Glyph(0x0141) == 'L', "a Windows-1252 font falls back to the closest letter");
 	Check(UTF8::Windows_1252_Glyph(0x0081) == -1 && UTF8::Windows_1252_Glyph(0x4E2D) == -1, "a Windows-1252 font has no index for a C1 control or a CJK ideograph");
+
+	// Best-fit cases from the tables in code/codepage.cpp, which record what Windows answers.
+	Check(UTF8::OEM_437_Glyph(0xC0) == 'A' && UTF8::Windows_1252_Glyph(0xC0) == 0xC0, "A grave falls back to A in code page 437 and keeps its byte in Windows-1252");
+	Check(UTF8::OEM_437_Glyph(0xB3) == '3' && UTF8::OEM_437_Glyph(0xB2) == 0xFD, "superscript three falls back to 3 in code page 437, where superscript two has a byte");
+	Check(UTF8::OEM_437_Glyph(0x221E) == 0xEC && UTF8::Windows_1252_Glyph(0x221E) == '8', "infinity has a byte in code page 437 and falls back to 8 in Windows-1252");
+	Check(UTF8::OEM_437_Glyph(0x03A9) == 0xEA && UTF8::Windows_1252_Glyph(0x03A9) == 'O', "Greek capital omega is 0xEA in code page 437 and falls back to O in Windows-1252");
+	Check(UTF8::OEM_437_Glyph(0x2500) == 0xC4 && UTF8::Windows_1252_Glyph(0x2500) == '-', "a box drawing line has a byte in code page 437 and falls back to a hyphen in Windows-1252");
+	Check(UTF8::OEM_437_Glyph(0x03BC) == 0xE6 && UTF8::Windows_1252_Glyph(0x03BC) == 0xB5, "Greek mu falls back to the micro sign in both code pages");
+	Check(UTF8::Windows_1252_Glyph(0x2248) == 0x98 && UTF8::Windows_1252_Glyph(0x2591) == 0xA6, "Windows-1252 falls back to a high row byte where Windows does");
+	Check(UTF8::OEM_437_Glyph(0xFF21) == 'A' && UTF8::Windows_1252_Glyph(0xFF41) == 'a', "fullwidth letters fall back to ASCII in both code pages");
+	Check(UTF8::OEM_437_Glyph(0x0100) == 'A' && UTF8::Windows_1252_Glyph(0x0100) == 'A', "A macron falls back to A in both code pages");
+	Check(UTF8::OEM_437_Glyph(0x00A7) == -1 && UTF8::OEM_437_Glyph(0x2022) == -1, "a best fit to a control position has no index");
+	Check(UTF8::Windows_1252_Glyph(0xFF1F) == -1, "a best fit to the question mark counts as the default character");
+	Check(UTF8::OEM_437_Glyph(0xFFFF) == -1 && UTF8::Windows_1252_Glyph(0x10000) == -1, "the ends of the table map nothing");
+
+#if defined(_WIN32)
+	Check(Table_Differences(437, Code_Page_437_Byte) == 0, "the code page 437 table matches WideCharToMultiByte for every code unit");
+	Check(Table_Differences(1252, Code_Page_1252_Byte) == 0, "the Windows-1252 table matches WideCharToMultiByte for every code unit");
+#endif
 
 	{
 		char dest[4];
