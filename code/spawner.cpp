@@ -12,6 +12,8 @@
 
 #include "spawner.h"
 
+#include "netsocket.h"
+
 #include "spawnerconfig.h"
 
 #include "addon.h"
@@ -41,7 +43,6 @@
 #include <cstdarg>
 #include <cstdio>
 #include <string>
-#include <winsock.h>
 
 
 static_assert(HOUSE_NAME_MAX == MPLAYER_NAME_MAX,
@@ -146,9 +147,11 @@ static void Spawner_Seat_Human(int index)
 
 	// Through a tunnel a machine is addressed by its tunnel number, written where the port goes.
 	if (SpawnConfig.TunnelPort != 0) {
-		node->Address.Set_Address(0, htons((unsigned short)seat.Port));
+		node->Address.Set_Address(0, Socket_Network_Port((unsigned short)seat.Port));
 	} else if (seat.Port > 0) {
-		node->Address.Set_Address(inet_addr(seat.Address.c_str()), htons((unsigned short)seat.Port));
+		uint32_t seat_address = SOCKET_BROADCAST_ADDRESS;
+		Socket_Parse_Address(seat.Address.c_str(), seat_address);
+		node->Address.Set_Address(seat_address, Socket_Network_Port((unsigned short)seat.Port));
 	}
 
 	Session.Players.Add(node);
@@ -341,8 +344,10 @@ static void Spawner_Bind_Scenario(void)
 static bool Spawner_Wire_Network(void)
 {
 	if (SpawnConfig.TunnelPort != 0) {
-		Ipx.Configure_Tunnel(htons((unsigned short)SpawnConfig.TunnelId),
-			inet_addr(SpawnConfig.TunnelAddress.c_str()), htons((unsigned short)SpawnConfig.TunnelPort));
+		uint32_t tunnel_address = SOCKET_BROADCAST_ADDRESS;
+		Socket_Parse_Address(SpawnConfig.TunnelAddress.c_str(), tunnel_address);
+		Ipx.Configure_Tunnel(Socket_Network_Port((unsigned short)SpawnConfig.TunnelId),
+			tunnel_address, Socket_Network_Port((unsigned short)SpawnConfig.TunnelPort));
 	} else {
 		Ipx.Configure_Direct_Peers((unsigned short)SpawnConfig.ListenPort);
 	}

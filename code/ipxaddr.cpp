@@ -44,6 +44,8 @@
 
 #include "ipxaddr.h"
 
+#include "netsocket.h"
+
 #include <cstdio>
 #include <cstring>
 #include <winsock.h>
@@ -185,9 +187,9 @@ const char *IPXAddressClass::As_String(void)
 	const unsigned char *quad = reinterpret_cast<const unsigned char *>(&IP);
 
 	if (IP == 0) {
-		sprintf(_addr_str, "tunnel id %d", ntohs(Port));
+		sprintf(_addr_str, "tunnel id %d", Socket_Host_Port(Port));
 	} else {
-		sprintf(_addr_str, "%d.%d.%d.%d:%d", quad[0], quad[1], quad[2], quad[3], ntohs(Port));
+		sprintf(_addr_str, "%d.%d.%d.%d:%d", quad[0], quad[1], quad[2], quad[3], Socket_Host_Port(Port));
 	}
 
 	return(_addr_str);
