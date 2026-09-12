@@ -11,3 +11,15 @@ opents_add_test(UnvqDelta
     DEFINITIONS WIN32 _WINDOWS _MBCS
     FLOAT
 )
+
+# The decoders carry the engine's MSVC declarations, so a POSIX build needs the same
+# narrow wchar_t and MSVC keyword handling the engine is built with.
+if(OPENTS_POSIX)
+    target_compile_options(UnvqDelta PRIVATE
+        -fshort-wchar
+        -fno-builtin-wcslen
+        -fno-builtin-wcsnlen
+        -fexceptions
+        -fdeclspec
+    )
+endif()

@@ -97,7 +97,7 @@ class VQAClass
 	private:
 		CCFileClass FileHandle;
 		bool IsFileOpen;
-		char Filename[MAX_PATH];
+		char Filename[_MAX_PATH];
 		VQAConfig Config;
 		VQAHandle * Handle;
 		int CurrentFrame;
