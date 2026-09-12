@@ -1,0 +1,78 @@
+<rml>
+<!--
+	The templates carry their labels as literal control text rather than as string
+	identifiers, so they stay literal here; a localized build ships a translated copy.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<link type="text/rcss" href="menus.rcss"/>
+	<style>
+		/*
+		 * Two templates: 204 by 144 dialog units, which is 306 by 234 logical pixels, and
+		 * the expansion's 197 by 146, which is 296 by 237 and adds World Domination. The
+		 * expansion's layout is the fs class.
+		 */
+		#menu
+		{
+			margin-left: -153dp;
+			width: 306dp;
+			height: 234dp;
+			decorator: image(frame:306x234@167,147);
+		}
+
+		#menu.fs
+		{
+			margin-left: -148dp;
+			width: 296dp;
+			height: 237dp;
+			decorator: image(frame:296x237@172,147);
+		}
+
+		/*
+		 * The buttons are 130 by 18 dialog units, which Resize_Dialog's extra pixel each way
+		 * makes 195 by 30. The painter picked its skin by height, and 30 takes the tall set.
+		 */
+		#menu button
+		{
+			left: 56dp;
+			width: 195dp;
+			height: 30dp;
+			line-height: 30dp;
+			decorator: image(button:u:195x30);
+		}
+
+		#menu button:active:hover { decorator: image(button:d:195x30); }
+		#menu button[disabled],
+		#menu button[disabled]:active:hover { decorator: image(button:u:195x30); }
+		#menu.fs button { left: 45dp; }
+
+		#title { left: 56dp; top: 20dp; width: 195dp; height: 20dp; line-height: 20dp; }
+		#menu.fs #title { left: 45dp; top: 13dp; }
+
+		#worlddom { display: none; }
+		#internet { top: 46dp; }
+		#modem { top: 80dp; }
+		#network { top: 114dp; }
+		#skirmish { top: 148dp; }
+		#back { top: 182dp; }
+
+		#menu.fs #worlddom { display: block; top: 67dp; }
+		#menu.fs #internet { top: 36dp; }
+		#menu.fs #modem { top: 98dp; }
+		#menu.fs #network { top: 128dp; }
+		#menu.fs #skirmish { top: 159dp; }
+		#menu.fs #back { top: 192dp; }
+	</style>
+</head>
+<body>
+	<div id="menu" class="dialog">
+		<p id="title" class="caption">Select Multiplayer Game</p>
+		<button id="internet" data-action="internet">Internet</button>
+		<button id="worlddom" data-action="worlddom">World Domination! (Internet)</button>
+		<button id="modem" data-action="modem">Modem / Serial</button>
+		<button id="network" data-action="network">Network</button>
+		<button id="skirmish" data-action="skirmish">Skirmish</button>
+		<button id="back" data-action="back">Main Menu</button>
+	</div>
+</body>
+</rml>

@@ -60,7 +60,10 @@
 
 #include <windowsx.h>
 
-#include "init.h"
+#include "ui/uicampaign.h"
+#include "ui/uimenus.h"
+#include "ui/uishell.h"
+#include "ui/uiversion.h"
 
 #include "_bench.h"
 #include "_command.h"
@@ -203,7 +206,7 @@
 
 #include <algorithm>
 #include <ctime>
-#include <dos.h>
+#include <functional>
 #include <unordered_set>
 #include <vector>
 
@@ -258,9 +261,6 @@ static CampaignType Choose_Campaign(void);
 static void Init_Threads(void);
 void Draw_Version_Text(Surface * surface);
 void Version_Dialog(void);
-
-INT_PTR CALLBACK Rules_Choice_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
-INT_PTR CALLBACK Main_Menu_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 
 void Init_Random(void);
 
@@ -572,62 +572,6 @@ int Init_Game(int , char * [])
 	Init_Commands();
 
 	DebugString("Game Init Completed.\n");
-
-	return(0);
-}
-
-
-/// <summary>
-/// Handles the messages for the rules file choice dialog.
-/// This routine lists the name of every rules file that was found, and ends the dialog
-/// with the index of the one that the player settled upon.
-/// </summary>
-/// <remarks>The dialog must be created with the vector of rules files as its parameter.</remarks>
-static INT_PTR CALLBACK Rules_Choice_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
-{
-	char buffer[128];
-
-	switch (message) {
-		case WM_INITDIALOG: {
-			Center_Window_Within_Window(window);
-
-			DynamicVectorClass<CCINIClass*> * rules;
-			rules = (DynamicVectorClass<CCINIClass*> *)lparam;
-
-			HWND list = GetDlgItem(window, IDC_RULES_LIST);
-
-			for (int index = 0; index < rules->Count(); index++) {
-				(*rules)[index]->Get_String("General", "Name", "", buffer, sizeof(buffer));
-				ListBox_AddString(list, buffer);
-			}
-			ListBox_SetCurSel(list, 0);
-		}
-		break;
-
-		case WM_HELP:
-			On_WM_HELP(lparam);
-			break;
-
-		case WM_CONTEXTMENU:
-			On_WM_CONTEXTMENU(wparam);
-			break;
-
-		case WM_MOVING:
-			return(On_WM_MOVING(window, wparam, lparam));
-
-		case WM_COMMAND:
-			switch (LOWORD(wparam)) {
-				case IDCANCEL:
-				case IDC_RULES_OK:
-					if (HIWORD(wparam) == BN_CLICKED) {
-						HWND list = GetDlgItem(window, IDC_RULES_LIST);
-						EndDialog(window, ListBox_GetCurSel(list));
-						DestroyWindow(window);
-					}
-					break;
-			}
-			break;
-	}
 
 	return(0);
 }
