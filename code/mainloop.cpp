@@ -25,6 +25,7 @@
 #include "_tactica.h"
 #include "_timer.h"
 #include "_xmouse.h"
+#include "ui/uishell.h"
 #include "bench.h"
 #include "chat.h"
 #include "command.h"
@@ -279,6 +280,9 @@ bool Main_Loop(void)
 	*/
 	if (!Session.Play) {
 		if (SpecialDialog == SDLG_NONE && GameInFocus) {
+			// Documents that are not driven by a modal runner advance here, beside the
+			// input the rest of the screen is polled with.
+			UI_Tick();
 			Map.Input(input, x, y);
 			if (input) {
 				Keyboard_Process(input);

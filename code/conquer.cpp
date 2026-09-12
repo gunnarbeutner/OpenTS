@@ -66,6 +66,8 @@
 
 #include "conquer.h"
 
+#include "ui/uishell.h"
+
 #include "_keyboar.h"
 #include "_map.h"
 #include "_palette.h"
@@ -541,6 +543,10 @@ void Call_Back(void)
 	if (Session.Type == GAME_IPX || Session.Type == GAME_INTERNET) {
 		IPX_Call_Back();
 	}
+
+	// Every screen's wait reaches this routine, so it is where a document's layout and
+	// animation advance in a phase that has no loop of its own to tick them.
+	UI_Tick();
 }
 
 

@@ -144,6 +144,7 @@
 #include "vanim.h"
 #include "vanimtype.h"
 #include "vector.h"
+#include "ui/uishell.h"
 #include "video.h"
 #include "walk.h"
 #include "warhead.h"
@@ -217,6 +218,7 @@ void Reset_Surfaces(void)
 			VisibleSurface = NULL;
 		}
 
+		UI_Shutdown();
 		Video_Shutdown();
 
 		surfaces_reset = true;
@@ -481,6 +483,11 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 		DeploymentConfig.Read_File(Data_Directory().c_str());
 		Init_Search_Folders(DeploymentConfig.SearchPaths.c_str());
 
+		// The shipped UI documents, styles, and fonts. Registered after the deployment's own
+		// folders so that one of them can override a shipped file.
+		Init_Search_Folders("ui");
+		Init_Executable_Folder("ui");
+
 		// The recording's name was settled during static initialization, before there was
 		// anywhere for a player's files to go. Naming it again settles it where it belongs.
 		Session.RecordFile.Set_Name("RECORD.BIN");
@@ -558,6 +565,12 @@ int CALLBACK WinMain ( HINSTANCE instance , HINSTANCE , char * , int command_sho
 		while (!GameInFocus);
 
 		VisibleSurface->Fill(0);
+
+		// The shell needs the frame's destination, which Video_Init settled, and the game
+		// runs without it if it cannot start: a screen that has no RmlUi view is unaffected.
+		if (!UI_Init()) {
+			DebugString("UI: the shell is unavailable; only the legacy screens will open\n");
+		}
 
 		Rect sidebar_rect(0,0,SidebarClass::SIDE_WIDTH,VisibleRect.Height);
 		Rect tile_rect(0,0,VisibleRect.Width-sidebar_rect.Width, sidebar_rect.Height);
