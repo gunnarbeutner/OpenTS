@@ -1,0 +1,111 @@
+<rml>
+<!--
+	The template this replaces carried its labels as literal control text rather than as
+	string identifiers, so they stay literal here and a localized build ships a translated
+	copy of this document.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * The template is 229 by 196 dialog units at MS Sans Serif 8, which comes to 344 by
+		 * 318 logical pixels, and it was centred on the frame.
+		 */
+		#display
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -172dp;
+			margin-top: -159dp;
+			width: 344dp;
+			height: 318dp;
+			decorator: image(frame:344x318);
+		}
+
+		/* The two captions were centred text, each centred on its own line. */
+		.caption
+		{
+			position: absolute;
+			left: 33dp;
+			width: 278dp;
+			text-align: center;
+		}
+
+		#title
+		{
+			top: 19dp;
+			height: 15dp;
+			line-height: 15dp;
+		}
+
+		#label
+		{
+			top: 40dp;
+			height: 17dp;
+			line-height: 17dp;
+		}
+
+		#modes
+		{
+			position: absolute;
+			left: 33dp;
+			top: 60dp;
+			width: 278dp;
+			height: 179dp;
+		}
+
+		#stretch
+		{
+			position: absolute;
+			left: 33dp;
+			top: 248dp;
+			width: 278dp;
+			height: 17dp;
+			display: flex;
+			align-items: center;
+		}
+
+		#stretch label
+		{
+			display: block;
+			margin-left: 2dp;
+		}
+
+		#display button
+		{
+			position: absolute;
+			top: 276dp;
+			width: 93dp;
+			margin-left: 0;
+			decorator: image(button:u:93x24);
+		}
+
+		#display button:active:hover
+		{
+			decorator: image(button:d:93x24);
+		}
+
+		#ok { left: 33dp; }
+		#cancel { left: 217dp; }
+	</style>
+</head>
+<body>
+	<div id="display" class="dialog" data-model="display">
+		<div id="title" class="caption">Display Options:</div>
+		<div id="label" class="caption">Resolution Modes</div>
+
+		<div id="modes" class="list">
+			<p data-for="entry : Entries" data-class-picked="it_index == Current"
+				data-event-click="act('select', it_index)">{{entry.Name}}</p>
+		</div>
+
+		<div id="stretch">
+			<input type="checkbox" data-attrif-checked="Stretch" data-event-change="act('stretch')"/>
+			<label>Stretch movies to fit resolution</label>
+		</div>
+
+		<button id="ok" data-event-click="act('accept')">[[TXT_OK]]</button>
+		<button id="cancel" data-event-click="act('cancel')">[[TXT_CANCEL]]</button>
+	</div>
+</body>
+</rml>

@@ -50,6 +50,7 @@
 #include "queue.h"
 #include "session.h"
 #include "techno.h"
+#include "ui/uigamectrl.h"
 
 #include "special.hh"
 

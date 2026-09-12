@@ -9,8 +9,10 @@
 
 #pragma once
 
-bool Change_Display_Mode(int width, int height);
-void Main_Options_Dialog(void);
 
-// Asks the player to keep a display mode just set, and puts the old one back unless they do.
-bool Test_Display_Mode_Dialog(int width, int height);
+// Asks whether to abandon the mission, with the answers Abort_Dialog returns: IDOK to quit,
+// IDABORT to restart or surrender, IDCANCEL to carry on. A session that ends under the
+// screen answers IDOK, as the dialog did.
+//
+// False means the screen could not be prepared.
+bool UI_Abort_Screen(int & result);

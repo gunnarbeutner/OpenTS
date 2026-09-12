@@ -48,9 +48,11 @@ endorsed by Electronic Arts.
 - **Releases** are the recommended builds. Every release on the
   [releases page](https://github.com/OpenTS-Developers/OpenTS/releases) carries
   a zip per platform, `OpenTS-<version>-Win32.zip` and
-  `OpenTS-<version>-x64.zip`, each containing `Game.exe`, `Language.dll`, and
-  `Game.pdb`. The 32-bit build runs on both 32-bit and 64-bit Windows and has
-  the longer runtime history; the 64-bit build runs on 64-bit Windows only.
+  `OpenTS-<version>-x64.zip`, each containing `Game.exe`, `Game.pdb`, and the
+  `ui/` directory of screen documents. The 32-bit build runs on both 32-bit and
+  64-bit Windows and has the longer runtime history; the 64-bit build runs on
+  64-bit Windows only. The 0.1.0 zip has no `ui/` and carries the
+  `Language.dll` that release loads.
 - **Nightly builds** are development snapshots from the
   [Engine nightly](https://github.com/OpenTS-Developers/OpenTS/actions/workflows/engine-nightly.yml)
   workflow. Download the latest one without a GitHub account through

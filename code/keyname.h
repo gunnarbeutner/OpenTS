@@ -9,8 +9,9 @@
 
 #pragma once
 
-bool Change_Display_Mode(int width, int height);
-void Main_Options_Dialog(void);
+#include "keyboard.h"
 
-// Asks the player to keep a display mode just set, and puts the old one back unless they do.
-bool Test_Display_Mode_Dialog(int width, int height);
+
+// Spells out a key and its modifiers as "Alt+Ctrl+Shift+Key" in the buffer, which must hold
+// all four names; a key with no name leaves only the modifiers.
+void Build_Hotkey_String(KeyNumType key, char * buffer);

@@ -9,8 +9,11 @@
 
 #pragma once
 
-bool Change_Display_Mode(int width, int height);
-void Main_Options_Dialog(void);
 
-// Asks the player to keep a display mode just set, and puts the old one back unless they do.
-bool Test_Display_Mode_Dialog(int width, int height);
+// Runs the in-game options hub the way Game_Options_Dialog runs its dialog, from locking
+// out game input to restating the briefing or settling the mouse on the way out. A save,
+// load or delete in a single player game closes the hub while the save list is up and opens
+// it again afterwards, as the dialog hid itself.
+//
+// False means the screen could not be prepared the first time.
+bool UI_Game_Options_Screen(void);
