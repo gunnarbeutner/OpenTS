@@ -171,14 +171,9 @@
 #include <system_error>
 #include <vector>
 
-extern	HINSTANCE LanguageResources;
-
-#define APP_GUID "29e3bb2a-2f36-11d3-a72c-0090272fa661"
-#define AUTOPLAY_GUID "b350c6d2-2f36-11d3-a72c-0090272fa661"
-
-
-HANDLE AppMutex;
-HANDLE AutoPlayMutex;
+#if defined(_WIN32)
+#include <shellapi.h>
+#endif
 
 //WinTimerClass * WinTimer;
 

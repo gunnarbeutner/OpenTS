@@ -23,13 +23,13 @@
 #include "language/language.h"
 #include "lightcon.h"
 #include "mixfile.h"
-#include "ownrdraw.h"
 #include "scheme.h"
 #include "session.h"
 #include "shapeset.h"
 #include "surface.h"
 #include "voc.h"
-#include "windlg.h"
+
+#include "ui/uiprogress.h"
 
 #include <algorithm>
 
@@ -49,6 +49,7 @@ ProgressScreenClass::ProgressScreenClass(void)
 	Shape = NULL;
 	Background = NULL;
 	IsActive = false;
+	IsBox = false;
 	for (int i = 0; i < MAX_PLAYERS; i++) {
 		PlayerProgress[i] = 0;
 	}
@@ -83,7 +84,7 @@ void ProgressScreenClass::Initialize(double progress, int count, bool usedialog)
 	IsActive = true;
 
 	if (usedialog) {
-		if (Dialog == NULL) {
+		if (!IsBox) {
 			Begin_Dialog();
 		}
 	} else {
@@ -149,9 +150,6 @@ void ProgressScreenClass::Set_Graphic_Data(const char * progbar, const char * ba
 				}
 				rect.Width = rect.Width + 2;
 				rect.Height = rect.Height + 2;
-				if (PlayerCount == 1 && Dialog != 0) {
-					HiddenSurface->Draw_Rect(rect, NormalDrawer->Convert_Pixel(15));
-				}
 				if (PlayerCount != 1) {
 					pt.X = rect.X - 80;
 					pt.Y = rect.Y;
@@ -174,7 +172,12 @@ void ProgressScreenClass::Set_Graphic_Data(const char * progbar, const char * ba
 		}
 		Fancy_Text_Print(String, *HiddenSurface, HiddenSurface->Get_Rect(), pt, scheme, TBLACK, TextPrintType(TPF_FULLSHADOW|TPF_6PT_GRAD));
 	}
-	Update_Visible_Surface();
+
+	// The box draws nothing into the frame, and in a menu the hidden surface still holds
+	// whatever was composed there last, so showing it would put stale art on the screen.
+	if (!IsBox) {
+		Update_Visible_Surface();
+	}
 }
 
 
@@ -207,6 +210,13 @@ double ProgressScreenClass::Get_Current_Progress(void) const
 /// <remarks>Nothing is drawn until Initialize has been called.</remarks>
 void ProgressScreenClass::Display_Progress(Point2D xpt)
 {
+	if (IsBox) {
+		if (IsActive) {
+			UI_Progress_Set(Get_Current_Progress());
+		}
+		return;
+	}
+
 	static struct {
 		int Progress;
 		int Text;
@@ -224,13 +234,6 @@ void ProgressScreenClass::Display_Progress(Point2D xpt)
 	if (IsActive) {
 		Point2D pt = xpt;
 
-		Surface *surface;
-		if (Dialog == 0) {
-			surface = HiddenSurface;
-		} else {
-			surface = AlternateSurface;
-		}
-
 		ConvertClass * drawer = NormalDrawer;
 		for (int i = 0; i < PlayerCount; i++) {
 			if (PlayerProgress[i] > MainProgress) {
@@ -239,28 +242,20 @@ void ProgressScreenClass::Display_Progress(Point2D xpt)
 			if (Shape != NULL) {
 				if (pt == Point2D(-1,-1)) {
 					if (PlayerCount == 1) {
-						if (Dialog) {
-							RECT crect;
-							Get_Display_Rect(GetDlgItem(Dialog, IDC_PROGRESS_BAR_FRAME), &crect);
-							pt = Point2D(crect.left + (crect.right - crect.left) / 2, crect.top + (crect.bottom - crect.top) / 2);
-						} else {
-							int progress = PlayerProgress[i];
-							int percent = Percentage;
-							if (progress > percent) {
-								for (int j = 0; j < ARRAY_SIZE(_progress_messages); j++) {
-									if (_progress_messages[j].Progress <= progress && _progress_messages[j].Progress > percent) {
-										Fancy_Text_Print(Fetch_String(_progress_messages[j].Text), *HiddenSurface, HiddenSurface->Get_Rect(), Pos + Point2D(0, 10 * j), Fetch_Scheme_By_Name("Green"), 0, TextPrintType(TPF_NOSHADOW|TPF_EFNT));
-										Sound_Effect(VocClass::From_Name("Notify"), 0.4f);
-										Percentage = _progress_messages[j].Progress;
-										if (surface == HiddenSurface) {
-											Update_Visible_Surface();
-										}
-										break;
-									}
+						int progress = PlayerProgress[i];
+						int percent = Percentage;
+						if (progress > percent) {
+							for (int j = 0; j < ARRAY_SIZE(_progress_messages); j++) {
+								if (_progress_messages[j].Progress <= progress && _progress_messages[j].Progress > percent) {
+									Fancy_Text_Print(Fetch_String(_progress_messages[j].Text), *HiddenSurface, HiddenSurface->Get_Rect(), Pos + Point2D(0, 10 * j), Fetch_Scheme_By_Name("Green"), 0, TextPrintType(TPF_NOSHADOW|TPF_EFNT));
+									Sound_Effect(VocClass::From_Name("Notify"), 0.4f);
+									Percentage = _progress_messages[j].Progress;
+									Update_Visible_Surface();
+									break;
 								}
 							}
-							return;
 						}
+						return;
 					} else {
 						pt = Point2D(Pos.X, Pos.Y + (10 * i));
 						drawer = ColorSchemes[Session.Color_Index_To_Scheme(Session.Players[i]->Player.Color)]->Converter;
@@ -274,7 +269,7 @@ void ProgressScreenClass::Display_Progress(Point2D xpt)
 				rect.X = pt.X;
 				rect.Y = pt.Y;
 				Draw_Shape(
-					*surface,
+					*HiddenSurface,
 					*drawer,
 					Shape,
 					0,
@@ -286,9 +281,7 @@ void ProgressScreenClass::Display_Progress(Point2D xpt)
 			pt = Point2D(-1,-1);
 		}
 
-		if (surface == HiddenSurface) {
-			Update_Visible_Surface();
-		}
+		Update_Visible_Surface();
 	}
 }
 
@@ -318,11 +311,7 @@ void ProgressScreenClass::Set_Progress_Percent(int index, double value, Point2D 
 	PlayerProgress[index] = (MainProgress / 100.0) * value;
 
 	if (PlayerProgress[index] != prog1) {
-		if (Dialog != NULL) {
-			SendMessage(Dialog, WM_PAINT, 0, 0);
-		} else {
-			Display_Progress(pt);
-		}
+		Display_Progress(pt);
 	}
 }
 
@@ -341,62 +330,29 @@ void ProgressScreenClass::Add_Progress_Percent(int index, double value, Point2D 
 	PlayerProgress[index] += (MainProgress / 100.0) * value;
 
 	if (PlayerProgress[index] != prog1) {
-		if (Dialog != NULL) {
-			SendMessage(Dialog, WM_PAINT, 0, 0);
-		} else {
-			Display_Progress(pt);
-		}
+		Display_Progress(pt);
 	}
 }
 
 
 /// <summary>
-/// Creates the progress dialog.
-/// This routine brings up the owner draw progress dialog and gives it its first
-/// paint. Initialize() calls it when the caller asks for the dialog presentation
-/// rather than the full screen one.
+/// Shows the progress box, which Initialize asks for when the caller wants a box over the
+/// screen rather than the full screen presentation. The full screen presentation is drawn
+/// instead should the box not open.
 /// </summary>
 void ProgressScreenClass::Begin_Dialog(void)
 {
-	Dialog = OwnerDraw::Begin_Dialog(IDD_PROGRESS_WAIT, ProgressScreenClass::Dialog_Proc);
-	if (Dialog != NULL) {
-		SetWindowLongPtr(Dialog, DWLP_USER, (LONG_PTR)this);
-		OwnerDraw::Display_Dialog(Dialog);
-		SendMessage(Dialog, WM_PAINT, 0, 0);
-	}
+	IsBox = UI_Progress_Open();
 }
 
 
 /// <summary>
-/// Takes down the progress dialog.
-/// This routine is used when the progress screen is finished with the dialog
-/// presentation. It is harmless to call when no dialog was ever created.
+/// Takes down the progress box. Harmless when none was shown.
 /// </summary>
 void ProgressScreenClass::End_Dialog(void)
 {
-	if (Dialog != NULL) {
-		OwnerDraw::End_Dialog(Dialog);
-		Dialog = NULL;
+	if (IsBox) {
+		UI_Progress_Close();
+		IsBox = false;
 	}
-}
-
-
-/// <summary>
-/// Handles the messages sent to the progress dialog.
-/// This routine gives the owner draw default dialog procedure first refusal on every
-/// message, and repaints the progress display itself when a paint request comes back
-/// unhandled.
-/// </summary>
-/// <returns>Returns with the dialog result, zero if the message was left unhandled.</returns>
-INT_PTR CALLBACK ProgressScreenClass::Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
-{
-	INT_PTR res = OwnerDraw::Default_Dialog_Proc(window, message, wparam, lparam);
-	if (res == 0) {
-		if (message == WM_PAINT) {
-			ProgressScreenClass *screen = (ProgressScreenClass *)GetWindowLongPtr(window, DWLP_USER);
-			screen->Display_Progress();
-		}
-		res = 0;
-	}
-	return(res);
 }

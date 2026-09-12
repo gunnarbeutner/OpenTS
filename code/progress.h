@@ -45,8 +45,6 @@ class ProgressScreenClass
 
 		void Begin_Dialog(void);
 		void End_Dialog(void);
-	private:
-		static INT_PTR CALLBACK Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 
 	public:
 		/*
@@ -97,11 +95,11 @@ class ProgressScreenClass
 		char PlayerCount;
 
 		/*
-		 * Handle of the progress dialog, or NULL when the progress is presented on the full
-		 * screen instead. The dialog is used where the game must keep a window up while it
-		 * works rather than take the screen over.
+		 * Is the progress shown in a box over the screen rather than on the full screen? The
+		 * box is used where the game must keep what is on the screen while it works rather
+		 * than take the screen over.
 		 */
-		HWND Dialog;
+		bool IsBox;
 
 		/*
 		 * This is the center of the progress bar display, expressed in screen pixels. A job

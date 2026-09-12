@@ -129,7 +129,6 @@
 #include "newmenu.h"
 #include "overlay.h"
 #include "overtype.h"
-#include "ownrdraw.h"
 #include "partsys.h"
 #include "pcx.h"
 #include "preview.h"
@@ -735,7 +734,7 @@ bool Read_Scenario(char const * fname)
 
 	if (Scen->IsRandom) {
 		if (RandomMapGen.SeedData.Load(name)) {
-			RandomMapGen.Generate_Random_Map(false, NULL);
+			RandomMapGen.Generate_Random_Map(false);
 			Multiplayer_Last_Minute_Fixups();
 		} else {
 			state = ScenarioState::NotRead;

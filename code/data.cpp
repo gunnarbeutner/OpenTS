@@ -35,15 +35,12 @@
 
 #include "always.h"
 
-#include <windows.h>
-
 #include "data.h"
 
+#include "languagestrings.h"
+#include "opents_version.h"
 #include "utf8.h"
 
-#include <new.h>
-
-HINSTANCE LanguageResources;
 
 /***********************************************************************************************
  * Load_Alloc_Data -- Allocates a buffer and loads the file into it.                           *
@@ -178,15 +175,6 @@ int Load_Uncompress(FileClass & file, Buffer & uncomp_buff, Buffer & dest_buff, 
 }
 
 
-struct SRecord {
-	int ID;						// ID number of the string resource.
-	int TimeStamp;				// 'Time' that this string was last requested.
-	char String[2048];			// Copy of string resource.
-
-	SRecord(void) : ID(-1), TimeStamp(-1) {}
-};
-
-
 /***********************************************************************************************
  * Fetch_String -- Fetches a string resource.                                                  *
  *                                                                                             *
@@ -203,93 +191,10 @@ struct SRecord {
  *=============================================================================================*/
 char const * Fetch_String(int id)
 {
-	static SRecord _buffers[128];
-	static int _time = 0;
-
-	/*
-	**	Determine if the string ID requested is valid. If not then return an empty string pointer.
-	*/
 	if (id == -1 || id == TXT_NONE) return("");
 
-	/*
-	**	Adjust the 'time stamp' tracking value. This is an artificial value used merely to track
-	**	the relative age of the strings requested.
-	*/
-	_time = _time+1;
-
-	/*
-	**	Check to see if the requested string has already been fetched into a buffer. If so, then
-	**	return a pointer to that string (update the time stamp as well).
-	*/
-	for (int index = 0; index < ARRAY_SIZE(_buffers); index++) {
-		if (_buffers[index].ID == id) {
-			_buffers[index].TimeStamp = _time;
-			return(_buffers[index].String);
-		}
-	}
-
-	/*
-	**	Find a suitable buffer to hold the string to be fetched. The buffer should either be
-	**	empty or have the oldest fetched string.
-	*/
-	int oldest = -1;
-	int oldtime = -1;
-	for (int text = 0; text < ARRAY_SIZE(_buffers); text++) {
-		if (oldest == -1 || oldtime > _buffers[text].TimeStamp) {
-			oldest = text;
-			oldtime = _buffers[text].TimeStamp;
-			if (oldtime == -1 || _buffers[text].ID == -1) break;
-		}
-	}
-
-	/*
-	**	A suitable buffer has been found so fetch the string resource and then return a pointer
-	**	to the string.
-	*/
-	char * stringptr = _buffers[oldest].String;
-	_buffers[oldest].ID = id;
-	_buffers[oldest].TimeStamp = _time;
-
-	if (LanguageResources == NULL) {
-		Init_Language_Resources(false);
-	}
-
-	if (LoadString(LanguageResources, id, stringptr, sizeof(_buffers[oldest].String)) == 0) {
-		return("");
-	}
-	stringptr[sizeof(_buffers[oldest].String)-1] = '\0';
-
-	// Windows before 10 version 1903 ignores the manifest and narrows to its own code page.
-	if (GetACP() != CP_UTF8) {
-		std::string text = UTF8::From_Windows_1252(stringptr);
-		UTF8::Copy(stringptr, sizeof(_buffers[oldest].String), text.c_str());
-	}
-	return(stringptr);
-}
-
-
-/// <summary>
-/// Fetches a raw resource from the language library.
-/// This routine locates the named resource and locks it down so that the caller may read
-/// straight out of it. The data stays mapped for as long as the library is loaded, so
-/// there is nothing to release afterwards.
-/// </summary>
-/// <param name="resname">Name or identifier of the resource to fetch.</param>
-/// <param name="restype">Type of the resource to fetch.</param>
-/// <returns>Returns with a pointer to the resource data. Otherwise, NULL is returned.</returns>
-void const * Fetch_Resource(LPCSTR resname, LPCSTR restype)
-{
-	HRSRC handle = FindResource(LanguageResources, resname, restype);
-	if (handle == NULL) {
-		return(NULL);
-	}
-
-	HGLOBAL rhandle = LoadResource(LanguageResources, handle);
-	if (rhandle == NULL) {
-		return(NULL);
-	}
-
-	return(LockResource(rhandle));
+	char const * const text = Language_String((unsigned int)id);
+	return(text != nullptr ? text : "");
 }
 
 
@@ -341,102 +246,15 @@ void * Hires_Load(FileClass & file)
 
 
 /// <summary>
-/// Loads the language resource library.
-/// This routine brings in the library that every localized string and resource is fetched
-/// from. It may be called as often as convenient -- the library is only loaded the first
-/// time. If asked to, it will tell the player to reinstall when the library is missing.
-/// </summary>
-/// <param name="show_error">Should the player be told when the library cannot be loaded?</param>
-/// <returns>bool; Are the language resources available?</returns>
-bool Init_Language_Resources(bool show_error)
-{
-	if (LanguageResources == NULL) {
-
-		LanguageResources = LoadLibrary("Language.dll");
-
-		if (LanguageResources == NULL) {
-
-			if (show_error == true) {
-				MessageBox(NULL,
-					"Unable to initialize Language.dll, please reinstall Tiberian Sun.\n"
-					"Keine Initialisierung von Language.DLL m\xF6glich. Bitte installieren Sie Tiberian Sun erneut.\n"
-					"Initialisation de Language.DLL impossible. Veuillez r\xE9installer Tiberian Sun.",
-					"Tiberian Sun",
-					MB_ICONERROR);
-
-			}
-
-			return(false);
-		}
-	}
-
-	return(true);
-}
-
-
-/// <summary>
-/// Fetches a description of the language pack in use.
-/// This routine composes a readable line naming the localized data set and its version,
-/// taken from the version resource of the language library. It is used when reporting the
-/// build the player is running. The string is left empty if the library is absent or
-/// carries no version information of its own.
+/// Fills the buffer with a line naming the language pack and its version, for the version
+/// information screen. The text is the same on every target and does not depend on whether
+/// the language resources have loaded.
 /// </summary>
 /// <param name="version_string">Buffer to fill in with the description.</param>
 /// <remarks>Be sure that the destination buffer is big enough to hold the composed text.</remarks>
 void Get_Language_Version(char *version_string)
 {
-	INT dwSize;
-	LPVOID pFileInfo;
-	UINT puInfoLen;
-	LPCTSTR pcData;
-	DWORD dwHandle;
-
-	struct LANGANDCODEPAGE {
-		WORD wLanguage;
-		WORD wCodePage;
-	} *pvInfo;
-
-	char szQuery[128];
-	char szFile[MAX_PATH];
-
-	if (version_string != NULL) {
-		version_string[0] = '\0';
-
-		if (LanguageResources != NULL && GetModuleFileName(LanguageResources, szFile, sizeof(szFile)) > 0) {
-
-			dwHandle = 1;
-			dwSize = GetFileVersionInfoSize(szFile, &dwHandle);
-
-			if (dwSize > 0) {
-				pFileInfo = new char[dwSize];
-
-				if (pFileInfo != NULL) {
-					if (GetFileVersionInfo(szFile, dwHandle, dwSize, pFileInfo)) {
-
-						VerQueryValue(pFileInfo, TEXT("\\VarFileInfo\\Translation"), (LPVOID *)&pvInfo, &puInfoLen);
-
-						if (puInfoLen > 0) {
-
-							sprintf(szQuery, TEXT("\\StringFileInfo\\%04X%04X\\InternalName"), pvInfo->wLanguage, pvInfo->wCodePage);
-							VerQueryValue(pFileInfo, szQuery, (LPVOID *)&pcData, &puInfoLen);
-
-							if (puInfoLen > 0) {
-
-								sprintf(version_string, "Language: %s ", pcData);
-								sprintf(szQuery, TEXT("\\StringFileInfo\\%04X%04X\\FileVersion"), pvInfo->wLanguage, pvInfo->wCodePage);
-
-								VerQueryValue(pFileInfo, szQuery, (LPVOID *)&pcData, &puInfoLen);
-
-								if (puInfoLen > 0) {
-									strcat(version_string, pcData);
-								}
-							}
-						}
-					}
-
-					delete [] pFileInfo;
-				}
-			}
-		}
+	if (version_string != nullptr) {
+		strcpy(version_string, "Language: English Resources " OPENTS_VERSION);
 	}
 }

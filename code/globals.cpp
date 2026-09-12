@@ -251,8 +251,6 @@ bool AllowVoice = true;
 int Frame = 0;
 
 
-int _dialog_count = 0;
-
 
 /***************************************************************************
 **	These globals are constantly monitored to determine if the player

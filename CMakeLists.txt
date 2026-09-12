@@ -123,7 +123,6 @@ add_custom_target(OpenTSStringNames DEPENDS "${OPENTS_STRING_NAME_HEADER}")
 # macOS builds with clang against POSIX rather than the Windows SDK.
 add_subdirectory(thirdparty)
 add_subdirectory(code)
-add_subdirectory(code/language)
 
 enable_testing()
 add_subdirectory(tests)

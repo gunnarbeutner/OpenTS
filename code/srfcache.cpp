@@ -17,8 +17,8 @@
 
 #include "ccfile.h"
 #include "dsurface.h"
-#include "ownrdraw.h"
 #include "pcx.h"
+#include "sheettext.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -695,7 +695,7 @@ bool SurfaceCacheClass::DrawMasked(Rect const & rect, Surface & tosurface, Surfa
 					int count = image_width - right_clip - src_x;
 					do {
 						if (*mptr != 0) {
-							*dptr = OD_Blend_Color(*dptr, *sptr, *mptr);
+							*dptr = Sheet_Blend_Pixel(*dptr, *sptr, *mptr);
 						}
 						dptr++;
 						mptr++;
@@ -710,7 +710,7 @@ bool SurfaceCacheClass::DrawMasked(Rect const & rect, Surface & tosurface, Surfa
 				int count = image_width - right_clip - src_x;
 				do {
 					if (*mptr != 0) {
-						*dptr = OD_Blend_Color(*dptr, pal16[(unsigned char)mptr[source_delta]], *mptr);
+						*dptr = Sheet_Blend_Pixel(*dptr, pal16[(unsigned char)mptr[source_delta]], *mptr);
 					}
 					dptr++;
 					mptr++;

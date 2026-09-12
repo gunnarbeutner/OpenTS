@@ -31,7 +31,6 @@
 #include "mixfile.h"
 #include "msgbox.h"
 #include "newmenu.h"
-#include "ownrdraw.h"
 #include "sidebar.h"
 #include "sounddlg.h"
 #include "stimer.h"
@@ -44,11 +43,7 @@
 #include "color.hh"
 
 
-INT_PTR CALLBACK Main_Options_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
-INT_PTR CALLBACK Display_Options_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 bool Change_Display_Mode(int width, int height);
-bool Test_Display_Mode_Dialog(int width, int height);
-INT_PTR CALLBACK Test_Display_Mode_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 
 GameOptionsClass TempOptions;
 
@@ -65,30 +60,13 @@ void Main_Options_Dialog(void)
 	bool old_game_active = GameActive;
 	GameActive = false;
 
-	HWND main_handle;
-	LONG main_rc;
-
-	HWND in_handle;
-	LONG in_rc;
+	int main_rc;
+	int in_rc;
 
 	while (true) {
 		do {
 			main_rc = -1;
-			main_handle = OwnerDraw::Begin_Dialog(IDD_OPT_MAIN, Main_Options_Dialog_Proc);
-		} while (main_handle == 0);
-		SetWindowLongPtr(main_handle, DWLP_USER, (LONG_PTR)&main_rc);
-
-		OwnerDraw::Move_Dialog(main_handle, -1, (HiddenSurface->Get_Height() - 400) / 2 + 147);
-		OwnerDraw::Display_Dialog(main_handle);
-
-		while (main_rc < 0) {
-			if (OwnerDraw::Dialog_Message_Handler() == true) {
-				break;
-			}
-			Title_Screen_Restore();
-		}
-
-		OwnerDraw::End_Dialog(main_handle);
+		} while (!UI_Main_Options_Screen(main_rc));
 
 		switch (main_rc) {
 			case IDC_OPTMAIN_SOUND:
@@ -100,21 +78,9 @@ void Main_Options_Dialog(void)
 					do {
 						TempOptions = Options;
 						in_rc = -1;
-						in_handle = OwnerDraw::Begin_Dialog(IDD_OPT_DISPLAY, Display_Options_Dialog_Proc);
-					} while (in_handle == 0);
-					SetWindowLongPtr(in_handle, DWLP_USER, (LONG_PTR)&in_rc);
-					OwnerDraw::Display_Dialog(in_handle);
+					} while (!UI_Display_Options_Screen(TempOptions, in_rc));
 
-					while (in_rc < 0) {
-						if (OwnerDraw::Dialog_Message_Handler() == true) {
-							break;
-						}
-						Title_Screen_Restore();
-					}
-
-					OwnerDraw::End_Dialog(in_handle);
-
-					if (in_rc != 1) {
+					if (in_rc != DIALOG_OK) {
 						break;
 					}
 					if (TempOptions.ScreenWidth == Options.ScreenWidth && TempOptions.ScreenHeight == Options.ScreenHeight) {
@@ -148,40 +114,6 @@ void Main_Options_Dialog(void)
 				return;
 		}
 	}
-}
-
-
-/// <summary>
-/// Handles the main options dialog.
-/// This routine reports the button the player pressed back to the options dialog driver so
-/// that it can bring up the appropriate sub dialog. The sound button is disabled when there
-/// is no audio hardware to talk to.
-/// </summary>
-INT_PTR CALLBACK Main_Options_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
-{
-	int *result;
-	HWND handle;
-
-	INT_PTR rc = OwnerDraw::Default_Dialog_Proc(window, message, wparam, lparam);
-	if (rc == 0) {
-		result = (int *)GetWindowLongPtr(window, DWLP_USER);
-		switch (message) {
-
-			case WM_COMMAND:
-				*result = LOWORD(wparam);
-				break;
-
-			case WM_INITDIALOG:
-				handle = GetDlgItem(window, IDC_OPTMAIN_SOUND);
-				if (handle) {
-					EnableWindow(handle, AudioEngine.Is_Available());
-				}
-				break;
-
-		}
-		return(0);
-	}
-	return(rc);
 }
 
 
@@ -250,36 +182,7 @@ bool Change_Display_Mode(int width, int height)
 	 * frame is scaled into them instead.
 	 */
 	if (WindowedMode && Options.WindowWidth <= 0 && Options.WindowHeight <= 0) {
-		RECT windowrect;
-		SetRect(&windowrect, 0, 0, width, height);
-		AdjustWindowRectEx(&windowrect, GetWindowLong(MainWindow, GWL_STYLE), FALSE, GetWindowLong(MainWindow, GWL_EXSTYLE));
-
-		int newwidth = windowrect.right - windowrect.left;
-		int newheight = windowrect.bottom - windowrect.top;
-
-		/*
-		 * The window grows about its middle rather than its corner, so the picture stays
-		 * where the player was looking.
-		 */
-		RECT current;
-		GetWindowRect(MainWindow, &current);
-		int x = current.left + (((current.right - current.left) - newwidth) / 2);
-		int y = current.top + (((current.bottom - current.top) - newheight) / 2);
-
-		/*
-		 * Growing about the middle can push the window past the edges of the screen, and a
-		 * title bar above the top of it cannot be grabbed to bring the window back.
-		 */
-		MONITORINFO monitor;
-		monitor.cbSize = sizeof(monitor);
-		if (GetMonitorInfo(MonitorFromWindow(MainWindow, MONITOR_DEFAULTTONEAREST), &monitor)) {
-			if (x + newwidth > monitor.rcWork.right) x = monitor.rcWork.right - newwidth;
-			if (y + newheight > monitor.rcWork.bottom) y = monitor.rcWork.bottom - newheight;
-			if (x < monitor.rcWork.left) x = monitor.rcWork.left;
-			if (y < monitor.rcWork.top) y = monitor.rcWork.top;
-		}
-
-		SetWindowPos(MainWindow, NULL, x, y, newwidth, newheight, SWP_NOZORDER);
+		Host_Fit_Window_To_Frame(width, height);
 	}
 
 	Rect temp = VisibleRect;
@@ -290,10 +193,6 @@ bool Change_Display_Mode(int width, int height)
 
 	Allocate_Surfaces(VisibleRect, Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, temp.Width, VisibleRect.Height), Rect(0, 0, SidebarClass::SIDE_WIDTH, VisibleRect.Height));
 	LogicalSurface = HiddenSurface;
-
-	if (MouseCursor != NULL) {
-		((WWMouseClass*)MouseCursor)->Calc_Confining_Rect();
-	}
 
 	Map.Set_View_Dimensions(temp);
 
@@ -342,173 +241,16 @@ bool Test_Display_Mode_Dialog(int width, int height)
 	Show_Mouse();
 	Draw_Menu_Background();
 
-	HWND dialog = OwnerDraw::Begin_Dialog(IDD_OPT_CONFIRM_MODE, Test_Display_Mode_Dialog_Proc);
-	if (dialog) {
-		SetWindowLongPtr(dialog, DWLP_USER, (LONG_PTR)&rc);
-		OwnerDraw::Display_Dialog(dialog);
-
-		CDTimerClass<SystemTimerClass> timer = 10 * TIMER_SECOND;
-		while (rc < 0) {
-			if (OwnerDraw::Dialog_Message_Handler() == true) {
-				break;
-			}
-			Title_Screen_Restore();
-			if (timer <= 0) {
-				PostMessage(dialog, WM_COMMAND, WM_DESTROY, 0);
-				timer = 5 * TIMER_SECOND;
-			}
-		}
-
-		OwnerDraw::End_Dialog(dialog);
-		if (rc != IDOK) {
-			DebugString("Resetting display mode @ %dx%d\n", Options.ScreenWidth, Options.ScreenHeight);
-			Change_Display_Mode(Options.ScreenWidth, Options.ScreenHeight);
-			LogicalSurface = HiddenSurface;
-			return(false);
-		}
+	// A confirmation that could not be shown keeps the mode, as a dialog that could not be
+	// created did.
+	if (UI_Mode_Confirm_Screen(rc) && rc != DIALOG_OK) {
+		DebugString("Resetting display mode @ %dx%d\n", Options.ScreenWidth, Options.ScreenHeight);
+		Change_Display_Mode(Options.ScreenWidth, Options.ScreenHeight);
+		LogicalSurface = HiddenSurface;
+		return(false);
 	}
 
 	DebugString("Keeping display mode @ %dx%d\n", width, height);
 	LogicalSurface = HiddenSurface;
 	return(true);
-}
-
-
-/// <summary>
-/// Handles the mode confirmation dialog.
-/// This routine records the button the player pressed so that the mode test can tell
-/// whether the new resolution was accepted or rejected.
-/// </summary>
-INT_PTR CALLBACK Test_Display_Mode_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
-{
-	int * result;
-	int id;
-
-	INT_PTR rc = OwnerDraw::Default_Dialog_Proc(window, message, wparam, lparam);
-	if (rc == 0) {
-		result = (int *)GetWindowLongPtr(window, DWLP_USER);
-		switch (message) {
-			case WM_COMMAND:
-				id = LOWORD(wparam);
-				if (id > 0 && id <= IDCANCEL) {
-					*result = LOWORD(wparam);
-				}
-				break;
-		}
-		return(0);
-	}
-	return(rc);
-}
-
-
-/// <summary>
-/// Handles the display options dialog messages.
-/// This routine fills the resolution list with the display modes the hardware reports,
-/// remembers which one the player picked, and tracks the movie stretching preference. The
-/// chosen resolution is staged in the temporary options so that it can be tested before
-/// being made permanent.
-/// </summary>
-static __forceinline BOOL Display_Options_Dialog_Body(HWND window, UINT message, WPARAM wparam)
-{
-	enum {
-		MIN_WIDTH = 640,
-		MIN_HEIGHT = 400,
-		MAX_WIDTH = 4096,
-		MAX_HEIGHT = 4096,
-	};
-
-	static int * _modes = NULL;
-	static int _current_mode = -1;
-	static int _previous_mode = -1;
-	static bool _initialized = true;
-
-	int * result = (int *)GetWindowLongPtr(window, DWLP_USER);
-	switch (message) {
-		case WM_COMMAND:
-			switch (LOWORD(wparam)) {
-				default:
-					return(0);
-
-				case IDC_DISPLAY_RESLIST: {
-					HWND list = GetDlgItem(window, IDC_DISPLAY_RESLIST);
-					_current_mode = ListBox_GetCurSel(list);
-				}
-				return(0);
-
-				case IDOK: {
-					if (_previous_mode != _current_mode) {
-						Center_Window_Within_Window(window, MainWindow);
-						HWND list = GetDlgItem(window, IDC_DISPLAY_RESLIST);
-						if (list) {
-							int index = ListBox_GetItemData(list, _current_mode);
-							int * modes = &_modes[2 * index];
-							TempOptions.ScreenWidth = modes[0];
-							TempOptions.ScreenHeight = modes[1];
-						}
-					}
-					HWND button = GetDlgItem(window, IDC_STRETCH_MOVIES);
-					if (button) {
-						Options.StretchMovies = Button_GetCheck(button) == BST_CHECKED;
-					}
-				}
-				break;
-
-				case IDCANCEL:
-					break;
-			}
-			delete [] _modes;
-			*result = LOWORD(wparam);
-			break;
-
-		case WM_INITDIALOG: {
-			HWND list = GetDlgItem(window, IDC_DISPLAY_RESLIST);
-			_modes = EnumDisplayModes(MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT);
-			int * modes = _modes;
-			int item_index = 0;
-			int initial_mode = -1;
-			int mode_index = 0;
-			if (modes != NULL) {
-				while (*modes != 0) {
-					int width = *modes++;
-					int height = *modes++;
-					if (width == TempOptions.ScreenWidth && height == TempOptions.ScreenHeight) {
-						initial_mode = mode_index;
-					}
-					char buffer[64];
-					sprintf(buffer, "%d x %d", width, height);
-					int index = ListBox_AddString(list, buffer);
-					ListBox_SetItemData(list, index, item_index);
-					mode_index++;
-					item_index++;
-				}
-			}
-			ListBox_SetCurSel(list, initial_mode);
-			_initialized = true;
-			_current_mode = initial_mode;
-			_previous_mode = initial_mode;
-
-			HWND button = GetDlgItem(window, IDC_STRETCH_MOVIES);
-			if (button) {
-				Button_SetCheck(button, Options.StretchMovies != false);
-			}
-		}
-		break;
-
-	}
-	return(0);
-}
-
-
-/// <summary>
-/// Handles the display options dialog.
-/// This routine gives the owner draw dialog system first refusal on the message and only
-/// deals with what it leaves behind.
-/// </summary>
-INT_PTR CALLBACK Display_Options_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
-{
-	INT_PTR rc = OwnerDraw::Default_Dialog_Proc(window, message, wparam, lparam);
-	if (rc == 0) {
-		return(Display_Options_Dialog_Body(window, message, wparam));
-	}
-	return(rc);
 }

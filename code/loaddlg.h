@@ -40,7 +40,7 @@
 #include <cstddef>
 #include <cstdint>
 
-template<class T> class DynamicVectorClass;
+struct PlatformFileInfoType;
 
 class FileEntryClass {
 	public:
@@ -108,14 +108,6 @@ class LoadOptionsClass
 		virtual bool Read_File(FileEntryClass * entry, PlatformFileInfoType const * ff);
 
 	protected:
-		/*
-		**	Internal routines
-		*/
-		void Clear_List (void);                                     // clears the list & game # array
-		void Fill_List (HWND window);                               // fills the list & game # array
-		int Num_From_Ext (char *fname);                             // translates filename to file #
-		static int __cdecl Compare(const void *p1, const void *p2); // for qsort()
-
 		bool Dialog(void);
 
 		// How many of the newest files the list reads headers for; reading one costs a disk open.
@@ -123,17 +115,6 @@ class LoadOptionsClass
 
 		// The box a completed save confirms itself with, or TXT_NONE when it reports elsewhere.
 		virtual int Save_Confirmation(void) const;
-
-		/*
-		 * These handlers are members so that they can reach the dialog's protected data.
-		 */
-		static void Load_Dialog_On_WM_COMMAND(HWND window, WPARAM wparam, LPARAM lparam, int id);
-		static void Save_Dialog_On_WM_COMMAND(HWND window, WPARAM wparam, LPARAM lparam, int id);
-		static void Delete_Dialog_On_WM_COMMAND(HWND window, WPARAM wparam, LPARAM lparam, int id);
-
-		static INT_PTR CALLBACK Load_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
-		static INT_PTR CALLBACK Save_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
-		static INT_PTR CALLBACK Delete_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 
 		/*
 		**	This is the requested style of the dialog
@@ -179,15 +160,6 @@ class LoadOptionsClass
 			STATE_OK		= DIALOG_OK,		// OK pressed (confirmed action)
 			STATE_CLOSE		= DIALOG_CANCEL	/// Closed via ESC / system event
 		} State;
-
-		/*
-		**	This is an array of pointers to FileEntryClass objects.  These objects
-		**	are allocated on the fly as files are found, and pointers to them are
-		**	added to the vector list.  Thus, all the objects must be free'd before
-		**	the vector list is cleared.  This list is used for sorting the files
-		**	by date/time.
-		*/
-		DynamicVectorClass<FileEntryClass *> Files;
 };
 
 
