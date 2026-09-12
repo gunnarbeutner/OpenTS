@@ -41,6 +41,7 @@
 #include "always.h"
 
 #include "cdfile.h"
+#include "globals.h"
 #include "mixfile.h"
 #include "platform/file.h"
 #include "platform/filehint.h"
@@ -157,6 +158,10 @@ void CDFileClass::Prefetch(char const * filename, PrefetchType how)
 	static int const _head = 2 * 1024 * 1024;
 
 	if (filename == NULL || *filename == '\0') return;
+
+	// A prefetch is not a read, so a capture must not record it as one.
+
+	// A profile has already fetched every run it names.
 
 	// Mixfile lookup uppercases what it is given, and the caller's name may be
 	// a literal.

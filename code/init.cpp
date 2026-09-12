@@ -2413,9 +2413,6 @@ static bool Init_Secondary_Mixfiles(void)
 
 	DebugStringNoPrefix(" SCORES.MIX");
 
-	if (ScoresMix == NULL) {
-		return(false);
-	}
 
 	if (CCFileClass("SCORES01.MIX").Is_Available()) {
 		Scores01Mix = Register_Mixfile("SCORES01.MIX", PREFETCH_STREAMED);

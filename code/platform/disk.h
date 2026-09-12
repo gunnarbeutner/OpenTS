@@ -12,5 +12,6 @@
 #include <cstdint>
 
 // The bytes free to this process on the volume holding a directory; null or empty names the
-// current one.
+// current one. A page answers with what its origin's storage quota leaves, which is the
+// nearest real figure it has.
 bool Platform_Free_Space(char const * directory, std::uint64_t & bytes);

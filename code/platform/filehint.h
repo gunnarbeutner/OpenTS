@@ -7,9 +7,10 @@
  * See LICENSE.md for applicable additional terms and warranty disclaimers.
  ******************************************************************************/
 
-// Advice for a file that a mounted image serves. Where no image answers for a name the calls
-// do nothing, which is always the case on Windows. PlatformFileClass::Hint does the same for
-// an open file.
+// Advice for a file that a mounted image serves, which is how the WebAssembly target reads
+// archives it has not fetched yet. Where no image answers for a name the calls do nothing,
+// which is always the case on Windows. PlatformFileClass::Hint does the same for an open
+// file.
 
 #pragma once
 

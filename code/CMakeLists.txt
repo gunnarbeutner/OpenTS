@@ -62,9 +62,9 @@ foreach(f ${OPENTS_RAW})
         set(EXCLUDED TRUE)
     endif()
 
-    # The POSIX file layer reads mounted images through the block source, so on those
-    # targets it goes into the platform library; its headers stay beside the engine's
-    # because cdfile.h includes them on every toolchain.
+    # The file layer reads a page's archives through the block source, so on the targets
+    # that have a page it goes into the platform library; its headers stay beside the
+    # engine's because cdfile.h includes them on every toolchain.
     if(OPENTS_POSIX AND f MATCHES "/blocksource\\.cpp$")
         set(EXCLUDED TRUE)
     endif()
@@ -247,7 +247,8 @@ add_dependencies(OpenTS OpenTSBuildStamp)
 
 # The platform layer: files, directory searches, free space and file times, with a Windows
 # and a POSIX implementation that each guard themselves. It is compiled with the engine's
-# own options.
+# own options. On a page, what it needs from the manifest and the host's yield resolves in
+# the executable that links it.
 file(GLOB OPENTS_PLATFORM_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/platform/*.cpp")
 add_library(OpenTSPlatform STATIC ${OPENTS_PLATFORM_SOURCES})
 if(OPENTS_POSIX)

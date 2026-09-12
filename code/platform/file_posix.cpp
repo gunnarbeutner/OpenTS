@@ -8,7 +8,9 @@
  ******************************************************************************/
 
 // The file layer over POSIX, for the targets that have no Win32 API. It mirrors
-// file_win32.cpp; where the two differ it is because the host does.
+// file_win32.cpp; where the two differ it is because the host does. On a page it also
+// carries what a browser adds: the persistent directory and the manifest of archives the
+// page serves.
 
 #include "always.h"
 
@@ -18,6 +20,12 @@
 #include "platform/filehint.h"
 
 #include "blocksource.h"
+
+#if defined(__EMSCRIPTEN__)
+#include "manifest.h"
+
+#include <emscripten.h>
+#endif
 
 #include <dirent.h>
 #include <errno.h>
@@ -108,6 +116,34 @@ std::string Resolve_Case(std::string const & translated)
 }
 
 
+// Only this directory is mounted on IndexedDB and survives the page. It stands in front of
+// the game directory, so a name that exists as game data still resolves to the game data.
+#define PERSISTENT_DIRECTORY "/save"
+
+std::string const & Persistent_Root(void)
+{
+	static std::string const root = []() -> std::string {
+		struct stat info;
+
+		if (::stat(PERSISTENT_DIRECTORY, &info) == 0 && S_ISDIR(info.st_mode)) {
+			return(PERSISTENT_DIRECTORY "/");
+		}
+
+		return(std::string());
+	}();
+
+	return(root);
+}
+
+
+bool Is_Persistent(std::string const & path)
+{
+	std::string const & root = Persistent_Root();
+
+	return(!root.empty() && path.compare(0, root.size(), root) == 0);
+}
+
+
 std::string Forward_Slashes(char const * path)
 {
 	std::string translated((path != nullptr) ? path : "");
@@ -119,9 +155,80 @@ std::string Forward_Slashes(char const * path)
 }
 
 
+// A relative path is looked for in the persistent directory, then the game directory, and
+// one in neither resolves into the persistent directory, so a file about to be created lands
+// where it survives the tab. The whole relative path is carried across because saves sit in
+// a folder of their own.
 std::string Host_Path(char const * path)
 {
-	return(Resolve_Case(Forward_Slashes(path)));
+	std::string const translated = Forward_Slashes(path);
+	std::string const & root = Persistent_Root();
+
+	if (!root.empty() && !translated.empty() && translated.front() != '/') {
+		std::string const persistent = root + translated;
+
+		// The caller's spelling is tried in both directories before either is matched
+		// without regard to case.
+		if (Path_Present(persistent)) return(persistent);
+		if (Path_Present(translated)) return(translated);
+
+		std::string const matched = Resolve_Case(persistent);
+		if (Path_Present(matched)) return(matched);
+
+		std::string const local = Resolve_Case(translated);
+		if (Path_Present(local)) return(local);
+
+		return(persistent);
+	}
+
+	return(Resolve_Case(translated));
+}
+
+
+// IndexedDB is reached asynchronously, so the transfer starts here and finishes on its own;
+// the page counts completions for an automated check to wait on.
+bool PersistentDirty = false;
+
+
+void Note_Change(std::string const & path)
+{
+	if (Is_Persistent(path)) PersistentDirty = true;
+}
+
+
+void Flush_Persistent_Storage(void)
+{
+	if (!PersistentDirty) return;
+	PersistentDirty = false;
+
+#if defined(__EMSCRIPTEN__)
+	MAIN_THREAD_EM_ASM({
+		if (typeof FS === "undefined") return;
+
+		var again = function () {
+			FS.syncfs(false, function (error) {
+				if (error) {
+					console.error("OpenTS: writing persistent storage failed: " + error);
+				}
+				Module.OpenTS_Syncs = (Module.OpenTS_Syncs || 0) + 1;
+
+				if (Module.OpenTS_SyncAgain) {
+					Module.OpenTS_SyncAgain = false;
+					again();
+				} else {
+					Module.OpenTS_SyncRunning = false;
+				}
+			});
+		};
+
+		if (Module.OpenTS_SyncRunning) {
+			Module.OpenTS_SyncAgain = true;
+		} else {
+			Module.OpenTS_SyncRunning = true;
+			again();
+		}
+	});
+#endif
 }
 
 
@@ -173,10 +280,14 @@ std::shared_ptr<BlockFileClass> Image_Entry(char const * filename, BlockEntryCla
 		character = (char)::toupper((unsigned char)character);
 	}
 
-	// A host with a filesystem mounts no image, so nothing answers beneath it.
+#if defined(__EMSCRIPTEN__)
+	return(Manifest_Find(leaf.c_str(), entry));
+#else
+	// The manifest belongs to the page; a host with a filesystem has nothing beneath it.
 	(void)leaf;
 	(void)entry;
 	return(nullptr);
+#endif
 }
 
 
@@ -269,13 +380,62 @@ struct MatchType
 };
 
 
+bool Already_Matched(std::vector<MatchType> const & matches, char const * name)
+{
+	for (MatchType const & already : matches) {
+		if (::strcasecmp(already.Name.c_str(), name) == 0) return(true);
+	}
+	return(false);
+}
+
+
+// The persistent directory joins a search of the game directory it stands in front of; a
+// name the game directory already answered is left alone, matching the order Host_Path
+// resolves a bare name in.
+void Persistent_Matches(std::string const & directory, std::string const & leaf, std::vector<MatchType> & matches)
+{
+	std::string const & root = Persistent_Root();
+	if (root.empty() || !directory.empty()) return;
+
+	DIR * const scan = ::opendir(root.c_str());
+	if (scan == nullptr) return;
+
+	for (struct dirent * item = ::readdir(scan); item != nullptr; item = ::readdir(scan)) {
+		if (!Match_Wildcard(leaf.c_str(), item->d_name)) continue;
+		if (Already_Matched(matches, item->d_name)) continue;
+
+		MatchType match;
+		match.Name = item->d_name;
+		matches.push_back(std::move(match));
+	}
+
+	::closedir(scan);
+}
+
+
 // The manifest joins a search of the root only, since it carries no directories, and a name
 // already answered is left alone so a search reports the copy an open reaches.
 void Image_Matches(std::string const & directory, std::string const & leaf, std::vector<MatchType> & matches)
 {
+#if !defined(__EMSCRIPTEN__)
 	(void)directory;
 	(void)leaf;
 	(void)matches;
+#else
+	std::string inside;
+	if (!Image_Path(directory.c_str(), inside) || !inside.empty()) return;
+
+	for (std::string const & name : Manifest_List_Files()) {
+		if (!Match_Wildcard(leaf.c_str(), name.c_str())) continue;
+		if (Already_Matched(matches, name.c_str())) continue;
+
+		MatchType match;
+		match.Name = name;
+
+		if (!Manifest_Find(name.c_str(), match.Image)) continue;
+		matches.push_back(std::move(match));
+	}
+#endif
 }
 
 
@@ -363,6 +523,10 @@ bool PlatformFileClass::Open(char const * path, PlatformOpenType mode)
 
 	State = std::make_unique<StateType>();
 	State->Descriptor = descriptor;
+
+	if (mode != PlatformOpenType::READ) {
+		Note_Change(host);
+	}
 	return(true);
 }
 
@@ -380,6 +544,7 @@ bool PlatformFileClass::Close(void)
 	}
 
 	State.reset();
+	Flush_Persistent_Storage();
 	return(closed);
 }
 
@@ -585,7 +750,15 @@ bool Platform_Remove_File(char const * path)
 		return(false);
 	}
 
-	return(::unlink(Host_Path(path).c_str()) == 0);
+	std::string const host = Host_Path(path);
+
+	if (::unlink(host.c_str()) != 0) {
+		return(false);
+	}
+
+	Note_Change(host);
+	Flush_Persistent_Storage();
+	return(true);
 }
 
 
@@ -599,7 +772,14 @@ bool Platform_Replace_File(char const * source, char const * target)
 	std::string const from = Host_Path(source);
 	std::string const to = Host_Path(target);
 
-	return(::rename(from.c_str(), to.c_str()) == 0);
+	if (::rename(from.c_str(), to.c_str()) != 0) {
+		return(false);
+	}
+
+	Note_Change(from);
+	Note_Change(to);
+	Flush_Persistent_Storage();
+	return(true);
 }
 
 
@@ -652,6 +832,8 @@ bool Platform_Copy_File(char const * source, char const * target)
 	::close(from);
 	if (::close(into) != 0) copied = false;
 
+	Note_Change(to);
+	Flush_Persistent_Storage();
 	return(copied);
 }
 
@@ -711,6 +893,8 @@ std::vector<PlatformFileInfoType> Platform_Find_Files(char const * pattern)
 			::closedir(scan);
 		}
 	}
+
+	Persistent_Matches(requested, leaf, matches);
 
 	// The image is searched under the caller's spelling, since the two filesystems answer
 	// for case separately.

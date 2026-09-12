@@ -138,3 +138,6 @@ add_subdirectory(keyname)
 add_subdirectory(movieformat)
 
 # These exercise the WebAssembly target's own layers, so their harnesses build only there.
+if(EMSCRIPTEN)
+    add_subdirectory(httpsource)
+endif()
