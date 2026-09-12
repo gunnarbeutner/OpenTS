@@ -82,9 +82,23 @@ set(OPENTS_COMMIT_DIRTY 0)
 
 find_package(Git QUIET)
 
+# A build that cannot reach the repository can still be told where it came from: a container
+# build copies the tree without .git, so the caller passes what git would have answered.
+if(OPENTS_STAMP_COMMIT)
+    set(OPENTS_COMMIT "${OPENTS_STAMP_COMMIT}")
+    if(OPENTS_STAMP_BRANCH)
+        set(OPENTS_BRANCH "${OPENTS_STAMP_BRANCH}")
+    endif()
+    if(OPENTS_STAMP_DATE)
+        set(OPENTS_COMMIT_DATE "${OPENTS_STAMP_DATE}")
+    endif()
+    if(OPENTS_STAMP_DIRTY)
+        set(OPENTS_COMMIT_DIRTY 1)
+    endif()
+
 # A build from a source archive has no repository, and git need not be installed at all.
 # Neither is an error; the banner simply reports what it does not know.
-if(GIT_FOUND AND EXISTS "${OPENTS_SOURCE_DIR}/.git")
+elseif(GIT_FOUND AND EXISTS "${OPENTS_SOURCE_DIR}/.git")
 
     execute_process(
         COMMAND "${GIT_EXECUTABLE}" rev-parse --short HEAD

@@ -1,0 +1,37 @@
+# The build directories are large, are rebuilt inside the image anyway, and one of them
+# holds a mounted disc image. Keeping them out of the context is what makes the build quick.
+[Bb]uild/
+[Bb]uild-*/
+
+# Game data belongs to whoever runs the image, never to the image itself. assets/ is the
+# default OPENTS_ASSETS mount point for an OpenTS-Assets "build/web" tree; compose.yaml
+# mounts it read only at run time and it must never enter the build context.
+Run/
+*.iso
+/assets/
+
+# The engine signing key reaches the build only through --mount=type=secret, never the
+# context, so `COPY . .` can never fold it into a layer. The same goes for anything else
+# holding a credential: tauri/.env carries signing and notarisation values, and a build
+# that cannot see it cannot bake it into one.
+.sigkey
+*.sigkey
+.env
+*/.env
+
+# Published installers. nginx serves these from a read-only mount at run time, the way it
+# does the asset tree, so the image has no use for them either.
+/downloads/
+
+# The native shell, which this image neither builds nor serves. It is by far the largest
+# thing in the tree, and every change under it would otherwise invalidate `COPY . .` and
+# rebuild the whole engine.
+tauri/
+
+.git/
+.github/
+.vscode/
+.cursor/
+.claude/
+manual/
+docs/
