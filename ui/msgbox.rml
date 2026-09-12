@@ -1,0 +1,91 @@
+<rml>
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * The template this replaces is 260 by 84 dialog units at MS Sans Serif 8, which is
+		 * about 390 by 137 logical pixels, and it was centred on the frame.
+		 */
+		#msgbox
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -195dp;
+			margin-top: -68dp;
+			width: 390dp;
+			height: 137dp;
+			decorator: image(frame:390x137);
+		}
+
+		/*
+		 * The template centred its text in a 324 by 62 pixel box at the top. The text is
+		 * wrapped in an element of its own because a flex container lays out its element
+		 * children and leaves a bare text node undrawn.
+		 */
+		#text
+		{
+			position: absolute;
+			left: 28dp;
+			top: 14dp;
+			width: 334dp;
+			height: 62dp;
+			text-align: center;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		/*
+		 * The three button slots sat at 33, 150 and 267 pixels, each 90 wide, so a row of
+		 * three keeps the template's spacing and a shorter row is centred, which is what
+		 * the dialog did by moving its one button to the middle slot.
+		 */
+		.buttons
+		{
+			position: absolute;
+			left: 28dp;
+			right: 28dp;
+			top: 94dp;
+			margin-top: 0;
+			display: flex;
+			justify-content: center;
+		}
+
+		.buttons.spread
+		{
+			justify-content: space-between;
+		}
+
+		/* A message can carry line breaks, which the dialog honoured. */
+		#text p
+		{
+			display: block;
+			width: 100%;
+			text-align: center;
+			white-space: pre-line;
+		}
+
+		.buttons button
+		{
+			width: 90dp;
+			margin-left: 8dp;
+			margin-right: 8dp;
+			decorator: image(button:u:90x24);
+		}
+
+		.buttons button:active:hover
+		{
+			decorator: image(button:d:90x24);
+		}
+	</style>
+</head>
+<body>
+	<div id="msgbox" class="dialog" data-model="msgbox">
+		<div id="text"><p>{{Message}}</p></div>
+		<div class="buttons" data-class-spread="Spread">
+			<button data-for="button : Buttons" data-action="button"
+				data-attr-data-identity="button.Index">{{button.Text}}</button>
+		</div>
+	</div>
+</body>
+</rml>
