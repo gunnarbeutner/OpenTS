@@ -23,13 +23,13 @@
 #include "msfont.h"
 #include "newmenu.h"
 #include "netshare.h"
-#include "ownrdraw.h"
 #include "pcx.h"
 #include "session.h"
 #include "theme.h"
 #include "vector.h"
 #include "wdtnet.h"
 #include "worlddom.h"
+#include "wwmouse.h"
 
 typedef VectorClass<Point2D> POINT2D_LIST;
 
@@ -1115,7 +1115,7 @@ bool WDT_Select_Campaign(Campaign * campaign, bool vq_anim)
 /// </summary>
 void Selection::Start(void)
 {
-	OwnerDraw::Capture_Mouse();
+	Menu_Capture_Mouse();
 	if (ThemeName != NULL) {
 		Theme.Play_Song(Theme.From_Name(ThemeName));
 		Theme.Set_Repeat(true);
@@ -1145,7 +1145,7 @@ void Selection::End(void)
 	AlternateSurface->Fill(0);
 	Draw_Menu_Background();
 	Show_Mouse();
-	OwnerDraw::Release_Mouse();
+	Menu_Release_Mouse();
 }
 
 
