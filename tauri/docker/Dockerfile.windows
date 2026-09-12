@@ -1,0 +1,32 @@
+FROM rust:1.90-bookworm
+
+# Cross-compiling for Windows without Visual Studio: cargo-xwin fetches the MSVC CRT and
+# Windows SDK headers from Microsoft and links against them with clang and lld, and NSIS
+# packages the result. XWIN_ACCEPT_LICENSE is the caller's acceptance of Microsoft's terms
+# for those headers; they are linked against here and not redistributed.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+		build-essential \
+		ca-certificates \
+		clang \
+		curl \
+		llvm \
+		lld \
+		nodejs \
+		npm \
+		nsis \
+		pkg-config \
+		tar \
+	&& rm -rf /var/lib/apt/lists/*
+
+RUN rustup target add x86_64-pc-windows-msvc
+RUN cargo install cargo-xwin --locked
+
+# The npm CLI ships a prebuilt binary for the image's architecture, which the cargo one
+# would spend the length of a second build compiling.
+RUN npm install -g @tauri-apps/cli@2.11.4 && npm cache clean --force
+
+COPY build-windows.sh /usr/local/bin/build-windows
+RUN chmod +x /usr/local/bin/build-windows
+
+WORKDIR /work
+ENTRYPOINT ["/usr/local/bin/build-windows"]

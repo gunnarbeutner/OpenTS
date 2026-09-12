@@ -73,3 +73,7 @@ manual/data/.manual-generate-*/
 /downloads/
 
 # Deployment credentials: the Cloudflare purge token deploy.py reads
+/.env
+
+# Signing and notarisation values for tauri/build.sh, which are per-developer secrets
+/tauri/.env
