@@ -151,6 +151,17 @@ add_dependencies(OpenTS OpenTSBuildStamp)
 # The platform layer: files, directory searches, free space and file times, with a Windows
 # and a POSIX implementation that each guard themselves. It is compiled with the engine's
 # own options.
+file(GLOB OPENTS_PLATFORM_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/platform/*.cpp")
+add_library(OpenTSPlatform STATIC ${OPENTS_PLATFORM_SOURCES})
+target_compile_features(OpenTSPlatform PUBLIC cxx_std_20)
+target_include_directories(OpenTSPlatform PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_compile_options(OpenTSPlatform PRIVATE ${OPENTS_COMPILE_OPTIONS})
+target_compile_definitions(OpenTSPlatform PRIVATE NOMINMAX)
+target_link_libraries(OpenTS PRIVATE OpenTSPlatform)
+
+# The tactical caption draws with FreeType directly, as well as through RmlUi.
+target_link_libraries(OpenTS PRIVATE freetype)
+
 # Only the renderer's own translation unit sees bgfx, so its headers and the shaders it
 # embeds are put on that file rather than on the whole target.
 set(BGFX_ROOT "${CMAKE_SOURCE_DIR}/thirdparty/bgfx.cmake/bgfx")

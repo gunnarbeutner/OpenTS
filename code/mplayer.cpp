@@ -46,13 +46,47 @@
 #include "dialogresult.h"
 #include "init.h"
 #include "msgbox.h"
-#include "ownrdraw.h"
 #include "session.h"
 #include "ui/uimenus.h"
 
 class ListClass;
 
-INT_PTR CALLBACK Select_MPlayer_Game_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
+
+// Only the network and skirmish buttons lead anywhere; any other command backs out.
+static GameType MPlayer_Game_For(int command)
+{
+	switch (command) {
+		case IDC_NETWORK:
+			return(GAME_IPX);
+
+		case IDC_SKIRMISH:
+			return(GAME_SKIRMISH);
+
+		default:
+			return(GAME_NORMAL);
+	}
+}
+
+
+static bool Select_MPlayer_Game_Screen(bool firestorm, int & command)
+{
+	// Neither the online service the first two led to nor the tour it hosted can be reached.
+	UIMenuRequest request;
+	request.Document = "mpgame.rml";
+	request.Variant = firestorm ? "fs" : nullptr;
+	request.Choices = {
+		{ "internet", IDC_INTERNET, false },
+		{ "worlddom", IDC_WORLDDOM, false },
+		{ "modem", IDC_MODEMSERIAL },
+		{ "network", IDC_NETWORK },
+		{ "skirmish", IDC_SKIRMISH },
+		{ "back", DIALOG_CANCEL },
+	};
+	request.KeysAnswer = true;
+
+	return(UI_Menu_Screen(request, command));
+}
+
 
 /// <summary>
 /// Prompts the player for which kind of multiplayer game to start.
@@ -66,93 +100,15 @@ GameType Select_MPlayer_Game (void)
 		return(retval);
 	}
 
-	HWND dialog;
-
-	if (Addon_Installed(ADDON_FIRESTORM) == ADDON_FIRESTORM) {
-		dialog = OwnerDraw::Begin_Dialog(IDD_MPLAYER_SELECT_GAME_FS, Select_MPlayer_Game_Dialog_Proc);
-	} else {
-		dialog = OwnerDraw::Begin_Dialog(IDD_MPLAYER_SELECT_GAME, Select_MPlayer_Game_Dialog_Proc);
-	}
-
-
-	if (dialog) {
-
-		int rc;
-		SetWindowLongPtr(dialog, DWLP_USER, (LONG_PTR)&rc);
-
-		bool process = true;
-		while (process) {
-			OwnerDraw::Move_Dialog(dialog, -1, (HiddenSurface->Get_Height() - 400) / 2 + 147);
-			OwnerDraw::Display_Dialog(dialog);
-			rc = -1;
-			while (rc == -1) {
-				if (OwnerDraw::Dialog_Message_Handler() == true) {
-					break;
-				}
-				Title_Screen_Restore();
-			}
-
-			ShowWindow(dialog, SW_HIDE);
-			UpdateWindow(MainWindow);
-			switch (rc) {
-				case IDC_NETWORK:
-					retval = GAME_IPX;
-					break;
-				case IDC_SKIRMISH:
-					retval = GAME_SKIRMISH;
-					break;
-				default:
-					retval = GAME_NORMAL;
-					process = false;
-					break;
-			}
-			if (retval != GAME_NORMAL) {
-				break;
-			}
-		}
-
-		OwnerDraw::End_Dialog(dialog);
+	// A menu that could not be shown backs out, as a dialog that could not be created did,
+	// and so does a session that ended under it.
+	int command = -1;
+	if (Select_MPlayer_Game_Screen(Addon_Installed(ADDON_FIRESTORM) == ADDON_FIRESTORM, command)) {
+		retval = MPlayer_Game_For(command);
 		Session.Read_Scenario_Descriptions();
 	}
 	return(retval);
 }	/* end of Select_MPlayer_Game */
-
-
-/// <summary>
-/// Handles the messages for the multiplayer game type dialog.
-/// </summary>
-/// <returns>Returns with the result of the ownerdraw handler, or false when the message was
-/// left unhandled.</returns>
-INT_PTR CALLBACK Select_MPlayer_Game_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
-{
-	int * retval;
-	HWND handle;
-
-	INT_PTR rc = OwnerDraw::Default_Dialog_Proc(window, message, wparam, lparam);
-
-	if (message == WM_INITDIALOG) {
-		// Neither the online service these led to nor the tour it hosted can be reached,
-		// so the buttons are left on the dialog but never answer.
-		handle = GetDlgItem(window, IDC_INTERNET);
-		if (handle) {
-			EnableWindow(handle, FALSE);
-		}
-		handle = GetDlgItem(window, IDC_WORLDDOM);
-		if (handle) {
-			EnableWindow(handle, FALSE);
-		}
-	}
-
-	if (rc != 0) {
-		return(rc);
-	}
-
-	if (message == WM_COMMAND) {
-		retval = (int *)GetWindowLongPtr(window, DWLP_USER);
-		*retval = LOWORD(wparam);
-	}
-	return(false);
-}
 
 
 /***************************************************************************

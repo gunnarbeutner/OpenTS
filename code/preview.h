@@ -11,7 +11,6 @@
 
 #include "point.h"
 
-#include <windows.h>
 
 class Surface;
 class XSurface;
@@ -31,7 +30,6 @@ public:
 	bool Read_INI_Preview(char const * filename);
 
 	void Create_Preview(void);
-	void Blit_Preview(HWND window);
 
 	unsigned * Create_Paletted_Preview(int, int & size);
 	void Create_Preview_Surface(char * buffer);

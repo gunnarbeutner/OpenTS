@@ -84,7 +84,8 @@ jobs:
           engine=Game
           if [ "${{ matrix.configuration }}" = "Debug" ]; then engine=GameD; fi
           built=build/bin/${{ matrix.configuration }}
-          cp "${built}/${engine}.exe" "${built}/${engine}.pdb" "${built}/Language.dll" artifact/
+          cp "${built}/${engine}.exe" "${built}/${engine}.pdb" artifact/
+          cp -R "${built}/ui" artifact/ui
           cp LICENSE.md THIRD_PARTY_NOTICES.md artifact/
           mkdir -p artifact/OpenTS_THIRD_PARTY_LICENSES
           cp thirdparty/bgfx.cmake/bgfx/LICENSE artifact/OpenTS_THIRD_PARTY_LICENSES/bgfx.txt
