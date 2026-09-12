@@ -303,10 +303,8 @@ void SessionClass::One_Time(void)
 {
 	//Read_MultiPlayer_Settings();
 
-	// A client-launched game names its scenario outright and never shows the map list.
-	if (!Spawner_Is_Requested()) {
-		Read_Scenario_Descriptions();
-	}
+	// The scenario list is not built here. Every screen that shows it reads it first, and
+	// reading it opens each map for its digest.
 
 	UniqueID = Compute_Unique_ID();
 	DebugString("Session one time init. UniqueID is %08x\n", UniqueID);
