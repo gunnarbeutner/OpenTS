@@ -15,6 +15,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <lzo/lzo1x.h>
 
 #include <lzo/lzo1x.h>
 

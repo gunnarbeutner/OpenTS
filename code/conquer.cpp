@@ -130,11 +130,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <direct.h>
-#include <dos.h>
-#include <fcntl.h>
-#include <io.h>
-#include <share.h>
 #include <span>
 
 

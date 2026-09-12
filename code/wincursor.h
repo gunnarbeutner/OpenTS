@@ -7,14 +7,12 @@
  * See LICENSE.md for applicable additional terms and warranty disclaimers.
  ******************************************************************************/
 
-// The mouse pointer, as a real Windows cursor built from the game's own shapes.
+// The mouse pointer, as the host's own cursor built from the game's shapes.
 //
-// Windows composites it over the presented frame, so pointing the mouse costs nothing:
+// The host composites it over the presented frame, so pointing the mouse costs nothing:
 // the cursor never touches a game surface and moving it needs no new frame.
 
 #pragma once
-
-#include "win.h"
 
 class ShapeSet;
 

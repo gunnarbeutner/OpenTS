@@ -20,10 +20,9 @@
 #include "video.h"
 #include "win.h"
 
-#include <windowsx.h>
-
 #include <commctrl.h>
 #include <windows.h>
+#include <windowsx.h>
 
 
 BOOL CALLBACK Resize_Dialog(HWND window, LPARAM lParam);

@@ -11,6 +11,7 @@
 
 #include "win.h"
 
+#include <windows.h>
 #include <windowsx.h>
 
 

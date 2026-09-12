@@ -9,18 +9,18 @@
 
 #include "always.h"
 
-#include <windowsx.h>
-
 #include "netshare.h"
 
 #include "_rules.h"
 #include "conquer.h"
 #include "data.h"
 #include "dbgprint.h"
+#include "dialogresult.h"
 #include "globals.h"
 #include "goptions.h"
 #include "ipxmgr.h"
 #include "language/language.h"
+#include "lobbymsg.h"
 #include "lzopipe.h"
 #include "lzostraw.h"
 #include "mapgen.h"
@@ -46,15 +46,15 @@
 #include <ctime>
 
 
-const COLORREF ColorSystem     = RGB(255, 255, 255)|(255<<24);  /// 0xFFFFFFFF
-const COLORREF ColorUser       = RGB(240, 240, 0);              /// 0x0000F0F0
-const COLORREF ColorPriv       = RGB(128, 128, 255);            /// 0x00FF8080
-const COLORREF ColorPrivAction = RGB(255, 0, 255);              /// 0x00FF00FF
-const COLORREF ColorAction     = RGB(255, 80, 48);              /// 0x003050FF
-const COLORREF ColorOp         = RGB(0, 255, 255);              /// 0x00FFFF00
-const COLORREF ColorPaged      = RGB(255, 255, 255);            /// 0x00FFFFFF
-const COLORREF ColorMe         = RGB(255, 255, 64);             /// 0x0040FFFF
-const COLORREF ColorNoJoin     = RGB(128, 128, 128);            /// 0x00808080
+const std::uint32_t ColorSystem     = Lobby_Color(255, 255, 255)|(255<<24);  /// 0xFFFFFFFF
+const std::uint32_t ColorUser       = Lobby_Color(240, 240, 0);              /// 0x0000F0F0
+const std::uint32_t ColorPriv       = Lobby_Color(128, 128, 255);            /// 0x00FF8080
+const std::uint32_t ColorPrivAction = Lobby_Color(255, 0, 255);              /// 0x00FF00FF
+const std::uint32_t ColorAction     = Lobby_Color(255, 80, 48);              /// 0x003050FF
+const std::uint32_t ColorOp         = Lobby_Color(0, 255, 255);              /// 0x00FFFF00
+const std::uint32_t ColorPaged      = Lobby_Color(255, 255, 255);            /// 0x00FFFFFF
+const std::uint32_t ColorMe         = Lobby_Color(255, 255, 64);             /// 0x0040FFFF
+const std::uint32_t ColorNoJoin     = Lobby_Color(128, 128, 128);            /// 0x00808080
 
 /*
  * If the host is forcing a color reassignment, then this flag will be true. It is set when
