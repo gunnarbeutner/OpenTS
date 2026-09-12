@@ -48,6 +48,7 @@
 #include "isotype.h"
 #include "laser.h"
 #include "layer.h"
+#include "mainwindow.h"
 #include "mixfile.h"
 #include "mouse.h"
 #include "overtype.h"
@@ -60,6 +61,7 @@
 #include "sun.h"
 #include "terrain.h"
 #include "terrtype.h"
+#include "ui/uicaption.h"
 #include "vector.h"
 #include "vein.h"
 #include "waypoint.h"
@@ -562,7 +564,7 @@ void Tactical::Wipe_Depth(bool fullredraw, int xoff, int yoff, Rect const & clip
 			pixel += Point2D(ISO_TILE_PIXEL_W, ISO_TILE_PIXEL_H) / -2;
 			pixel += TacticalRect.TopLeft;
 
-			if (MainWindow) {
+			if (Has_Main_Window()) {
 				CellRedraw[i]->Wipe_Depth(pixel, cliprect);
 			}
 		}
@@ -849,7 +851,7 @@ void Tactical::Render_Shroud(Rect const & xpanrect, Rect const & ypanrect, Rect 
 			pixel += Point2D(ISO_TILE_PIXEL_W, ISO_TILE_PIXEL_H) / -2;
 			pixel += TacticalRect.TopLeft;
 
-			if (MainWindow) {
+			if (Has_Main_Window()) {
 				CellRedraw[i]->Draw_Shroud_And_Fog(pixel, cliprect);
 			}
 			AlphaShapeClass::Draw_In_Area(pixel, cliprect);
@@ -1356,10 +1358,8 @@ void Tactical::Clear_Caption_Text(void)
 
 
 /// <summary>
-/// Draws a line of text across the middle of the tactical view.
-/// This routine paints straight onto the composite surface with GDI, so it does nothing
-/// unless that surface can hand out a device context. It also stays quiet while the map
-/// editor is running.
+/// Draws a line of text across the middle of the tactical view, and nothing
+/// while the map editor is running.
 /// </summary>
 /// <param name="text">The text to display. A NULL or empty string draws nothing.</param>
 void Tactical::Draw_Screen_Text(char const * text)
@@ -1370,23 +1370,7 @@ void Tactical::Draw_Screen_Text(char const * text)
 	if (text == NULL || !strlen(text)) {
 		return;
 	}
-	if (CompositeSurface->Is_GDI_Backed()) {
-		DSurface * surface = (DSurface *)CompositeSurface;
-		Rect rect = TacticalRect;
-		HDC hdc = surface->GetDC();
-		if (hdc != NULL) {
-			HFONT font = CreateFont(28, 20, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, ANSI_CHARSET, OUT_RASTER_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY, FF_SWISS | DEFAULT_PITCH, NULL);
-			HGDIOBJ h = SelectObject(hdc, font);
-			Point2D point = Point2D(TacticalRect.Width / 2, TacticalRect.Height / 2);
-			SetBkMode(hdc, TRANSPARENT);
-			SetTextAlign(hdc, TA_CENTER);
-			SetTextColor(hdc, RGB(255, 255, 255));
-			TextOut(hdc, rect.X + point.X, rect.Y + point.Y, text, strlen(text));
-			SelectObject(hdc, h);
-			DeleteObject(font);
-			surface->ReleaseDC(hdc);
-		}
-	}
+	UI_Draw_Caption(*CompositeSurface, TacticalRect, text);
 }
 
 
@@ -2167,7 +2151,7 @@ void Tactical::Draw_Shroud(Rect const & area)
 
 	Cell base(origin.X - 2, origin.Y);
 
-	if (MainWindow != NULL) {
+	if (Has_Main_Window()) {
 		int ix, iy;
 		for (iy = 0; iy < ycount; iy++) {
 			Cell step(iy / 2, (iy + 1) / 2);
@@ -2760,7 +2744,7 @@ void Tactical::Draw_Objects(bool forced)
 				 * cached and must render here. Under the fog it stays hidden -- the fog
 				 * layer shows it as the player last saw it.
 				 */
-				if (MainWindow && !Debug_Map && Map.Is_Fogged(obj->PositionCoord)) {
+				if (Has_Main_Window() && !Debug_Map && Map.Is_Fogged(obj->PositionCoord)) {
 					continue;
 				}
 				obj->Render(TacticalRect, forced, false);
@@ -2775,7 +2759,7 @@ void Tactical::Draw_Objects(bool forced)
 				 * already given itself away.
 				 */
 				AnimClass * anim = (AnimClass *)obj;
-				if (MainWindow && !Debug_Map && Map.Is_Fogged(anim->Center_Coord())
+				if (Has_Main_Window() && !Debug_Map && Map.Is_Fogged(anim->Center_Coord())
 					&& !anim->IsBuildingAnim && anim->Class->IsShouldFogRemove) {
 					continue;
 				}
@@ -2798,7 +2782,7 @@ void Tactical::Draw_Objects(bool forced)
 					 * A unit that has slipped back under the fog of war is not drawn at
 					 * all. What the player remembers of it is drawn by the fog layer.
 					 */
-					if (MainWindow && !Debug_Map && Scen->Special.IsFogOfWar && Map.Is_Fogged(obj->PositionCoord)) {
+					if (Has_Main_Window() && !Debug_Map && Scen->Special.IsFogOfWar && Map.Is_Fogged(obj->PositionCoord)) {
 						continue;
 					}
 				}
@@ -3544,7 +3528,7 @@ void Tactical::Draw_Waypoints(bool inshroud)
 				Draw_Shape(*LogicalSurface, *MouseDrawer, mouseshapes, frame, cursor, TacticalRect, (ShapeFlags_Type)(SHAPE_CENTER | SHAPE_WIN_REL));
 
 				static char buffer[4];
-				sprintf(buffer, "%d", index);
+				snprintf(buffer, sizeof(buffer), "%d", index);
 				Point2D label(pixel.X - 1, pixel.Y - (TacticalRect.Y + 1) - 25);
 				Simple_Text_Print(buffer, *LogicalSurface, TacticalRect, label, ColorSchemes[coloridx], 0, (TextPrintType)(TPF_CENTER | TPF_EFNT), 1);
 			}
