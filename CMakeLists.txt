@@ -26,9 +26,14 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
             "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/clang-cl-msvc.cmake.")
     endif()
 elseif(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    # The native macOS target is in progress and unsupported; docs/BUILDING.md records
-    # its state.
-    set(OPENTS_MACOS ON)
+    # The native macOS and iOS targets are in progress and unsupported; docs/BUILDING.md
+    # records their state.
+    if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+        set(OPENTS_IOS ON)
+        include(cmake/IOS.cmake)
+    else()
+        set(OPENTS_MACOS ON)
+    endif()
 elseif(MSVC)
     if(MSVC_VERSION LESS 1930)
         message(FATAL_ERROR "OpenTS requires MSVC 19.30 or newer.")
@@ -59,7 +64,7 @@ if(NOT OPENTS_ARCH)
 endif()
 
 # Only the Windows toolchains have a resource compiler.
-if(NOT OPENTS_MACOS)
+if(NOT APPLE)
     enable_language(RC)
 endif()
 
@@ -127,20 +132,24 @@ add_custom_command(
 
 add_custom_target(OpenTSStringNames DEPENDS "${OPENTS_STRING_NAME_HEADER}")
 
-# macOS builds with clang against POSIX rather than the Windows SDK.
-if(OPENTS_MACOS)
+# The Apple targets build with clang against POSIX rather than the Windows SDK.
+if(APPLE)
     set(OPENTS_POSIX ON)
 endif()
 
-# The SDL host in code/sdlhost.cpp answers code/hostwindow.h on macOS, which puts the
-# executable back into the default build.
-if(OPENTS_MACOS)
+# The SDL host in code/sdlhost.cpp answers code/hostwindow.h on both Apple targets, which
+# puts the executable back into the default build.
+if(APPLE)
     set(OPENTS_HOST sdl)
 endif()
 
 add_subdirectory(thirdparty)
 add_subdirectory(code)
 
-enable_testing()
+# The harnesses are console programs with no bundle, and nothing runs them on a device or a
+# simulator.
+if(NOT OPENTS_IOS)
+    enable_testing()
 
-add_subdirectory(tests)
+    add_subdirectory(tests)
+endif()

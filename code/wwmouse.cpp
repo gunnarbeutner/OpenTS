@@ -339,6 +339,12 @@ void WWMouseClass::Convert_Coordinate(int & x, int & y) const
 }
 
 
+bool WWMouseClass::Is_Hovering(void) const
+{
+	return(Host_Pointer_Is_Hovering());
+}
+
+
 /***********************************************************************************************
  * WWMouseClass::Get_Bounded_Position -- Fetches the mouse position from the O/S.              *
  *                                                                                             *

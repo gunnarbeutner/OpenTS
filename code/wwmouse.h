@@ -90,6 +90,8 @@ class WWMouseClass : public Mouse {
 		virtual int Get_Mouse_Y(void) const override {int x; int y; Get_Bounded_Position(x, y); return(y);}
 		virtual Point2D Get_Mouse_Point(void) const override {int x; int y; Get_Bounded_Position(x, y); return(Point2D(x, y));}
 
+		virtual bool Is_Hovering(void) const override;
+
 		/*
 		**	Converts window client coordinates into game coordinates.
 		*/

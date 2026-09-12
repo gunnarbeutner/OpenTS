@@ -172,7 +172,8 @@ usual.
 > verified only by the harnesses named below.
 
 The build accepts Apple clang on macOS alongside MSVC. The top-level
-`CMakeLists.txt` sets `OPENTS_MACOS` for it, and with it `OPENTS_POSIX`, which
+`CMakeLists.txt` sets `OPENTS_MACOS` for it, or `OPENTS_IOS` where
+`CMAKE_SYSTEM_NAME` is `iOS`, and either way `OPENTS_POSIX`, which
 compiles the engine with clang against POSIX and the C++ standard library; no
 Windows SDK header is on the include path, and `WIN32` and `_WINDOWS` are
 defined only for a Windows build. macOS is LP64, where Win32 x86 is ILP32.
@@ -186,8 +187,9 @@ link. On a POSIX target the library also carries `code/blocksource.cpp`, which
 the file layer reads a mounted image's archives through.
 
 A POSIX target links the executable only when a host answers
-`code/hostwindow.h` and names itself by setting `OPENTS_HOST`. On macOS that is
-the SDL host in [the section below](#macos-in-progress-and-unsupported); a POSIX
+`code/hostwindow.h` and names itself by setting `OPENTS_HOST`. On both Apple
+targets that is the SDL host in
+[the section below](#macos-in-progress-and-unsupported); a POSIX
 target without one leaves the executable out of the default build, and the
 platform library and the harnesses still build:
 
@@ -255,6 +257,14 @@ a data directory opens the window, brings up the Metal renderer, and stops at
 the missing bootstrap mix files. That is a runtime observation, not a test
 result, and no part of the game has been played through this host since it was
 written against `code/hostwindow.h`.
+
+## Native iOS, experimental
+
+The same SDL host runs under UIKit as an iOS app, with the game data bundled
+into it and bgfx drawing through Metal. [Native iOS port](IOS-PORT.md) owns the
+build, the asset preparation, installing on a simulator, what the app does at
+startup, and what has been run. This does not expand the supported build
+matrix.
 
 ## Build identity
 

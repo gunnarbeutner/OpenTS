@@ -54,6 +54,13 @@ endif()
 # the MA_NO_* options privately; consumers of miniaudio.h must see the same set or the
 # structures they share with the implementation change layout.
 add_library(miniaudio STATIC "${CMAKE_CURRENT_SOURCE_DIR}/miniaudio-impl.c")
+if(OPENTS_IOS)
+    # The CoreAudio backend reaches AVAudioSession, which is Objective-C.
+    set_source_files_properties(miniaudio-impl.c PROPERTIES LANGUAGE OBJC)
+    if(NOT OPENTS_IOS_AUDIO)
+        target_compile_definitions(miniaudio PUBLIC MA_NO_COREAUDIO)
+    endif()
+endif()
 target_include_directories(miniaudio PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/miniaudio")
 
 # Only the device layer, the resampler, and the decoders are used. The engine, node

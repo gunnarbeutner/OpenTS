@@ -315,7 +315,15 @@ int main(int argc, char * argv[])
 {
 	char	buffer[512];
 
+#if defined(OPENTS_IOS_HOST)
+	// The app bundle is read only, so the log goes under the writable directory the host made
+	// current before this call.
+	std::error_code current_error;
+	std::string const log_directory = (std::filesystem::current_path(current_error) / "Debug").string();
+	Debug_Init(argc, argv, log_directory.c_str());
+#else
 	Debug_Init(argc, argv);
+#endif
 
 	Raise_Timer_Resolution();
 
@@ -344,8 +352,10 @@ int main(int argc, char * argv[])
 	/*
 	**	Change directory to the where the executable is located.
 	*/
+#if !defined(OPENTS_IOS_HOST)
 	std::error_code directory_error;
 	std::filesystem::current_path(std::filesystem::path(Executable_Directory()), directory_error);
+#endif
 
 	int error_code = EXIT_FAILURE;
 

@@ -228,16 +228,19 @@ static std::FILE * Create_Log_File(char const * path)
 /// or the command line asks for it. The caller holds the logging lock. A log that cannot be
 /// opened leaves the debugger and console sinks working.
 /// </summary>
-static void Init_Locked(int argc, char const * const * argv)
+static void Init_Locked(int argc, char const * const * argv, char const * directory)
 {
 	if (DebugInitDone) {
 		return;
 	}
 	DebugInitDone = true;
 
-	// The log belongs beside the executable, which is not yet the current directory.
+	// The log belongs beside the executable, which is not yet the current directory, unless
+	// the caller named somewhere else.
 	std::string const executable_directory = Executable_Directory();
-	if (!executable_directory.empty()) {
+	if (directory != nullptr && directory[0] != '\0') {
+		std::snprintf(DebugDirectory, sizeof(DebugDirectory), "%s", directory);
+	} else if (!executable_directory.empty()) {
 		std::snprintf(DebugDirectory, sizeof(DebugDirectory), "%sDebug", executable_directory.c_str());
 	}
 
@@ -447,15 +450,15 @@ static void Emit(char const * buffer, bool with_prefix)
 
 
 /// <summary>
-/// Opens this run's log beside the executable and writes the banner. Messages reported
-/// before this call reach the debugger and the console but no file. Repeated initialization
-/// keeps the first setup, including a failed file open.
+/// Opens this run's log in the directory given, or beside the executable when none is.
+/// Messages reported before this call reach the debugger and the console but no file.
+/// Repeated initialization keeps the first setup, including a failed file open.
 /// </summary>
-void Debug_Init(int argc, char const * const * argv)
+void Debug_Init(int argc, char const * const * argv, char const * directory)
 {
 	DebugLock.lock();
 	DebugLockOwner = std::this_thread::get_id();
-	Init_Locked(argc, argv);
+	Init_Locked(argc, argv, directory);
 	DebugLockOwner = std::thread::id();
 	DebugLock.unlock();
 }

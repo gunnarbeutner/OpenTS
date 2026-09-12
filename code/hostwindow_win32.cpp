@@ -48,6 +48,12 @@ Point2D Host_Pointer_Position(void)
 }
 
 
+bool Host_Pointer_Is_Hovering(void)
+{
+	return(true);
+}
+
+
 void Host_Move_Pointer(Point2D const & position)
 {
 	POINT point;

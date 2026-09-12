@@ -32,6 +32,9 @@
 #if defined(_WIN32)
 #include <malloc.h>
 #endif
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
 
 
 static const bgfx::EmbeddedShader _EmbeddedShaders[] = {
@@ -425,6 +428,10 @@ bool Backend_Set_Frame_Size(int width, int height)
 	// through, which is what the fallback below does more cheaply.
 	const bgfx::Caps * caps = bgfx::getCaps();
 	_FrameIs565 = (caps->formats[bgfx::TextureFormat::B5G6R5] & BGFX_CAPS_FORMAT_TEXTURE_2D) != 0;
+#if defined(__APPLE__) && TARGET_OS_SIMULATOR
+	// Metal on the simulator rejects B5G6R5 even when bgfx reports native support.
+	_FrameIs565 = false;
+#endif
 
 	_FrameTexture = bgfx::createTexture2D((uint16_t)width, (uint16_t)height, false, 1, _FrameIs565 ? bgfx::TextureFormat::B5G6R5 : bgfx::TextureFormat::BGRA8);
 	if (!bgfx::isValid(_FrameTexture)) {
