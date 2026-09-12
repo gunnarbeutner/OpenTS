@@ -9,6 +9,7 @@ The developer guides are split by subject:
 - [Rationale](RATIONALE.md) — reconstruction tools, recovered structure, and
   non-obvious implementation choices.
 - [Project direction](DIRECTION.md) — long-term architecture.
+- [The platform layer](PLATFORM.md) — interfaces between the engine and its hosts.
 - [The saved game format](SAVE-FORMAT.md) — the layout of a `.SAV` file: its
   header, listing fields, compressed content, and object records.
 

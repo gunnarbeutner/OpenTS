@@ -6,7 +6,7 @@ source_files:
   - docs/BUILDING.md
   - CMakeLists.txt
   - code/CMakeLists.txt
-  - code/language/CMakeLists.txt
+  - code/languagestrings.cpp
 related:
   - type: using
     id: game-data

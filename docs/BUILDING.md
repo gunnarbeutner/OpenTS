@@ -18,8 +18,9 @@
 | C++ language level | C++20 |
 | Configurations | Debug and Release, on both platforms |
 
-Other generators, compilers, architectures, and configurations are currently
-unsupported.
+Other generators, compilers, architectures, and configurations are not
+supported by the current tree. A native macOS target is in progress and
+unsupported; [Other toolchains](#other-toolchains) records what it builds.
 
 Install Visual Studio 2022 with the **Desktop development with C++** workload,
 a Windows SDK, and CMake 3.23 or newer. Git for Windows is needed to clone the
@@ -163,13 +164,72 @@ With the recommended extensions installed, the repository provides:
 Standard VS Code shortcuts such as `Ctrl+Shift+B`, `F5`, and `Ctrl+F5` work as
 usual.
 
+## Other toolchains
+
+> [!WARNING]
+> Nothing in this section is a support claim. Visual Studio 2022 Win32 remains
+> the supported target; what follows is how the macOS target builds, and it is
+> verified only by the harnesses named below.
+
+The build accepts Apple clang on macOS alongside MSVC. The top-level
+`CMakeLists.txt` sets `OPENTS_MACOS` for it, and with it `OPENTS_POSIX`, which
+compiles the engine with clang against POSIX and the C++ standard library; no
+Windows SDK header is on the include path, and `WIN32` and `_WINDOWS` are
+defined only for a Windows build. macOS is LP64, where Win32 x86 is ILP32.
+
+The engine reaches the operating system and the host through `code/platform/`,
+the game window interface in `code/hostwindow.h`, and the MSVC runtime
+spellings in `code/crtcompat.h`; [the platform layer](PLATFORM.md) records what
+each covers and which files implement it. Every toolchain, MSVC included, builds
+`code/platform/` into the `OpenTSPlatform` library the engine and the harnesses
+link.
+
+A POSIX target links the executable only when a host answers
+`code/hostwindow.h` and names itself by setting `OPENTS_HOST`. This tree has no
+such host, so on macOS the executable is left out of the default build, and the
+platform library and the harnesses still build:
+
+```bash
+cmake -S . -B build-macos -G Ninja -DCMAKE_BUILD_TYPE=Debug
+ninja -C build-macos
+ctest --test-dir build-macos
+```
+
+### Tests
+
+`tests/` builds under both toolchains. None of the harnesses reads game data.
+
+| Target | Tests registered |
+| --- | --- |
+| MSVC | 44: the eleven below and 33 more from the directories listed under `if(MSVC)` in `tests/CMakeLists.txt` |
+| macOS | 11 |
+
+The eleven that build everywhere are `sosparity`, `unvqdelta`, `lzoblock`,
+`zbufring`, `priorityqueue`, `platformfile`, `save`, `uifontdialog`,
+`platformprocess`, `utf8contract` and `keyname`.
+
+`platformprocess` builds `code/dbgprint.cpp` with the process and diagnostics
+files in `code/platform/`, and checks where the executable is found, the log
+written beside it, and the pruning of old logs by name and age.
+
+`keyname` checks how the keyboard screen spells a binding: the shape of the
+answer on Windows, where the names come from the player's layout, and the US
+layout's names elsewhere.
+
+`save` drives the file a saved game is kept in. It builds `code/savefile.cpp`
+with the engine's LZO codec on every target, so the same writer and reader are
+checked everywhere; [the format](SAVE-FORMAT.md) lists what it covers.
+
 ## Build identity
 
 The top-level `CMakeLists.txt` declares the project version in
 `project(OpenTS VERSION ...)`. Since `project()` accepts only numbers, any
 SemVer prerelease label goes in `OPENTS_VERSION_PRERELEASE`. Both values must
 match the development entry in the manual's release registry;
-`python manual/tools/manage.py check` verifies this.
+`python manual/tools/manage.py check` verifies this. That tool runs on its own
+pinned Python and packages rather than on whatever `python` resolves to; the
+[manual's README](../manual/README.md) owns setting it up, and
+`manage.py doctor` reports what is missing.
 
 Each build writes two generated headers from that version and the repository
 state:
@@ -186,8 +246,8 @@ network sessions may still be incompatible. The stamp does not record the
 target platform; see
 [Save and network compatibility between the platforms](#save-and-network-compatibility-between-the-platforms).
 
-The version resources in `Game.exe` and `Language.dll`, the title screen,
-version dialog, crash report, and debug log banner all read these headers. A
+The version resource in `Game.exe`, the title screen, version dialog, crash
+report, and debug log banner all read these headers. A
 normal build shows the version and commit, such as `0.1.0 (ab12cd3)`, plus a
 marker when tracked files are modified. The commit identifies the build for
 diagnostics; it is not a save or network compatibility stamp. An official
@@ -237,7 +297,8 @@ generated from the manual's change records by
 `python manual/tools/manage.py release-notes`. See
 [Maintaining](../manual/MAINTAINING.md) for the full release procedure.
 
-CI collects the uploaded artifacts from `build/bin/<configuration>/`.
+CI collects the uploaded artifacts, the `ui/` directory the build writes beside
+the executable included, from `build/bin/<configuration>/`.
 
 ## Verification boundary
 
