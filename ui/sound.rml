@@ -1,0 +1,154 @@
+<rml>
+<!--
+	The dialog templates this replaces carried these labels as literal control text rather
+	than as string identifiers, so there is no identifier to name here. A localized build
+	ships a translated copy of this document, which the file lookup prefers over the one
+	beside the executable; text that does have an identifier uses the [[TXT_NAME]] form.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * The two templates this replaces are 294 by 215 and 294 by 112 dialog units at MS
+		 * Sans Serif 8, which come to 441 by 349 and 441 by 182 logical pixels. One
+		 * document serves both: the music controls that only apply to a game in progress
+		 * are dropped when there is none, as the cut down template dropped them, and the
+		 * volume rows move to that template's places.
+		 */
+		#sound
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -220dp;
+			margin-top: -174dp;
+			width: 441dp;
+			height: 349dp;
+			decorator: image(frame:441x349);
+		}
+
+		#sound.lite
+		{
+			margin-top: -91dp;
+			height: 182dp;
+			decorator: image(frame:441x182);
+		}
+
+		#sound .label, #sound .numbered, #sound button, #sound .check, #tracks
+		{
+			position: absolute;
+			margin: 0;
+		}
+
+		/* The static text sat near the top of its box, measured against the legacy view. */
+		#sound .label
+		{
+			left: 33dp;
+			width: 105dp;
+			height: 24dp;
+			line-height: 16dp;
+			text-align: right;
+			white-space: nowrap;
+		}
+
+		/* A disabled static drew its text in ODColorDisabled RGB(144,144,144). */
+		#sound .off { color: #909090ff; }
+
+		/* Each track bar showed its value in the trough. */
+		#sound .numbered { left: 146dp; width: 262dp; height: 24dp; }
+
+		#music-label, #music { top: 20dp; }
+		#sound-label, #effects { top: 55dp; }
+		#voice-label, #voice { top: 91dp; }
+
+		#sound.lite #music-label, #sound.lite #music { top: 28dp; }
+		#sound.lite #sound-label, #sound.lite #effects { top: 65dp; }
+		#sound.lite #voice-label, #sound.lite #voice { top: 101dp; }
+		#sound.lite .numbered { left: 148dp; width: 260dp; }
+
+		#tracks { left: 146dp; top: 133dp; width: 262dp; height: 161dp; }
+
+		#sound button
+		{
+			height: 24dp;
+			line-height: 24dp;
+			min-width: 0;
+		}
+
+		#play, #stop { left: 33dp; width: 105dp; decorator: image(button:u:105x24); }
+		#play:active:hover, #stop:active:hover { decorator: image(button:d:105x24); }
+		#play { top: 140dp; }
+		#stop { top: 184dp; }
+
+		/* Only the box took a click; the caption beside it did not. */
+		#sound .check { left: 33dp; width: 105dp; height: 23dp; }
+		#sound .check input { position: absolute; left: 0; top: 0; }
+		#sound .check span
+		{
+			position: absolute;
+			left: 20dp;
+			top: 0;
+			line-height: 18dp;
+			white-space: nowrap;
+			pointer-events: none;
+		}
+
+		#shuffle { top: 228dp; }
+		#repeat { top: 271dp; }
+
+		#accept { left: 315dp; top: 307dp; width: 93dp; decorator: image(button:u:93x24); }
+		#accept:active:hover { decorator: image(button:d:93x24); }
+		#sound.lite #accept { left: 172dp; top: 140dp; }
+	</style>
+</head>
+<body>
+	<!-- The dialog silenced its track bars' click. -->
+	<div id="sound" class="dialog" data-model="sound" data-class-lite="!InGame">
+		<p id="music-label" class="label" data-class-off="!Enabled">Music Volume:</p>
+		<div id="music" class="numbered">
+			<input type="range" class="slider" min="0" max="10" step="1" data-silent=""
+				data-value="ScoreVolume" data-event-change="act('score')"
+				data-attrif-disabled="!Enabled"/>
+			<span class="number">{{ScoreVolume}}</span>
+		</div>
+
+		<p id="sound-label" class="label" data-class-off="!Enabled">Sound Volume:</p>
+		<div id="effects" class="numbered">
+			<input type="range" class="slider" min="0" max="10" step="1" data-silent=""
+				data-value="SoundVolume" data-event-change="act('sound')"
+				data-attrif-disabled="!Enabled"/>
+			<span class="number">{{SoundVolume}}</span>
+		</div>
+
+		<p id="voice-label" class="label" data-class-off="!Enabled">Voice Volume:</p>
+		<div id="voice" class="numbered">
+			<input type="range" class="slider" min="0" max="10" step="1" data-silent=""
+				data-value="VoiceVolume" data-event-change="act('voice')"
+				data-attrif-disabled="!Enabled"/>
+			<span class="number">{{VoiceVolume}}</span>
+		</div>
+
+		<div data-if="InGame">
+			<button id="play" data-event-click="act('play')">Play</button>
+			<button id="stop" data-event-click="act('stop')">Stop</button>
+
+			<div id="tracks" class="list">
+				<p data-for="track : Tracks" data-class-picked="it_index == Selected"
+					data-event-click="act('select', it_index)">{{track.Name}}</p>
+			</div>
+
+			<div id="shuffle" class="check">
+				<input type="checkbox" data-checked="Shuffle" data-event-change="act('shuffle')"
+					data-attrif-disabled="!Enabled"/>
+				<span data-class-off="!Enabled">Shuffle</span>
+			</div>
+			<div id="repeat" class="check">
+				<input type="checkbox" data-checked="Repeat" data-event-change="act('repeat')"
+					data-attrif-disabled="!Enabled"/>
+				<span data-class-off="!Enabled">Repeat</span>
+			</div>
+		</div>
+
+		<button id="accept" data-event-click="act('accept')">[[TXT_OK]]</button>
+	</div>
+</body>
+</rml>

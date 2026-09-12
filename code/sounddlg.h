@@ -36,9 +36,10 @@
 
 class SoundControlsClass
 {
-	enum SoundControlsClassEnums {
-		VOLUME_LEVELS=10				/// Number of steps on the volume sliders.
-	};
+	public:
+		enum SoundControlsClassEnums {
+			VOLUME_LEVELS=10			/// Number of steps on the volume sliders.
+		};
 
 	public:
 		SoundControlsClass(void) {}
