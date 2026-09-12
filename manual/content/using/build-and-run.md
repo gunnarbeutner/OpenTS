@@ -6,7 +6,7 @@ source_files:
   - docs/BUILDING.md
   - CMakeLists.txt
   - code/CMakeLists.txt
-  - code/language/CMakeLists.txt
+  - code/languagestrings.cpp
 related:
   - type: using
     id: game-data
@@ -24,7 +24,7 @@ cmake -S . -B build -G "Visual Studio 17 2022" -A Win32
 cmake --build build --config Debug
 ```
 
-The Debug build writes `GameD.exe`, its symbols, map file, and the matching `Language.dll` to `build/bin/Debug/`. Use `--config Release` to write `Game.exe` to `build/bin/Release/` instead. Nothing is copied out of the build directory, so the two configurations never overwrite each other.
+The Debug build writes `GameD.exe`, its symbols and map file, and a copy of the repository's `ui/` directory to `build/bin/Debug/`. Use `--config Release` to write `Game.exe` to `build/bin/Release/` instead. Nothing is copied out of the build directory, so the two configurations never overwrite each other.
 
 `-A x64` builds the 64-bit executable. A build directory holds one platform, so give the 64-bit build its own, such as `-B build/x64`. A saved game belongs to the platform that wrote it, and a network game needs every player on the same platform.
 
@@ -34,4 +34,4 @@ Supply the required game data in `Run/`, then launch the built executable and na
 .\build\bin\Debug\GameD.exe -DATADIR=Run
 ```
 
-The engine reads every string and dialog it displays from `Language.dll`, and loads it from the directory holding the executable. The freshly built copy is therefore the one that runs, and a localized or edited library sitting in the game data directory is not read.
+The game's text is compiled into the executable. OpenTS neither builds nor reads `Language.dll`, so a localized or edited copy beside the executable or in the game data directory has no effect.

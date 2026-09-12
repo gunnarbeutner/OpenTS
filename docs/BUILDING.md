@@ -18,8 +18,9 @@
 | C++ language level | C++20 |
 | Configurations | Debug and Release, on both platforms |
 
-Other generators, compilers, architectures, and configurations are currently
-unsupported.
+Other generators, compilers, architectures, and configurations are not
+supported by the current tree. A native macOS target is in progress and
+unsupported; [Other toolchains](#other-toolchains) records what it builds.
 
 Install Visual Studio 2022 with the **Desktop development with C++** workload,
 a Windows SDK, and CMake 3.23 or newer. Git for Windows is needed to clone the
@@ -53,6 +54,15 @@ git submodule update --init --recursive
 The audio layer uses [miniaudio](https://github.com/mackron/miniaudio),
 vendored through `thirdparty/miniaudio` at a tested tag and compiled as one
 translation unit from `thirdparty/miniaudio-impl.c`.
+
+The user interface uses [RmlUi](https://github.com/mikke89/RmlUi) 6.3,
+vendored through `thirdparty/RmlUi`, with
+[FreeType](https://freetype.org/) 2.13.3 through `thirdparty/freetype` as its
+font engine. Both build static against the static CRT. Only RmlUi's core
+library is built: the engine supplies the render, system, and file interfaces,
+so the bundled backends and samples are left out, and FreeType's optional
+compression and shaping dependencies are disabled rather than taken from the
+host.
 
 For a fresh clone, use `git clone --recurse-submodules`. Configuration stops
 with instructions if a submodule is missing. Update a pinned tag in a
@@ -96,8 +106,11 @@ the selected build directory.
 
 | Configuration | Runtime files |
 | --- | --- |
-| Debug | `GameD.exe`, `GameD.pdb`, `GameD.map`, `Language.dll` |
-| Release | `Game.exe`, `Game.pdb`, `Game.map`, `Language.dll` |
+| Debug | `GameD.exe`, `GameD.pdb`, `GameD.map`, `ui/` |
+| Release | `Game.exe`, `Game.pdb`, `Game.map`, `ui/` |
+
+`ui/` is a copy of the repository's `ui/` directory, which holds the interface
+screens' documents, styles and fonts.
 
 Run a build from its output directory, naming the game data with `-DATADIR=`:
 
@@ -151,13 +164,72 @@ With the recommended extensions installed, the repository provides:
 Standard VS Code shortcuts such as `Ctrl+Shift+B`, `F5`, and `Ctrl+F5` work as
 usual.
 
+## Other toolchains
+
+> [!WARNING]
+> Nothing in this section is a support claim. Visual Studio 2022 Win32 remains
+> the supported target; what follows is how the macOS target builds, and it is
+> verified only by the harnesses named below.
+
+The build accepts Apple clang on macOS alongside MSVC. The top-level
+`CMakeLists.txt` sets `OPENTS_MACOS` for it, and with it `OPENTS_POSIX`, which
+compiles the engine with clang against POSIX and the C++ standard library; no
+Windows SDK header is on the include path, and `WIN32` and `_WINDOWS` are
+defined only for a Windows build. macOS is LP64, where Win32 x86 is ILP32.
+
+The engine reaches the operating system and the host through `code/platform/`,
+the game window interface in `code/hostwindow.h`, and the MSVC runtime
+spellings in `code/crtcompat.h`; [the platform layer](PLATFORM.md) records what
+each covers and which files implement it. Every toolchain, MSVC included, builds
+`code/platform/` into the `OpenTSPlatform` library the engine and the harnesses
+link.
+
+A POSIX target links the executable only when a host answers
+`code/hostwindow.h` and names itself by setting `OPENTS_HOST`. This tree has no
+such host, so on macOS the executable is left out of the default build, and the
+platform library and the harnesses still build:
+
+```bash
+cmake -S . -B build-macos -G Ninja -DCMAKE_BUILD_TYPE=Debug
+ninja -C build-macos
+ctest --test-dir build-macos
+```
+
+### Tests
+
+`tests/` builds under both toolchains. None of the harnesses reads game data.
+
+| Target | Tests registered |
+| --- | --- |
+| MSVC | 44: the eleven below and 33 more from the directories listed under `if(MSVC)` in `tests/CMakeLists.txt` |
+| macOS | 11 |
+
+The eleven that build everywhere are `sosparity`, `unvqdelta`, `lzoblock`,
+`zbufring`, `priorityqueue`, `platformfile`, `save`, `uifontdialog`,
+`platformprocess`, `utf8contract` and `keyname`.
+
+`platformprocess` builds `code/dbgprint.cpp` with the process and diagnostics
+files in `code/platform/`, and checks where the executable is found, the log
+written beside it, and the pruning of old logs by name and age.
+
+`keyname` checks how the keyboard screen spells a binding: the shape of the
+answer on Windows, where the names come from the player's layout, and the US
+layout's names elsewhere.
+
+`save` drives the file a saved game is kept in. It builds `code/savefile.cpp`
+with the engine's LZO codec on every target, so the same writer and reader are
+checked everywhere; [the format](SAVE-FORMAT.md) lists what it covers.
+
 ## Build identity
 
 The top-level `CMakeLists.txt` declares the project version in
 `project(OpenTS VERSION ...)`. Since `project()` accepts only numbers, any
 SemVer prerelease label goes in `OPENTS_VERSION_PRERELEASE`. Both values must
 match the development entry in the manual's release registry;
-`python manual/tools/manage.py check` verifies this.
+`python manual/tools/manage.py check` verifies this. That tool runs on its own
+pinned Python and packages rather than on whatever `python` resolves to; the
+[manual's README](../manual/README.md) owns setting it up, and
+`manage.py doctor` reports what is missing.
 
 Each build writes two generated headers from that version and the repository
 state:
@@ -174,8 +246,8 @@ network sessions may still be incompatible. The stamp does not record the
 target platform; see
 [Save and network compatibility between the platforms](#save-and-network-compatibility-between-the-platforms).
 
-The version resources in `Game.exe` and `Language.dll`, the title screen,
-version dialog, crash report, and debug log banner all read these headers. A
+The version resource in `Game.exe`, the title screen, version dialog, crash
+report, and debug log banner all read these headers. A
 normal build shows the version and commit, such as `0.1.0 (ab12cd3)`, plus a
 marker when tracked files are modified. The commit identifies the build for
 diagnostics; it is not a save or network compatibility stamp. An official
@@ -208,7 +280,7 @@ the latest successful scheduled run attached to downloadable artifacts.
 Both use the reusable `Engine build` workflow. It runs one job per platform and
 configuration, four by default, each on its own Windows runner with Visual
 Studio 2022. A job configures and builds its platform with the commands above,
-runs CTest, and uploads the executable, language library, symbol file, and
+runs CTest, and uploads the executable, symbol file, `ui/` directory, and
 license notices. Artifact names contain the platform, configuration, and short
 commit, as in `opents-x64-Release-ab12cd3`. Linker maps are omitted because the
 symbol files are sufficient. A failure on either platform fails the workflow.
@@ -217,14 +289,15 @@ pull-request comment with direct nightly.link downloads.
 
 Publishing a GitHub release runs `Engine release`. It builds the release commit
 for both platforms with `-DOPENTS_OFFICIAL_BUILD=ON`, and packages each one's
-`Game.exe`, `Language.dll`, `Game.pdb`, and the project and third-party license
+`Game.exe`, `Game.pdb`, `ui/` directory, and the project and third-party license
 notices in a zip named after the release tag and the platform, such as
 `OpenTS-v0.2.0-x64.zip`. It attaches both to the release, and appends notes
 generated from the manual's change records by
 `python manual/tools/manage.py release-notes`. See
 [Maintaining](../manual/MAINTAINING.md) for the full release procedure.
 
-CI collects the uploaded artifacts from `build/bin/<configuration>/`.
+CI collects the uploaded artifacts, the `ui/` directory the build writes beside
+the executable included, from `build/bin/<configuration>/`.
 
 ## Verification boundary
 
