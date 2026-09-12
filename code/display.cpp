@@ -85,6 +85,10 @@
 
 #include "always.h"
 
+#if defined(__EMSCRIPTEN__)
+#include "browser.h"
+#endif
+
 #include "display.h"
 
 #include "_alpha.h"
@@ -876,6 +880,18 @@ void DisplayClass::Cursor_Mark(Cell const &pos, bool on)
  *   12/31/1994 JLB : Takes mouse coordinates as parameters.                                   *
  *   06/27/1995 JLB : Breaks out of rubber band mode if mouse leaves map.                      *
  *=============================================================================================*/
+// A finger wanders further than a mouse on what was meant as a tap, so the four pixels a
+// mouse needs would turn every tap into a band.
+static int Band_Select_Slop(void)
+{
+#if defined(__EMSCRIPTEN__)
+	if (!Browser_Mouse_Is_Hovering()) return(24);
+#endif
+
+	return(4);
+}
+
+
 void DisplayClass::AI(KeyNumType & input, Point2D const & xy)
 {
 	BASECLASS::AI(input, xy);

@@ -12,9 +12,13 @@
 
 #include "bgfxbackend.h"
 
-#include "dbgprint.h"
+#ifdef __EMSCRIPTEN__
+#include <emscripten/console.h>
+#else
 #include "except.h"
 #include "platform/diagnostics.h"
+#include "win.h"
+#endif
 
 #include "bgfxviews.hh"
 
@@ -37,6 +41,8 @@ static const bgfx::EmbeddedShader _EmbeddedShaders[] = {
 	BGFX_EMBEDDED_SHADER(fs_ocornut_imgui),
 	BGFX_EMBEDDED_SHADER_END()
 };
+
+
 
 
 static bool _Initialized = false;
@@ -67,6 +73,17 @@ static bool _FrameIs565 = false;
 static unsigned int * _ConvertBuffer = NULL;
 static unsigned int _ConvertTable[65536];
 
+// The queued movie frame, drawn as its own quad over the frame texture at a
+// rect already in window pixels.
+static bgfx::TextureHandle _VideoTexture = BGFX_INVALID_HANDLE;
+static int _VideoTextureWidth = 0;
+static int _VideoTextureHeight = 0;
+static bool _VideoPending = false;
+static int _VideoFrameX = 0;
+static int _VideoFrameY = 0;
+static int _VideoFrameWidth = 0;
+static int _VideoFrameHeight = 0;
+
 
 struct BackendVertex
 {
@@ -78,6 +95,27 @@ struct BackendVertex
 };
 
 
+static void Report_Fatal(char const * text)
+{
+#ifdef __EMSCRIPTEN__
+	emscripten_console_error(text);
+	abort();
+#else
+	Fatal("%s", text);
+#endif
+}
+
+
+static void Report_Trace(char const * text)
+{
+#ifdef __EMSCRIPTEN__
+	emscripten_console_log(text);
+#else
+	Debug_Output_Write(text);
+#endif
+}
+
+
 // bgfx reports lost devices and shader failures through this rather than a return code,
 // so the engine would otherwise present to a black window with no explanation.
 class BackendCallback : public bgfx::CallbackI
@@ -87,25 +125,29 @@ class BackendCallback : public bgfx::CallbackI
 
 		virtual void fatal(const char * filepath, uint16_t line, bgfx::Fatal::Enum code, const char * str) override
 		{
+			char message[1024];
+
 			// A debug check is the library's own assertion, not a renderer failure. The ones it
 			// runs while shutting down compare reference counts on interfaces that an overlay
 			// or the Direct3D debug layer is free to hold, so ending the process over one would
 			// report somebody else's reference as a crash.
 			if (code == bgfx::Fatal::DebugCheck) {
-				DebugString("Renderer check failed at %s(%u): %s\n",
+				snprintf(message, sizeof(message), "Renderer check failed at %s(%u): %s",
 							filepath != NULL ? filepath : "", (unsigned)line, str != NULL ? str : "");
+				Report_Trace(message);
 				return;
 			}
 
-			Fatal("Renderer error %d at %s(%u): %s", (int)code,
+			snprintf(message, sizeof(message), "Renderer error %d at %s(%u): %s", (int)code,
 						filepath != NULL ? filepath : "", (unsigned)line, str != NULL ? str : "");
+			Report_Fatal(message);
 		}
 
 		virtual void traceVargs(const char * filepath, uint16_t line, const char * format, va_list argList) override
 		{
 			char message[1024];
 			vsnprintf(message, sizeof(message), format, argList);
-			Debug_Output_Write(message);
+			Report_Trace(message);
 		}
 
 		virtual void profilerBegin(const char *, uint32_t, const char *, uint16_t) override {}
@@ -276,7 +318,7 @@ static bool Ensure_Prescale_Target(int width, int height)
 
 
 /// <summary>
-/// Starts the renderer on an existing window.
+/// Starts the renderer on an existing presentation target.
 /// </summary>
 /// <param name="window">The window the frame is presented into.</param>
 /// <param name="drawablewidth">The drawable area's width in physical pixels.</param>
@@ -290,7 +332,9 @@ bool Backend_Init(NativeWindow const & window, int drawablewidth, int drawablehe
 		return(true);
 	}
 
+#if !defined(__EMSCRIPTEN__)
 	bgfx::renderFrame();
+#endif
 
 	_DrawableWidth = drawablewidth;
 	_DrawableHeight = drawableheight;
@@ -325,6 +369,10 @@ bool Backend_Init(NativeWindow const & window, int drawablewidth, int drawablehe
 
 		case BACKEND_RENDERER_OPENGL:
 			init.type = bgfx::RendererType::OpenGL;
+			break;
+
+		case BACKEND_RENDERER_OPENGLES:
+			init.type = bgfx::RendererType::OpenGLES;
 			break;
 
 		default:
@@ -379,6 +427,13 @@ void Backend_Shutdown(void)
 		bgfx::destroy(_FrameTexture);
 		_FrameTexture = BGFX_INVALID_HANDLE;
 	}
+	if (bgfx::isValid(_VideoTexture)) {
+		bgfx::destroy(_VideoTexture);
+		_VideoTexture = BGFX_INVALID_HANDLE;
+	}
+	_VideoTextureWidth = 0;
+	_VideoTextureHeight = 0;
+	_VideoPending = false;
 	if (bgfx::isValid(_TextureSampler)) {
 		bgfx::destroy(_TextureSampler);
 		_TextureSampler = BGFX_INVALID_HANDLE;
@@ -468,9 +523,50 @@ void Backend_On_Resize(int drawablewidth, int drawableheight)
 
 
 /// <summary>
+/// Queues a 32 bit RGBA movie frame to draw over every following present until
+/// replaced or cleared. The rect is in window pixels; the pixels are copied
+/// before this returns.
+/// </summary>
+/// <param name="pitch">The bytes between one row and the next.</param>
+void Backend_Queue_Video_Frame(void const * pixels, int pitch, int width, int height,
+	int dest_x, int dest_y, int dest_width, int dest_height)
+{
+	if (!_Initialized || pixels == NULL || width <= 0 || height <= 0) {
+		return;
+	}
+
+	if (!bgfx::isValid(_VideoTexture) || _VideoTextureWidth != width || _VideoTextureHeight != height) {
+		if (bgfx::isValid(_VideoTexture)) {
+			bgfx::destroy(_VideoTexture);
+		}
+		_VideoTexture = bgfx::createTexture2D((uint16_t)width, (uint16_t)height, false, 1, bgfx::TextureFormat::RGBA8);
+		if (!bgfx::isValid(_VideoTexture)) {
+			_VideoTextureWidth = 0;
+			_VideoTextureHeight = 0;
+			return;
+		}
+		_VideoTextureWidth = width;
+		_VideoTextureHeight = height;
+	}
+
+	bgfx::updateTexture2D(_VideoTexture, 0, 0, 0, 0, (uint16_t)width, (uint16_t)height, bgfx::copy(pixels, (uint32_t)(height * pitch)), (uint16_t)pitch);
+
+	_VideoFrameX = dest_x;
+	_VideoFrameY = dest_y;
+	_VideoFrameWidth = dest_width;
+	_VideoFrameHeight = dest_height;
+	_VideoPending = true;
+}
+
+
+void Backend_Clear_Video_Frame(void)
+{
+	_VideoPending = false;
+}
+
+
+/// <summary>
 /// Submits the frame to the window, uploading new pixels first when given any.
-/// The frame reaches the screen when Backend_End_Frame runs; whatever is submitted in
-/// between draws over it.
 /// </summary>
 /// <param name="pixels">The frame's top left pixel, in 16 bit 565, or NULL to present the
 /// frame uploaded last.</param>
@@ -559,14 +655,20 @@ bool Backend_Present(void const * pixels, int pitch, int destx, int desty, int d
 	_FramePointSampled = (samplerflags & BGFX_SAMPLER_POINT) != 0;
 
 	bool flipv = from_prescale && bgfx::getCaps()->originBottomLeft;
-	return(Submit_Quad(VIEW_PRESENT, source, (float)destx, (float)desty, (float)destwidth, (float)destheight, samplerflags, flipv));
+bool submitted = Submit_Quad(VIEW_PRESENT, source, (float)destx, (float)desty, (float)destwidth, (float)destheight, samplerflags, flipv);
+	if (_VideoPending && bgfx::isValid(_VideoTexture)) {
+		Submit_Quad(VIEW_PRESENT, _VideoTexture,
+			(float)_VideoFrameX, (float)_VideoFrameY,
+			(float)_VideoFrameWidth, (float)_VideoFrameHeight,
+			BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP);
+	}
+	return(submitted);
 }
 
 
 bool Backend_Frame_Is_Point_Sampled(void)
 {
-	return(_FramePointSampled);
-}
+	return(_FramePointSampled);}
 
 
 void Backend_End_Frame(void)

@@ -534,6 +534,12 @@ int LoadOptionsClass::Initial_Row(void) const
 /// first save game it can actually read.
 /// </summary>
 /// <returns>bool; Was at least one loadable save game found?</returns>
+/// <summary>
+/// Should the load option be offered to the player?
+/// </summary>
+/// <returns>bool; Is the load dialog worth opening?</returns>
+
+
 bool LoadOptionsClass::Files_Present(void)
 {
 	bool files_found = false;

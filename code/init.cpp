@@ -158,6 +158,7 @@
 #include "platform/file.h"
 #include "platform/filetime.h"
 #include "queue.h"
+#include "phase.h"
 #include "ramfile.h"
 #include "revent.h"
 #include "rndstraw.h"
@@ -566,6 +567,7 @@ int Init_Game(int , char * [])
 	OwnerDraw::Prepare_Resources();
 
 	DebugString("Game Init Completed.\n");
+	Phase_Event("init");
 
 	return(0);
 }

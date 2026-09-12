@@ -112,7 +112,14 @@ int const AUDIO_MAX_SEQUENCE = AUDIO_MAX_SOUNDS + 2;
 int const AUDIO_COMMAND_QUEUE_SIZE = 512;
 int const AUDIO_RENDER_BLOCK_FRAMES = 64;
 int const AUDIO_MAX_RENDER_FRAMES = 2048;
+#if defined(__EMSCRIPTEN__)
+// The page's node renders on the thread the game loop runs on, so a period has to outlast
+// a frame: at 10 ms it underruns on every one of them. This is the 4096 frame buffer the
+// node rounds to at the mix rate, and the lookahead the page's earlier driver kept.
+int const AUDIO_PERIOD_MS = 85;
+#else
 int const AUDIO_PERIOD_MS = 10;
+#endif
 int const AUDIO_PERIODS = 3;
 int const AUDIO_RESAMPLER_HEAP_BYTES = 1024;
 int const AUDIO_LPF_ORDER = 4;

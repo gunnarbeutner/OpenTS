@@ -22,10 +22,13 @@
 #include "msanim.h"
 #include "movieformat.h"
 #include "movies.h"
+#include "phase.h"
 #include "screenlayout.h"
 #include "surface.h"
 #include "theme.h"
 #include "ui/uishell.h"
+#include "video.h"
+#include "wwmouse.h"
 
 GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name);
 GraphicMenuItem * GM_Create_Item_From_INI(const char * name, INIClass const & ini, MSEngine & engine, MSAnim const * backdrop, Point2D & image_size, int scale, int design);
@@ -131,7 +134,8 @@ GraphicMenu::GraphicMenu(void) :
 	Engine(),
 	Items(),
 	CurrentAnim(NULL),
-	LayoutSize(0, 0)
+	LayoutSize(0, 0),
+	ThemeIsPlaying(false)
 {
 	BackgroundName.Set("Title.PCX");
 	ThemeName.Set("Intro");
@@ -194,7 +198,8 @@ void GraphicMenu::Set_Item_Visible(int id, bool visible)
 /// so sliding off before letting go picks nothing. The chosen item performs
 /// its action before control is handed back.
 /// </summary>
-/// <returns>Returns with the identifier of the menu item the player chose.</returns>
+/// <returns>Returns with the identifier of the menu item the player chose, or
+/// GMENU_REDISPLAY if the page must be rebuilt for a new frame size.</returns>
 int GraphicMenu::Presentation(void)
 {
 	Theme.Play_Song(Theme.From_Name(ThemeName.Peek()));
@@ -209,6 +214,7 @@ int GraphicMenu::Presentation(void)
 	AlternateSurface->Fill(0);
 
 	bool done = false;
+	bool redisplay = false;
 	GraphicMenuItem * item = NULL;
 
 	// NULL while no button is down, so a release from before this page came up
@@ -274,6 +280,16 @@ int GraphicMenu::Presentation(void)
 		}
 
 		UIShell.Tick();
+		// The page is laid out against the surfaces it came up on, so a resize
+		// needs it rebuilt.
+		if (Video_Frame_Size_Is_Pending()) {
+			if (item != NULL) {
+				item->Set_Selected(false);
+				item = NULL;
+			}
+			redisplay = true;
+			break;
+		}
 
 		Engine.Wait_Delay(1);
 	}
@@ -285,6 +301,10 @@ int GraphicMenu::Presentation(void)
 	Menu_Release_Mouse();
 
 	Fill_Out_Shell();
+
+	if (redisplay) {
+		return(GMENU_REDISPLAY);
+	}
 
 	Theme.Fade_Out();
 

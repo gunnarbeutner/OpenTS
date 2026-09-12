@@ -83,6 +83,8 @@
 #include "aitrig.h"
 #include "anim.h"
 #include "astar.h"
+#include "phase.h"
+#include "savemgr.h"
 #include "bench.h"
 #include "building.h"
 #include "builtype.h"
@@ -388,6 +390,8 @@ bool Start_Scenario(char const * name, bool briefing, CampaignType campaign)
 	}
 
 	DebugString("Reading scenario: %s\n", name);
+	Phase_Event("scenario", name);
+	PhaseScope phase("loading", name);
 
 	if (!Read_Scenario(name)) {
 		return(false);
@@ -683,6 +687,7 @@ bool Read_Scenario(char const * fname)
 	char name[_MAX_PATH];
 
 	UTF8::Copy(name, fname);
+
 
 	Frame = 0;
 

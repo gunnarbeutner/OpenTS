@@ -122,9 +122,11 @@ opening and closing it (`Host_Create_Window` makes `Has_Main_Window` in
 pointer's position, visibility, confinement and capture, the cursor image, the
 modifier and key state and the character a key types, a message box, and the
 display modes. `code/hostwindow_win32.cpp` answers it on Windows and holds the
-window procedure. No other implementation is in this tree, so a POSIX target
-leaves this header's functions for a host to supply, and until one does the
-executable is not built there ([Building OpenTS](BUILDING.md#other-toolchains)).
+window procedure. `code/hostwindow_page.cpp` answers it on the page, over the
+calls `code/browser.h` declares, which `code/browser.cpp` answers. Every page
+file and every page call in a shared file sits under `__EMSCRIPTEN__`, so any
+other POSIX target compiles the whole engine and leaves only this header's
+functions for its host to supply.
 
 A host feeds input into shared code. Keys go to
 `Keyboard->Post_Key_Event`. Mouse buttons go to `Game_Window_Mouse_Button` in

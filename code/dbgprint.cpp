@@ -257,6 +257,9 @@ static void Init_Locked(int argc, char const * const * argv)
 
 		Delete_Files_Older_Than(DebugDirectory, "DEBUG_*.LOG", DEBUG_LOG_MAX_AGE_DAYS);
 
+		// A page's log is read from its console. Its filesystem is memory, which a file nobody
+		// can open would fill with a copy of everything written there.
+#if !defined(__EMSCRIPTEN__)
 		char const separator = char(std::filesystem::path::preferred_separator);
 
 		std::snprintf(DebugFileName, sizeof(DebugFileName), "%s%cDEBUG_%s.LOG",
@@ -273,6 +276,7 @@ static void Init_Locked(int argc, char const * const * argv)
 		if (DebugFile == nullptr) {
 			DebugFileName[0] = '\0';
 		}
+#endif
 	}
 
 	ConsoleRequested = ConsoleRequested || Requests_Debug_Console(argc, argv);

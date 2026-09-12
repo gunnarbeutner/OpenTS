@@ -59,6 +59,7 @@ class WWKeyboardClass
 		void Clear(void);
 		int To_ASCII(unsigned short num);
 		bool Down(unsigned short key);
+		bool Is_Buffer_Empty(void) const;
 
 		// The host posts virtual keys, and mouse buttons at positions in the frame.
 		bool Post_Key_Event(unsigned short vk_key, bool release);
@@ -84,7 +85,6 @@ class WWKeyboardClass
 		unsigned short Peek_Element(void) const;
 		bool Put_Element(unsigned short val);
 		bool Is_Buffer_Full(void) const;
-		bool Is_Buffer_Empty(void) const;
 		static bool Is_Mouse_Key(unsigned short key);
 		void Fill_Buffer_From_System(void);
 		bool Put_Key_Message(unsigned short vk_key, bool release = false);

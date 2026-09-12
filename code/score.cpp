@@ -52,6 +52,7 @@
 #include "_surface.h"
 #include "_timer.h"
 #include "audio/audioengine.h"
+#include "browser.h"
 #include "conquer.h"
 #include "convert.h"
 #include "data.h"
@@ -954,6 +955,12 @@ void ScoreClass::Input_Name(char str[], int xpos, int ypos)
 	int key = 0;
 	int index = 0;
 
+#if defined(__EMSCRIPTEN__)
+	// Only Return ends this loop, and a soft keyboard is shown only while
+	// something that takes text holds the focus.
+	Browser_Begin_Text_Input();
+#endif
+
 	do {
 
 		Timing();
@@ -1028,6 +1035,10 @@ void ScoreClass::Input_Name(char str[], int xpos, int ypos)
 		Call_Back_Delay(1);
 
 	} while (key != KN_RETURN);
+
+#if defined(__EMSCRIPTEN__)
+	Browser_End_Text_Input();
+#endif
 }
 
 

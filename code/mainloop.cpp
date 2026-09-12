@@ -28,6 +28,7 @@
 #include "_xmouse.h"
 #include "audio/audioengine.h"
 #include "bench.h"
+#include "browser.h"
 #include "chat.h"
 #include "command.h"
 #include "conquer.h"
@@ -157,25 +158,32 @@ void Motion_Capture(void)
 
 
 /// <summary>
-/// Handles the game losing the input focus.
-/// This routine parks the main loop while another application holds the focus, pumping
-/// the Windows message queue so that the game can be restored. A network game cannot
-/// afford to stall, so it pumps the queue once and lets play carry on regardless, and
-/// the SimulateWhileUnfocused option asks for the same of a solo or skirmish game.
+/// Is the game parked and forbidden to play a frame? A game with peers never
+/// parks, because they play on regardless.
 /// </summary>
-static void Check_For_Focus_Loss(void)
+bool Is_Suspended(void)
 {
-	bool parks = (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) && !Options.SimulateWhileUnfocused;
-
-	while (!GameInFocus) {
-		// A running game already sleeps in Sync_Delay, so a pause here would only slow it.
-		if (!parks) {
-			Windows_Message_Handler();
-			break;
-		}
-		Platform_Sleep(10);
-		Windows_Message_Handler();
+	if (GameInFocus) {
+		return false;
 	}
+
+	return (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) && !Options.SimulateWhileUnfocused;
+}
+
+
+/// <summary>
+/// Services one pass of a parked game; the message pump is what brings the game
+/// back, so a parked pass still runs it.
+/// </summary>
+void Service_Suspension(void)
+{
+#if defined(__EMSCRIPTEN__)
+	// The yield is the wait; the page's visibility drives GameInFocus.
+	Browser_Yield();
+#else
+	Platform_Sleep(500);
+#endif
+	Windows_Message_Handler();
 }
 
 bool InMainLoop = false;
@@ -253,10 +261,16 @@ bool Main_Loop(void)
 
 	InMainLoop = true;
 
-	/*
-	**	Call the focus loss handler
-	*/
-	Check_For_Focus_Loss();
+	// A game with peers cannot park, so it pumps the queue once and plays on.
+	// Game_Frame parks every other session type before it reaches here.
+	if (!GameInFocus && !Is_Suspended()) {
+#if defined(__EMSCRIPTEN__)
+		Browser_Yield();
+#else
+		Platform_Sleep(10);
+#endif
+		Windows_Message_Handler();
+	}
 
 	/*
 	**	Sync-bug trapping code
@@ -548,22 +562,33 @@ void Keyboard_Process(KeyNumType & input)
 
 
 /// <summary>
-/// Waits out the rest of the frame the main loop armed, taking input and redrawing the view
-/// while there is time.
+/// Has the frame that was just played run out its pacing timer?
 /// </summary>
-void Sync_Delay(void)
+bool Frame_Is_Due(void)
 {
-	/*
-	**	Accumulate the number of 'spare' ticks that are frittered away here.
-	*/
-	SpareTicks += FrameTimer;
+	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
+		return NetFrameTimer() == 0;
+	}
 
-	while (FrameTimer) {
+	return FrameTimer() == 0;
+}
+
+
+/// <summary>
+/// Services one pass of the wait for the next frame and returns; the wait
+/// itself belongs to the caller.
+/// </summary>
+void Service_Frame(void)
+{
+	if (UIShell.Screen_Shown()) {
+		UI_Serve_Screen();
+	}
+	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
 		Call_Back();
 		if (SpecialDialog == SDLG_NONE && GameInFocus == true) {
 			KeyNumType input = KN_NONE;
 			int x, y;
-			if (FrameTimer > 10) {
+			if (NetFrameTimer > 10) {
 				Map.Input(input, x, y);
 				Keyboard_Process(input);
 				TacticalMap->AI();
@@ -571,15 +596,65 @@ void Sync_Delay(void)
 			} else {
 				Platform_Sleep(0);
 			}
-			if (!FrameTimer()) {
-				break;
+			if (!NetFrameTimer()) {
+				return;
 			}
-		} else {
-			UI_Serve_Screen();
 		}
+		Platform_Sleep(0);
+	} else {
+		Call_Back();
+		if (SpecialDialog == SDLG_NONE && GameInFocus == true) {
+			KeyNumType input = KN_NONE;
+			int x, y;
+			Map.Input(input, x, y);
+			Keyboard_Process(input);
+			TacticalMap->AI();
+			Map.Render();
+			if (!FrameTimer) {
+				return;
+			}
+		}
+#if defined(__EMSCRIPTEN__)
+		// This is the engine's hottest wait, and the yield here is what keeps
+		// the tab answering.
+		Browser_Yield();
+#else
+		if (GameInFocus || (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH)) {
+			Platform_Sleep(0);
+		} else {
+			Platform_Sleep(16 * FrameTimer);
+		}
+#endif
+	}
+}
 
-		// Out of focus nothing is drawn, so the wait gives the processor back.
-		Platform_Sleep(GameInFocus ? 0 : 1);
+
+/***********************************************************************************************
+ * Sync_Delay -- Forces the game into a 15 FPS rate.                                           *
+ *                                                                                             *
+ *    This routine will wait until the timer for the current frame has expired before          *
+ *    returning. It is called at the end of every game loop in order to force the game loop    *
+ *    to run at a fixed rate.                                                                  *
+ *                                                                                             *
+ * INPUT:   none                                                                               *
+ *                                                                                             *
+ * OUTPUT:  none                                                                               *
+ *                                                                                             *
+ * WARNINGS:   This routine will delay an amount of time according to the game speed setting.  *
+ *                                                                                             *
+ * HISTORY:                                                                                    *
+ *   01/04/1995 JLB : Created.                                                                 *
+ *   03/06/1995 JLB : Fixed.                                                                   *
+ *=============================================================================================*/
+void Sync_Delay(void)
+{
+	/*
+	**	Accumulate the number of 'spare' ticks that are frittered away here.
+	*/
+	SpareTicks += FrameTimer;
+
+	while (!Frame_Is_Due()) {
+		Service_Frame();
 	}
 
 	static CDTimerClass<MillisecondSystemTimerClass> fps_timer;
