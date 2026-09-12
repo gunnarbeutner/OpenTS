@@ -253,7 +253,6 @@ static bool Init_Bootstrap_Mixfiles(void);
 static bool Init_Secondary_Mixfiles(void);
 static void Init_Mouse(void);
 static bool Bootstrap(void);
-static bool Init_Bulk_Data(void);
 static void Init_Keys(void);
 static bool Init_Rules(void);
 static void Init_Commands(void);
@@ -479,16 +478,6 @@ int Init_Game(int , char * [])
 	**	Set the logic page to the seenpage.
 	*/
 	LogicalSurface = HiddenSurface;
-
-	/*
-	**	Initialize the bulk data. This takes the longest time and must be performed once
-	**	before the regular game starts.
-	*/
-	DebugString("Init Bulk Data\n");
-
-	if (!Init_Bulk_Data()) {
-		return(-1);
-	}
 
 	DebugString("Reading %s\n", DeploymentConfig.UIFile.c_str());
 	if (!UIControls.Read_INI_File(DeploymentConfig.UIFile.c_str(), true)) {
@@ -2274,7 +2263,7 @@ static void Init_Expand_Mixfiles(void)
 
 			ExpandMix.Add(expand);
 			DebugStringNoPrefix(" %s", name);
-			expand->Cache();
+			DeferredCacheMix.Add(expand);
 		}
 	}
 }
@@ -2306,7 +2295,7 @@ static void Init_Patch_Mixfiles(void)
 
 		ExpandMix.Add(expand);
 		DebugStringNoPrefix(" %s", "PCACHE.MIX");
-		expand->Cache();
+		DeferredCacheMix.Add(expand);
 	}
 
 }
@@ -2713,23 +2702,21 @@ void Init_Mouse(void)
 }
 
 
-/***********************************************************************************************
- * Init_Bulk_Data -- Initialize the time-consuming mixfile caching.                            *
- *                                                                                             *
- *    This routine is called to handle the time consuming process of game initialization.      *
- *    The title page will be displayed when this routine is called.                            *
- *                                                                                             *
- * INPUT:   none                                                                               *
- *                                                                                             *
- * OUTPUT:  none                                                                               *
- *                                                                                             *
- * WARNINGS:   This routine will take a very long time.                                        *
- *                                                                                             *
- * HISTORY:                                                                                    *
- *   06/03/1996 JLB : Created.                                                                 *
- *=============================================================================================*/
-static bool Init_Bulk_Data(void)
+/// <summary>
+/// Makes the bulk game data resident and performs the one-time system initializations that
+/// read from it. Every caller that is about to play, load or restart a game asks for this
+/// first; later calls do nothing. Reading the archives takes a long time, so the first call
+/// belongs somewhere the player is already waiting.
+/// </summary>
+/// <returns>Returns with whether the data is resident and the systems are initialized.</returns>
+bool Init_Bulk_Data(void)
 {
+	static bool _done = false;
+	if (_done) {
+		return(true);
+	}
+	_done = true;
+
 	/*
 	**	Cache the main game data. This operation can take a very long time.
 	*/
@@ -2745,6 +2732,11 @@ static bool Init_Bulk_Data(void)
 			return(false);
 		}
 	}
+
+	for (int index = 0; index < DeferredCacheMix.Count(); index++) {
+		DeferredCacheMix[index]->Cache();
+	}
+	DeferredCacheMix.Clear();
 
 	Call_Back();
 
