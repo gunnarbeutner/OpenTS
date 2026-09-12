@@ -30,6 +30,7 @@
 
 #pragma once
 
+#include "dialogresult.h"
 #include "session.h"
 
 #include "house.hh"
@@ -175,8 +176,8 @@ class LoadOptionsClass
 		 */
 		enum LoadDialogState {
 			STATE_PENDING	= -1,		/// Awaiting input
-			STATE_OK		= IDOK,		// OK pressed (confirmed action)
-			STATE_CLOSE		= IDCANCEL	/// Closed via ESC / system event
+			STATE_OK		= DIALOG_OK,		// OK pressed (confirmed action)
+			STATE_CLOSE		= DIALOG_CANCEL	/// Closed via ESC / system event
 		} State;
 
 		/*

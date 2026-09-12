@@ -106,6 +106,7 @@
 #include "data.h"
 #include "dbgprint.h"
 #include "desyncdlg.h"
+#include "dialogresult.h"
 #include "dsurface.h"
 #include "empulse.h"
 #include "factory.h"
