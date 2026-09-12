@@ -412,7 +412,13 @@ void OptionsClass::Load_Settings(void)
 	ScreenHeight = ConfigINI.Get_Int("Video", "ScreenHeight", ScreenHeight);
 	DebugString("Resolution = %d X %d\n", ScreenWidth, ScreenHeight);
 
+#if !defined(_WIN32)
+	// The frame is the page's canvas, so an unstretched movie would be a small
+	// picture in the middle of the window. The display options hide this.
+	StretchMovies = true;
+#else
 	StretchMovies = ConfigINI.Get_Bool("Video", "StretchMovies", StretchMovies);
+#endif
 	DebugString("StretchMovies is %s\n", StretchMovies == true ? "ON" : "OFF");
 
 	IntegerScaling = ConfigINI.Get_Bool("Video", "IntegerScaling", IntegerScaling);

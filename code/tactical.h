@@ -169,6 +169,22 @@ class Tactical : public AbstractClass
 		 * Object selection and the rubber band.
 		 */
 		void Select_These(Rect const & rect, void (*select_callback)(ObjectClass * object) = NULL);
+
+		/*
+		 * A selection grown from a point rather than bounded by a corner, which is what a
+		 * finger or a pen can size without covering what it is choosing.
+		 */
+		// Shown while a press is resting toward arming a selection, so a hold that has not
+		// finished still says it is doing something.
+
+		void Begin_Select_Radius(Coord const & center);
+		void Set_Select_Reach(int reach);
+		bool Any_Selectable_Near(Coord const & center, int reach);
+		Coord Select_Center(void) const {return(SelectCoord);}
+		void Select_Radius(void (*select_callback)(ObjectClass * object) = NULL);
+		void End_Select_Radius(void);
+		bool Is_Select_Radius(void) const {return(SelectReach >= 0);}
+		void Draw_Select_Radius(void);
 		ObjectClass * Get_Selectable_Object(Point2D const & point);
 
 		bool Contains_Selectable_Buildings(Rect rect);
@@ -339,6 +355,17 @@ class Tactical : public AbstractClass
 		 * the center of the view. This should not be altered directly. Use the
 		 * Set_Tactical_Position function instead.
 		 */
+		// Where a radius selection was started and how far it has grown, in screen pixels;
+		// a radius below zero means none is being drawn.
+		// Where a radius selection was grown from and how far it reaches, in world units so
+		// that what is tinted and what is taken are the same circle of ground.
+		Coord SelectCoord;
+		int SelectReach;
+
+		// False while a rest is still growing toward arming, so a hand lifted early takes
+		// nothing even though the ground under it is already tinted.
+		bool SelectArmed;
+
 		Point2D TacticalCoord;
 
 		/*

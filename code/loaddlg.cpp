@@ -155,6 +155,8 @@ bool LoadOptionsClass::Delete(void)
 }
 
 
+
+
 /// <summary>
 /// Is a saved game of this name already there? Asked before one is written, since a name the
 /// folder holds is written over rather than added to.
@@ -228,6 +230,12 @@ void LoadOptionsClass::Pick_Filename(char *name)
 /// first save game it can actually read.
 /// </summary>
 /// <returns>bool; Was at least one loadable save game found?</returns>
+/// <summary>
+/// Should the load option be offered to the player?
+/// </summary>
+/// <returns>bool; Is the load dialog worth opening?</returns>
+
+
 bool LoadOptionsClass::Files_Present(void)
 {
 	bool files_found = false;

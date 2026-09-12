@@ -14,9 +14,14 @@
 
 #include "uimenus.h"
 
+#include "addon.h"
 #include "dialogresult.h"
+#include "init.h"
+#include "mplayer.h"
 #include "uirmlview.h"
 #include "uirunner.h"
+#include "uiscreens.h"
+#include "win.h"
 
 #include <RmlUi/Core/ElementDocument.h>
 
@@ -174,3 +179,32 @@ bool UI_Menu_Screen(UIMenuRequest const & request, int & answer)
 
 	return(true);
 }
+
+
+// Registered through the dialog drivers rather than through the screens, so a run exercises
+// the path a caller takes, the selector included.
+static bool Open_Main_Menu(void)
+{
+	Main_Menu(0);
+	return(true);
+}
+
+
+static bool Open_Multiplayer_Menu(void)
+{
+	Select_MPlayer_Game();
+	return(true);
+}
+
+
+static bool Open_Game_Type_Menu(void)
+{
+	AddonType addon;
+	Select_Game_Type_Dialog(addon);
+	return(true);
+}
+
+
+static UIScreenRegistration _RegisterMain("main-menu", Open_Main_Menu);
+static UIScreenRegistration _RegisterMultiplayer("multiplayer-menu", Open_Multiplayer_Menu);
+static UIScreenRegistration _RegisterGameType("game-type", Open_Game_Type_Menu);

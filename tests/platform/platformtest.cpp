@@ -70,9 +70,15 @@ void Check_Executable(char const * argv0)
 	Check(!directory.empty() && (directory.back() == '/' || directory.back() == '\\'),
 			"executable directory ends with a separator");
 
+#if defined(__EMSCRIPTEN__)
+	(void)argv0;
+	Check(Executable_Path().empty(), "a page has no executable file");
+	Check(Same_File(directory, fs::current_path()), "a page's executable directory is the current one");
+#else
 	fs::path const self = fs::absolute(argv0);
 	Check(Same_File(Executable_Path(), self), "executable path names this program");
 	Check(Same_File(directory, self.parent_path()), "executable directory holds this program");
+#endif
 
 	// The answer is fixed at the first call, so a later change of directory leaves it alone.
 	std::error_code error;
@@ -107,6 +113,9 @@ void Check_Log(int argc, char ** argv)
 
 	DebugString("platform-test: %d\n", 42);
 
+#if defined(__EMSCRIPTEN__)
+	Check(Debug_Log_File_Name()[0] == '\0', "a page writes no log file");
+#else
 	std::string const log = Debug_Log_File_Name();
 	Check(!log.empty() && Same_File(fs::path(log).parent_path(), directory), "log file opened in the log directory");
 
@@ -115,6 +124,7 @@ void Check_Log(int argc, char ** argv)
 	Check(text.find("System   : ") != std::string::npos, "banner names the system");
 	Check(text.find("Options  : ") != std::string::npos, "banner lists the options");
 	Check(text.find("] platform-test: 42\n") != std::string::npos, "a message reaches the log stamped");
+#endif
 
 	Check(!Operating_System_Name().empty(), "system has a name");
 #if defined(_WIN32)

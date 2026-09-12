@@ -14,14 +14,48 @@
 #include "_pk.h"
 #include "addon.h"
 #include "ccfile.h"
+#include "cdfile.h"
 #include "grphmenu.h"
+#include "ini.h"
 #include "init.h"
 #include "loaddlg.h"
 #include "mixfile.h"
 #include "movie.h"
 #include "movieformat.h"
 #include "movies.h"
+#include "msgloop.h"
 #include "vector.h"
+#if defined(__EMSCRIPTEN__)
+#include "wsrelay.h"
+#include <emscripten/emscripten.h>
+
+// A browser page has nothing to quit back to; a native shell passes ?hosted in the page URL.
+static bool OpenTS_Exit_Available(void)
+{
+	return EM_ASM_INT({ return new URLSearchParams(location.search).has("hosted") ? 1 : 0; }) != 0;
+}
+#endif
+
+
+char const * New_Menu_Item_Name(int id)
+{
+	static char const * const _names[] = {
+		"NSEL_EXIT", "NSEL_START_NEW_GAME", "NSEL_LOAD_MISSION", "NSEL_LAN", "NSEL_INTERNET",
+		"NSEL_SERIAL_MODEM", "NSEL_SKIRMISH", "NSEL_WDT", "NSEL_OPTIONS", "NSEL_9", "NSEL_INTRO",
+		"NSEL_VERSION", "NSEL_VIEW_CREDITS", "NSEL_OLD_MENU"
+	};
+
+	if (id >= 0 && id < (int)(sizeof(_names) / sizeof(_names[0]))) {
+		return(_names[id]);
+	}
+
+	switch (id) {
+		case GMENU_TIBSUN: return("GMENU_TIBSUN");
+		case GMENU_FIRESTORM: return("GMENU_FIRESTORM");
+		case GMENU_BACK: return("GMENU_BACK");
+		default: return(nullptr);
+	}
+}
 
 
 /// <summary>
@@ -50,6 +84,39 @@ void Draw_Menu_Background(void)
 
 
 /// <summary>
+/// Starts fetching every menu page's backdrop, so the fetch overlaps the time
+/// the player spends on the page in front.
+/// </summary>
+static void Prefetch_Menu_Backgrounds(void)
+{
+	static char const * const _pages[] = {"MainMenu", "TiberianSunMenu", "FirestormMenu"};
+
+	CCFileClass file("NewMenu.INI");
+
+	if (!file.Is_Available()) {
+		return;
+	}
+
+	INIClass ini;
+
+	if (ini.Load(file) <= 0) {
+		return;
+	}
+
+	for (char const * page : _pages) {
+		char name[256];
+
+		if (ini.Get_String(page, "Background", "", name, sizeof(name) - 5) <= 0) {
+			continue;
+		}
+
+		strcat(name, Movie_Extension());
+		CDFileClass::Prefetch(name);
+	}
+}
+
+
+/// <summary>
 /// Constructor for the new menu object.
 /// This routine will attach the graphical menu mix file if it is installed and pick the
 /// title page that the menus draw behind themselves. A missing mix file is how the game
@@ -66,6 +133,8 @@ NewMenuClass::NewMenuClass(void) :
 			Background = new char[16];
 			strcpy(Background, "Loading.PCX");
 		}
+
+		Prefetch_Menu_Backgrounds();
 	}
 
 	if (Background == NULL) {
@@ -186,8 +255,33 @@ int NewMenuClass::Display_Game_Select_Menu(char const * section)
 	static DynamicVectorClass<int> options;
 	DynamicVectorClass<int> hidden;
 
+#if defined(__EMSCRIPTEN__)
+	if (!OpenTS_Exit_Available()) hidden.Add(NSEL_EXIT);
+#endif
+
 	return(Display_Menu(section, options, hidden));
 }
+
+
+#if defined(__EMSCRIPTEN__)
+/// <summary>
+/// Disables the menu options a page cannot play, and on a browser page hides the exit, which
+/// such a page has nothing to quit back to.
+/// </summary>
+static void Hide_Unplayable_Options(DynamicVectorClass<int> & options, DynamicVectorClass<int> & hidden)
+{
+	// A LAN game needs a relay in place of a network.
+	if (Relay_Configured_Url()[0] == 0) {
+		options.Add(NSEL_LAN);
+	}
+
+	options.Add(NSEL_INTERNET);
+	options.Add(NSEL_SERIAL_MODEM);
+	options.Add(NSEL_WDT);
+
+	if (!OpenTS_Exit_Available()) hidden.Add(NSEL_EXIT);
+}
+#endif
 
 
 /// <summary>
@@ -202,33 +296,49 @@ int NewMenuClass::Display_Game_Select_Menu(char const * section)
 /// <param name="hidden">The menu items that should not appear at all.</param>
 /// <returns>Returns with the selection the player made, or NSEL_OLD_MENU if the menu
 /// could not be built.</returns>
+/// <remarks>A page that put itself away for a resize is built again rather than
+/// returned.</remarks>
 int NewMenuClass::Display_Menu(char const * section, DynamicVectorClass<int> & options, DynamicVectorClass<int> & hidden)
 {
-	GraphicMenu * menu = Do_Graphic_Menu("NewMenu.INI", section);
+	bool themeplaying = false;
 
-	if (menu == NULL) {
-		return(NSEL_OLD_MENU);
+	for (;;) {
+		GraphicMenu * menu = Do_Graphic_Menu("NewMenu.INI", section);
+
+		if (menu == NULL) {
+			return(NSEL_OLD_MENU);
+		}
+
+		delete [] Background;
+		char const * bgname = menu->BackgroundName.Peek();
+		if (bgname == NULL) {
+			bgname = "Title.PCX";
+		}
+		Background = new char[strlen(bgname) + 1];
+		strcpy(Background, bgname);
+
+		for (int option : options) {
+			menu->Set_Item_Enabled(option, false);
+		}
+
+		for (int option : hidden) {
+			menu->Set_Item_Visible(option, false);
+		}
+
+		menu->Set_Theme_Playing(themeplaying);
+
+		int result = menu->Presentation();
+		delete menu;
+
+		if (result != GMENU_REDISPLAY) {
+			return((int)result);
+		}
+
+		// One turn of the pump resizes the frame while nothing is laid out
+		// against the surfaces.
+		Windows_Message_Handler();
+		themeplaying = true;
 	}
-
-	delete [] Background;
-	char const * bgname = menu->BackgroundName.Peek();
-	if (bgname == NULL) {
-		bgname = "Title.PCX";
-	}
-	Background = new char[strlen(bgname) + 1];
-	strcpy(Background, bgname);
-
-	for (int option : options) {
-		menu->Set_Item_Enabled(option, false);
-	}
-
-	for (int option : hidden) {
-		menu->Set_Item_Visible(option, false);
-	}
-
-	int result = menu->Presentation();
-	delete menu;
-	return((int)result);
 }
 
 
@@ -275,8 +385,8 @@ int NewMenuClass::Select_Game_Type(void)
 /// <summary>
 /// Displays the Tiberian Sun main menu.
 /// This routine will switch the addon system over to the base game before showing the
-/// menu, and disable any option that would lead nowhere -- offering to load a mission
-/// when there are no saved games, for instance.
+/// menu, and disable any option that would lead nowhere -- offering to reach a service
+/// that has shut down, for instance.
 /// </summary>
 /// <returns>Returns with the selection the player made.</returns>
 int NewMenuClass::Display_Tiberian_Sun_Menu(void)
@@ -291,12 +401,15 @@ int NewMenuClass::Display_Tiberian_Sun_Menu(void)
 		options.Add(102);
 	}
 
-	if (!LoadOptionsClass().Files_Present()) {
+	if (!LoadOptionsClass().Offer_Load()) {
 		options.Add(NSEL_LOAD_MISSION);
 	}
-
 	// The button is drawn by the menu artwork, so it is disabled rather than taken away.
 	options.Add(NSEL_INTERNET);
+
+#if defined(__EMSCRIPTEN__)
+	Hide_Unplayable_Options(options, hidden);
+#endif
 
 	return(Display_Menu("TiberianSunMenu", options, hidden));
 }
@@ -304,8 +417,8 @@ int NewMenuClass::Display_Tiberian_Sun_Menu(void)
 
 /// <summary>
 /// Displays the Firestorm main menu.
-/// This routine will enable the Firestorm addon before showing the menu, and disable the
-/// load option when there are no saved games to offer.
+/// This routine will enable the Firestorm addon before showing the menu, and disable any
+/// option that would lead nowhere.
 /// </summary>
 /// <returns>Returns with the selection the player made.</returns>
 int NewMenuClass::Display_Firestorm_Menu(void)
@@ -317,14 +430,17 @@ int NewMenuClass::Display_Firestorm_Menu(void)
 	DynamicVectorClass<int> options;
 	DynamicVectorClass<int> hidden;
 
-	if (!LoadOptionsClass().Files_Present()) {
+	if (!LoadOptionsClass().Offer_Load()) {
 		options.Add(NSEL_LOAD_MISSION);
 	}
-
 	// Both buttons are drawn by the menu artwork, so they are disabled rather than taken
 	// away. Neither the online service they led to nor the tour it hosted can be reached.
 	options.Add(NSEL_INTERNET);
 	options.Add(NSEL_WDT);
+
+#if defined(__EMSCRIPTEN__)
+	Hide_Unplayable_Options(options, hidden);
+#endif
 
 	return(Display_Menu("FirestormMenu", options, hidden));
 }

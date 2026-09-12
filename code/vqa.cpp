@@ -15,6 +15,9 @@
 
 #include "vqa.h"
 
+#include "_keyboar.h"
+#include "audio/audioengine.h"
+#include "browser.h"
 #include "ccfile.h"
 #include "dbgprint.h"
 #include "globals.h"
@@ -25,6 +28,7 @@
 #include "session.h"
 #include "unvqtblc.h"
 #include "vector.h"
+#include "video.h"
 #include "vqoption.h"
 #include "win.h"
 
@@ -44,7 +48,16 @@ intptr_t __cdecl VQAMemoryHandler(VQAHandle * vqa, long action, void * buffer, l
 
 bool VQA_Message_Handler(void)
 {
-#if defined(_WIN32)
+#if defined(__EMSCRIPTEN__)
+	// The player's loop is the only thing running while a movie plays, so the
+	// page and the audio feeder are serviced here. Audio comes first because
+	// the movie takes its time from the audio clock.
+	Browser_Service();
+	AudioEngine.Service();
+	Video_Present_If_Dirty();
+	Browser_Yield();
+	return(true);
+#elif defined(_WIN32)
 
 	MSG msg;
 
@@ -184,7 +197,15 @@ VQAClass::VQAClass(char const * filename, int flags, VQA_SURF_LOCK_CALLBACK surf
 	}
 
 	Config.AudioHandler = Stream_Audio_Handler;
+
+#if !defined(_WIN32)
+	// Twice the block the player was written around: a page's output needs
+	// about a tenth of a second of audio in hand, and the movie takes its clock
+	// from the play cursor.
+	Config.HMIBufSize = 16384;
+#else
 	Config.HMIBufSize = 8192;
+#endif
 
 	//-------------------------------------------------------------------------
 	// Initialize private class variables.

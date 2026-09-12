@@ -161,6 +161,7 @@
 #include "platform/file.h"
 #include "platform/filetime.h"
 #include "queue.h"
+#include "phase.h"
 #include "ramfile.h"
 #include "revent.h"
 #include "rndstraw.h"
@@ -561,6 +562,7 @@ int Init_Game(int , char * [])
 	Init_Commands();
 
 	DebugString("Game Init Completed.\n");
+	Phase_Event("init");
 
 	return(0);
 }
@@ -2947,7 +2949,7 @@ int Main_Menu(unsigned int timeout)
 	request.Document = "mainmenu.rml";
 	request.Choices = {
 		{ "campaign", SEL_CAMPAIGN_GAME },
-		{ "load", SEL_LOAD_GAME, LoadOptionsClass().Files_Present() },
+		{ "load", SEL_LOAD_GAME, LoadOptionsClass().Offer_Load() },
 		{ "multiplayer", SEL_MULTIPLAYER_GAME },
 		{ "intro", SEL_INTRO },
 		{ "options", SEL_OPTIONS },

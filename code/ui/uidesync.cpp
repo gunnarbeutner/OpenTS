@@ -11,10 +11,13 @@
 
 #include "uidesync.h"
 
+#include "data.h"
+#include "language/language.h"
 #include "misc.h"
 #include "uicontext.h"
 #include "uimodel.h"
 #include "uirmlview.h"
+#include "uiscreens.h"
 #include "uishell.h"
 
 #include <RmlUi/Core/Context.h>
@@ -516,3 +519,51 @@ void UI_Desync_Service(void (*handler)(UIIntent const & intent))
 	_Presenter->Drain();
 	_Presenter->Handler = nullptr;
 }
+
+
+// The register's entries for the parts of the box a two-machine run cannot reach without a
+// multiplayer save to load: the countdown line and its bar, over a representative roster.
+// They drive the box directly rather than through DesyncDialogClass, so they exercise the
+// view and not the driver.
+static bool Open_Probe_Countdown(void)
+{
+	if (!UI_Desync_Open(true)) {
+		return(true);
+	}
+
+	std::vector<UIDesyncPlayer> players(3);
+	players[0].Name = "Hosty";
+	players[0].Host = true;
+	players[0].Status = Fetch_String(TXT_OK);
+	players[0].Green = 200;
+	players[1].Name = "Joiny";
+	players[1].Status = Fetch_String(TXT_SYNC_STATUS_OUT);
+	players[1].Red = 200;
+	players[1].Green = 200;
+	players[2].Name = "Leavy";
+	players[2].Status = Fetch_String(TXT_SYNC_STATUS_LEFT);
+	players[2].Red = 200;
+	UI_Desync_Set_Players(players);
+
+	UI_Desync_Set_Chat({ "Joiny: hello", Fetch_String(TXT_LOADING_SAVED_GAME) });
+	UI_Desync_Set_Chat_Text(Fetch_String(TXT_CHAT_HINT));
+	UI_Desync_Enable(UI_DESYNC_LOAD, false);
+	UI_Desync_Enable(UI_DESYNC_CONTINUE, false);
+	UI_Desync_Show_Countdown();
+	char text[128];
+	std::snprintf(text, sizeof(text), Fetch_String(TXT_LOADING_IN_SECONDS), 2);
+	UI_Desync_Set_Countdown_Text(text);
+	UI_Desync_Set_Countdown_Bar(2000, 5000, 200, 200, 0);
+	return(true);
+}
+
+
+static bool Close_Probe_Countdown(void)
+{
+	UI_Desync_Close();
+	return(true);
+}
+
+
+static UIScreenRegistration _RegisterCountdown("desync-countdown", Open_Probe_Countdown);
+static UIScreenRegistration _RegisterClose("desync-close", Close_Probe_Countdown);

@@ -47,7 +47,13 @@ foreach(f ${OPENTS_RAW})
 
     # The Windows UI input adapter is fed by the window procedure; another target's host
     # feeds the shell itself.
+    # buffer rather than dispatching a window message, so the hook it offers is what feeds
+    # the shell there, and the window procedure's hook is what feeds it on Windows.
     if(OPENTS_POSIX AND f MATCHES "/ui/uiwin32\\.cpp$")
+        set(EXCLUDED TRUE)
+    endif()
+
+    if(NOT EMSCRIPTEN AND f MATCHES "/ui/uibrowser\\.cpp$")
         set(EXCLUDED TRUE)
     endif()
 
@@ -126,10 +132,11 @@ if(OPENTS_POSIX)
 
 set(OPENTS_COMPILE_OPTIONS
 
-    # clang's default floating-point model keeps single precision single and reassociates
-    # nothing, which is what /arch:SSE2 and /fp:precise buy under MSVC. So the model needs
-    # nothing asked for here, but no fast-math option may ever be added: the simulation runs
-    # in lockstep across a network game and any relaxation desynchronizes it.
+    # WebAssembly arithmetic is strict IEEE-754: single precision stays single precision and
+    # nothing is reassociated, which is what /arch:SSE2 and /fp:precise buy under MSVC. So the
+    # floating-point model needs nothing asked for here, but no fast-math option may ever be
+    # added: the simulation runs in lockstep across a network game and any relaxation
+    # desynchronizes it.
     -fno-fast-math
 
     # MSVC does not optimize on the strict aliasing rule and the inherited code puns types
@@ -140,8 +147,8 @@ set(OPENTS_COMPILE_OPTIONS
     # the engine calls them on pointers that may be null. clang infers that a member's `this`
     # is nonnull and dereferenceable and so deletes the null test dynamic_cast is required to
     # make -- inline or out of line, since the inference is about `this` rather than about
-    # inlining. The cast then reads a vtable at address zero. MSVC keeps the test, so this
-    # belongs to the clang target alone.
+    # inlining. The cast then reads a vtable at address zero, which is addressable memory in
+    # WebAssembly, and traps. MSVC keeps the test, so this belongs to the clang target alone.
     -fno-delete-null-pointer-checks
 
     # The engine's wchar_t is 16 bits and the library's is 32, so no libc wide-string
@@ -156,7 +163,15 @@ set(OPENTS_COMPILE_OPTIONS
     # layout-sensitive, so the narrow form is kept.
     -fshort-wchar
 
-    # C++ exception handling, matching /EHsc.
+    # C++ exception handling, matching /EHsc. Emscripten compiles throws to traps otherwise.
+    #
+    # The WebAssembly form of it rather than the JavaScript one, and that is not a
+    # preference: -fexceptions routes every call that can unwind through an invoke_ import,
+    # and Emscripten declares every invoke_ import suspending whenever JSPI is on. A static
+    # initializer would then try to suspend before main -- outside the promising boundary --
+    # and trap. -fwasm-exceptions keeps the unwinding in wasm, where it belongs, and leaves
+    # nothing for JSPI to mistake for a yield.
+    $<$<BOOL:${EMSCRIPTEN}>:-fwasm-exceptions>
     $<$<BOOL:${OPENTS_MACOS}>:-fexceptions>
 
     # The inherited declarations carry MSVC's __declspec, which clang parses only when asked.
@@ -314,11 +329,23 @@ endif()
 # or by shipping it in a mix.
 set(OPENTS_UI_DATA_DIR "${CMAKE_SOURCE_DIR}/ui")
 
-add_custom_command(TARGET OpenTS POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${OPENTS_UI_DATA_DIR}" "$<TARGET_FILE_DIR:OpenTS>/ui"
-    COMMENT "Copying the UI files beside the executable"
-)
+if(EMSCRIPTEN)
+    # A page has no directory beside the executable to copy into, and these files are not in
+    # the asset manifest, which carries the archives and films of a data release. Embedding
+    # puts them in the module's own file system, where the working directory is the root.
+    target_link_options(OpenTS PRIVATE "SHELL:--embed-file ${OPENTS_UI_DATA_DIR}@/ui")
+
+    # The embedded files are link inputs that the link line does not name one at a time, so
+    # editing a document would otherwise leave the module holding the old copy.
+    file(GLOB OPENTS_UI_DATA_FILES CONFIGURE_DEPENDS "${OPENTS_UI_DATA_DIR}/*")
+    set_property(TARGET OpenTS APPEND PROPERTY LINK_DEPENDS "${OPENTS_UI_DATA_FILES}")
+else()
+    add_custom_command(TARGET OpenTS POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${OPENTS_UI_DATA_DIR}" "$<TARGET_FILE_DIR:OpenTS>/ui"
+        COMMENT "Copying the UI files beside the executable"
+    )
+endif()
 
 message(STATUS "${PROJECT_NAME}: Adding compilier definitions...")
 target_compile_definitions(OpenTS PRIVATE
@@ -361,6 +388,7 @@ target_link_libraries(OpenTS PRIVATE
 set_target_properties(bimg_decode PROPERTIES EXCLUDE_FROM_ALL FALSE)
 add_dependencies(OpenTS bimg_decode)
 
+
 # The renderer is linked as a file rather than a target, so the frameworks bgfx reaches on
 # macOS are named here.
 if(OPENTS_MACOS)
@@ -384,6 +412,128 @@ if (WIN32)
     )
 endif()
 
+if (EMSCRIPTEN)
+    target_link_options(OpenTS PRIVATE
+        # bgfx's OpenGL ES 3 renderer reaches the page through WebGL 2 alone.
+        -sMIN_WEBGL_VERSION=2
+        -sMAX_WEBGL_VERSION=2
+
+        # The engine sizes its own allocations at startup rather than against a fixed heap.
+        -sALLOW_MEMORY_GROWTH=1
+
+        # main returns to the page while the engine is still running inside it, so the
+        # runtime has to outlive the return.
+        -sEXIT_RUNTIME=0
+
+        # A saved game has to outlive the tab it was written in, so the directory the engine
+        # saves into is mounted on IndexedDB. Only that directory is: the game data is
+        # already on the page and must not be copied into a browser's database.
+        -lidbfs.js
+
+        # The page mounts that directory and reads it back before the engine starts, which
+        # means the page rather than the runtime decides when main is called.
+        # UTF8ToString reads the strings the engine's own reporting exports return.
+        -sEXPORTED_RUNTIME_METHODS=FS,callMain,UTF8ToString
+
+        -fwasm-exceptions
+
+        # FreeType's error path longjmps, and it is compiled for the wasm form of it, so
+        # the link has to provide that form rather than the JavaScript one.
+        -sSUPPORT_LONGJMP=wasm
+    )
+
+    #
+    # ---------------------------------------------------------
+    # The yield scaffold
+    # ---------------------------------------------------------
+    #
+    # A page owns the thread the engine borrows, and the engine has around sixty waits that
+    # do not return. A wait therefore has to suspend the engine's own stack and resume it
+    # later, which is what lets a browser build run before those waits are flattened.
+    # docs/WASM-PORT.md section 1 records the scaffold as deliberately temporary: it keeps the
+    # reentrancy the project means to remove, and Browser_Blocking_Wait_Count is the number
+    # that has to reach zero before it can go.
+    #
+    #   JSPI      JavaScript Promise Integration. The virtual machine suspends a real
+    #             WebAssembly stack, so nothing is instrumented and nothing is paid for at
+    #             run time. It is not in a released Safari.
+    #   ASYNCIFY  Binaryen rewrites the module so an instrumented function can unwind its
+    #             locals to a side stack and rewind later. Plain WebAssembly, so it runs
+    #             anywhere, and it is paid for in size and speed on every instrumented call.
+    #   NONE      Nothing carries a wait. The engine keeps the thread, the page stops
+    #             answering at the first one, and says so once. This is the destination:
+    #             what a build configured here fails at is the work still to do.
+    #
+    # Both mechanisms give the engine the same thing -- a wait that hands the thread back and
+    # comes back to where it left -- and the source asks for no more than that, so one
+    # definition marks either of them.
+    #
+    if(NOT OPENTS_WASM_SUSPEND STREQUAL "NONE")
+        target_compile_definitions(OpenTS PRIVATE OPENTS_WASM_JSPI)
+    endif()
+
+    if(OPENTS_WASM_SUSPEND STREQUAL "JSPI")
+        target_link_options(OpenTS PRIVATE -sJSPI)
+    endif()
+
+    if(OPENTS_WASM_SUSPEND STREQUAL "ASYNCIFY")
+        target_link_options(OpenTS PRIVATE
+            -sASYNCIFY
+
+            # The rewrite reaches every function that can be on the stack at a wait, and in
+            # this engine a wait is reached from render, logic, queue and dialog code alike,
+            # so the transitive closure is effectively the whole engine. Binaryen's default
+            # side stack is 4KB and the engine's stack at a wait is far deeper than that;
+            # overflowing it aborts rather than degrading.
+            -sASYNCIFY_STACK_SIZE=65536
+        )
+    endif()
+
+    #
+    # The two suspending artifacts differ only in how a wait is carried, so that is what they
+    # are named for, and a page can then serve both out of one directory and load whichever
+    # the browser can run. The plain name belongs to the mechanism a browser needs nothing
+    # extra to run -- JSPI today, and NONE once the waits are gone.
+    #
+    # An Emscripten build is single configuration, so the name is settled here rather than
+    # deferred, which is what lets the page name the artifact this build did not produce.
+    #
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(OPENTS_WASM_MODULE_BASE "GameD")
+    else()
+        set(OPENTS_WASM_MODULE_BASE "Game")
+    endif()
+
+    set(OPENTS_WASM_MODULE_SUFFIX "")
+
+    if(OPENTS_WASM_SUSPEND STREQUAL "ASYNCIFY")
+        set(OPENTS_WASM_MODULE_SUFFIX "-asyncify")
+    endif()
+
+    set_target_properties(OpenTS PROPERTIES
+        OUTPUT_NAME "${OPENTS_WASM_MODULE_BASE}${OPENTS_WASM_MODULE_SUFFIX}"
+        OUTPUT_NAME_DEBUG "${OPENTS_WASM_MODULE_BASE}${OPENTS_WASM_MODULE_SUFFIX}"
+        OUTPUT_NAME_RELEASE "${OPENTS_WASM_MODULE_BASE}${OPENTS_WASM_MODULE_SUFFIX}"
+
+        # What the page looks for, which is both artifacts rather than the one this
+        # configuration builds: either configuration generates the same page, so the two can
+        # be built separately and served together.
+        OPENTS_MODULE_BASE "${OPENTS_WASM_MODULE_BASE}"
+    )
+
+    # The engine opens its archives out of the directory it runs in, through the POSIX half
+    # of the file layer in code/platform. Under node the directory that reaches is the
+    # host's own, which this hands the module directly, and that is the whole of the data
+    # mounting story for the node target. The option exists because the flag is node-only --
+    # a page built with it throws before main runs -- so a browser build turns it off and
+    # brings its data in another way.
+    option(OPENTS_WASM_NODERAWFS
+        "Give the WebAssembly build the host filesystem, for running under node" ON)
+
+    if(OPENTS_WASM_NODERAWFS)
+        target_link_options(OpenTS PRIVATE -sNODERAWFS=1)
+    endif()
+endif()
 
 if (MSVC)
     target_link_options(OpenTS PRIVATE

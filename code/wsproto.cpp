@@ -232,7 +232,7 @@ void WinsockInterfaceClass::Stop_Listening (void)
 
 
 /// <summary>
-/// Moves pending packets between the socket and the holding buffers, so
+/// Moves pending packets between the carrier and the holding buffers, so
 /// that Read finds what has arrived and what WriteTo queued has gone out.
 /// </summary>
 void WinsockInterfaceClass::Service(void)

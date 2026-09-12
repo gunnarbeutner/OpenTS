@@ -21,6 +21,10 @@
 #include "video.h"
 #include "xmouse.h"
 
+#if defined(__EMSCRIPTEN__)
+#include "browser.h"
+#endif
+
 #include <cstdint>
 #include <vector>
 
@@ -65,6 +69,17 @@ static int Cursor_Scale(void)
 	VideoScaleInfo const & scale = Video_Get_Scale_Info();
 	float smaller = scale.ScaleX < scale.ScaleY ? scale.ScaleX : scale.ScaleY;
 
+#if defined(__EMSCRIPTEN__)
+	// A page scales a cursor image by the device pixel ratio itself, so the
+	// scale is taken back to CSS pixels.
+	int const devicewidth = Browser_Canvas_Width();
+	int const csswidth = Browser_Canvas_CSS_Width();
+
+	if (devicewidth > 0 && csswidth > 0) {
+		smaller = smaller * (float)csswidth / (float)devicewidth;
+	}
+#endif
+
 	int result = (int)(smaller + 0.5f);
 	if (result < 1) result = 1;
 	if (result > 8) result = 8;
@@ -97,6 +112,15 @@ static HostCursor * Build_Cursor(ShapeSet const * shape, int frame, int hotx, in
 
 	if (width <= 0 || height <= 0) {
 		return(NULL);
+	}
+
+	// A page shows nothing at all for a cursor over its size limit.
+	int limit = Host_Max_Cursor_Size();
+
+	while (scale > 1 && (width > limit || height > limit)) {
+		scale--;
+		width = shape->Get_Width() * scale;
+		height = shape->Get_Height() * scale;
 	}
 
 	std::vector<std::uint32_t> pixels((size_t)width * (size_t)height, 0);
@@ -153,13 +177,18 @@ static void Flush_Cursor_Cache(void)
 }
 
 
+// The game's hide counts only while it holds the mouse; a released pointer
+// belongs to the window class.
 static void Apply_Current_Cursor(void)
 {
-	if (_CursorVisible) {
-		Host_Set_Cursor(_CurrentCursor);
-	} else {
+	bool const held = (MouseCursor != NULL && MouseCursor->Is_Captured());
+
+	if (held && !_CursorVisible) {
 		Host_Hide_Cursor();
+		return;
 	}
+
+	Host_Set_Cursor(_CurrentCursor);
 }
 
 
@@ -222,7 +251,7 @@ void Win_Cursor_Set(ShapeSet const * shape, int frame, int hotx, int hoty, bool 
 
 	_CurrentCursor = cursor;
 
-	if (apply) {
+	if (apply || !Host_Has_Class_Cursor()) {
 		Apply_Current_Cursor();
 	}
 }
@@ -254,6 +283,16 @@ bool Win_Cursor_Handle_Set_Cursor(void)
 
 	Apply_Current_Cursor();
 	return(true);
+}
+
+
+/// <summary>
+/// Draws the pointer the game last chose, whether or not the game holds the
+/// mouse.
+/// </summary>
+void Win_Cursor_Apply(void)
+{
+	Apply_Current_Cursor();
 }
 
 

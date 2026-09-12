@@ -416,6 +416,8 @@ void CDFileClass::Clear_Search_Drives(void)
 /// <summary>
 /// Searches the current directory and configured local data paths for a file.
 /// The first match becomes this object's filename; if none is found, the raw filename is kept.
+/// A match inside a mounted image keeps the plain filename, since there is no
+/// local path that would reach it, and the object reads from the image instead.
 /// </summary>
 /// <param name="filename">The file name to search for.</param>
 /// <returns>The selected file name, including a configured path when one supplies the match.</returns>

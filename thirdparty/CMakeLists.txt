@@ -20,6 +20,24 @@ if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
+# bgfx chooses its renderer and its render thread per platform, so the Emscripten build asks
+# for neither: it reaches the browser GPU through OpenGL ES 3, which Emscripten translates to
+# WebGL 2, and it runs single-threaded, which is what a page without cross-origin isolation
+# can load.
+
+# Emscripten's toolchain reports an x86 processor, so bx adds -msse4.2 to every one of its
+# translation units. clang lowers those intrinsics to WebAssembly SIMD, but only when the
+# SIMD feature is enabled, and refuses the flags otherwise.
+if(EMSCRIPTEN)
+    add_compile_options(-msimd128)
+endif()
+
+# bgfx defaults to its OpenGL ES 2 path under Emscripten. The context is WebGL 2 either way,
+# so ask for the renderer that matches it.
+if(EMSCRIPTEN)
+    set(BGFX_OPENGLES_VERSION 30 CACHE STRING "" FORCE)
+endif()
+
 add_subdirectory(bgfx.cmake)
 
 # These libraries support the disabled texture tools and are not linked into OpenTS.
@@ -77,6 +95,20 @@ if(WIN32)
     )
 endif()
 
+if(EMSCRIPTEN)
+    # A page reaches audio through Web Audio and nothing else, so the other backends are
+    # left out rather than compiled and never selected. The library's own unlock handlers
+    # resume the context on the first gesture, which is the only way a page may start it.
+    #
+    # AudioWorklets are not asked for: they need WASM workers and cross-origin isolation,
+    # so the ScriptProcessorNode path is what a page without those headers can load.
+    target_compile_definitions(miniaudio PUBLIC
+        MA_ENABLE_ONLY_SPECIFIC_BACKENDS
+        MA_ENABLE_WEBAUDIO
+        MA_ENABLE_NULL
+    )
+endif()
+
 if(MSVC)
     # Match the engine's floating-point model so the resampler behaves the same in both.
     target_compile_options(miniaudio PRIVATE /arch:SSE2 /fp:precise)
@@ -130,6 +162,13 @@ set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
 set(FT_DISABLE_BROTLI ON CACHE BOOL "" FORCE)
 
 add_subdirectory(freetype)
+
+# FreeType reports a damaged font by longjmp. The engine keeps unwinding inside wasm with
+# -fwasm-exceptions so that JSPI has no invoke_ import to mistake for a yield, and longjmp
+# has to travel the same way for the same reason.
+if(EMSCRIPTEN)
+    target_compile_options(freetype PRIVATE -sSUPPORT_LONGJMP=wasm)
+endif()
 
 # RmlUi looks for the target that the CMake FindFreetype module defines, and FreeType's own
 # build does not define it. The alias supplies it from the submodule target.

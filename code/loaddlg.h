@@ -101,6 +101,7 @@ class LoadOptionsClass
 
 		void Pick_Filename(char * file_name);
 		bool Files_Present(void);
+		bool Offer_Load(void);
 
 		virtual bool Load_File(const char * file_name);
 		virtual bool Save_File(const char * file_name, const char * descr);

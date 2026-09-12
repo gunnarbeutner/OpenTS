@@ -9,10 +9,9 @@
 
 #include "platform/file.h"
 
-#include <lzo/lzo1x.h>
-
 #include <cstdio>
 #include <cstring>
+#include <lzo/lzo1x.h>
 #include <string>
 #include <vector>
 

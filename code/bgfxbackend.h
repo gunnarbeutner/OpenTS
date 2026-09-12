@@ -21,6 +21,10 @@ enum BackendRenderer {
 	BACKEND_RENDERER_D3D12,
 	BACKEND_RENDERER_VULKAN,
 	BACKEND_RENDERER_OPENGL,
+
+	// OpenGL ES 3, which is WebGL 2 in a browser. Appended so that the stored
+	// Renderer configuration value keeps its meaning.
+	BACKEND_RENDERER_OPENGLES,
 };
 
 
@@ -50,5 +54,13 @@ void Backend_Present(void const * pixels, int pitch, int destx, int desty, int d
 // Ends the bgfx frame that Backend_Present opened, putting everything submitted to it on
 // the screen. No other code begins or ends a bgfx frame.
 void Backend_End_Frame(void);
+
+// Queues a 32 bit RGBA movie frame to draw over every following Backend_Present
+// until replaced or cleared, at a rect in window pixels. The pixels are copied
+// before this returns and stay owned by the caller.
+void Backend_Queue_Video_Frame(void const * pixels, int pitch, int width, int height,
+	int dest_x, int dest_y, int dest_width, int dest_height);
+
+void Backend_Clear_Video_Frame(void);
 
 char const * Backend_Renderer_Name(void);
