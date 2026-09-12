@@ -46,6 +46,7 @@
  *   TriggerTypeClass::~TriggerTypeClass -- Deleting a trigger type deletes associated triggers*
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "utf8.h"
 #include "always.h"
 
 #include "trigtype.h"
@@ -626,7 +627,7 @@ bool TriggerTypeClass::Write_INI(CCINIClass & ini) const
 {
 	char buffer[INIClass::MAX_LINE_LENGTH];
 
-	sprintf(buffer, "%s,%s,%s,%d,%d,%d,%d,%d",
+	snprintf(buffer, sizeof(buffer), "%s,%s,%s,%d,%d,%d,%d,%d",
 		(House != NULL) ? (char const *)House->Class->IniName : "<none>",
 		(LinkedTo != NULL) ? (char const *)LinkedTo->IniName : "<none>",
 		(char const *)GivenName,
@@ -644,11 +645,11 @@ bool TriggerTypeClass::Write_INI(CCINIClass & ini) const
 		count++;
 		tevent = tevent->Next;
 	}
-	sprintf(buffer, "%d", count);
+	snprintf(buffer, sizeof(buffer), "%d", count);
 
 	tevent = FirstEvent;
 	while (tevent != NULL) {
-		strcat(buffer, ",");
+		UTF8::Append(buffer, ",");
 		tevent->Build_INI_Entry(buffer, sizeof(buffer));
 		tevent = tevent->Next;
 	}
@@ -660,11 +661,11 @@ bool TriggerTypeClass::Write_INI(CCINIClass & ini) const
 		count++;
 		taction = taction->Next;
 	}
-	sprintf(buffer, "%d", count);
+	snprintf(buffer, sizeof(buffer), "%d", count);
 
 	taction = FirstAction;
 	while (taction != NULL) {
-		strcat(buffer, ",");
+		UTF8::Append(buffer, ",");
 		taction->Build_INI_Entry(buffer);
 		taction = taction->Next;
 	}

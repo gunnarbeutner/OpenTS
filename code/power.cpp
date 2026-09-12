@@ -607,7 +607,7 @@ const char * PowerClass::Help_Text(int id)
 	static char _str[128];
 
 	if (id == GADGET_POWER) {
-		sprintf(_str, Fetch_String(TXT_POWER_DRAIN), PlayerPtr->Power, PlayerPtr->Drain);
+		snprintf(_str, sizeof(_str), Fetch_String(TXT_POWER_DRAIN), PlayerPtr->Power, PlayerPtr->Drain);
 		return(_str);
 	}
 

@@ -390,7 +390,7 @@ void VeinholeMonsterClass::Draw_All(void)
 void VeinholeMonsterClass::Init(TheaterType theater)
 {
 	char buffer[32];
-	sprintf(buffer, "VEINHOLE.%s", TheaterClass::As_Reference(theater).Suffix.c_str());
+	snprintf(buffer, sizeof(buffer), "VEINHOLE.%s", TheaterClass::As_Reference(theater).Suffix.c_str());
 	MonsterShape = (ShapeSet *)MixFileClass::Retrieve(buffer);
 }
 

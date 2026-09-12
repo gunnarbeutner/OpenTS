@@ -1074,8 +1074,8 @@ void Draw_Cost(int cost, int maxcost, Surface & surface, Point2D const & drawpoi
 	static char cost_text[16];
 	static char max_text[24];
 
-	sprintf(cost_text, "%s%d", title, cost);
-	sprintf(max_text, "%s%d", title, maxcost);
+	snprintf(cost_text, sizeof(cost_text), "%s%d", title, cost);
+	snprintf(max_text, sizeof(max_text), "%s%d", title, maxcost);
 
 	int x1, x2;
 
@@ -1131,21 +1131,21 @@ void Draw_Unit_Info(Surface *surface, ConvertClass *drawer, TechnoTypeClass *tec
 		char armament[40];
 		char armor[32];
 
-		sprintf(name, "Name: %s", techtype->GivenName.c_str());
+		snprintf(name, sizeof(name), "Name: %s", techtype->GivenName.c_str());
 
 		if (allowed) {
-			sprintf(cost, "Cost: %d", techtype->Raw_Cost());
+			snprintf(cost, sizeof(cost), "Cost: %d", techtype->Raw_Cost());
 		} else {
-			sprintf(cost, "Cost: N/A");
+			snprintf(cost, sizeof(cost), "Cost: N/A");
 		}
 
 		if (techtype->Get_Weapon(0)->Weapon != NULL) {
-			sprintf(armament, "Armament: %s", techtype->Get_Weapon(0)->Weapon->GivenName.c_str());
+			snprintf(armament, sizeof(armament), "Armament: %s", techtype->Get_Weapon(0)->Weapon->GivenName.c_str());
 		} else {
-			sprintf(armament, "Armament: NONE");
+			snprintf(armament, sizeof(armament), "Armament: NONE");
 		}
 
-		sprintf(armor, "Armor: %s", ArmorName[techtype->Armor]);
+		snprintf(armor, sizeof(armor), "Armor: %s", ArmorName[techtype->Armor]);
 
 		ColorScheme *scheme;
 		if (allowed) {

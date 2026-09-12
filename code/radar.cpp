@@ -64,6 +64,7 @@
  *   RadarClass::Zoom_Mode(void) -- Handles toggling zoom on the map                           *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "utf8.h"
 #include "always.h"
 
 #include "radar.h"
@@ -794,7 +795,7 @@ void RadarClass::Draw_Names(void)
 		snprintf(txt, sizeof(txt), "%s", Session.Shown_Name(ptr).c_str());
 
 		if (strlen(txt) == 0) {
-			strcpy(txt,"________");
+			UTF8::Copy(txt, "________");
 		}
 
 		/*
@@ -811,7 +812,7 @@ void RadarClass::Draw_Names(void)
 			kills += ptr->UnitsKilled[h];
 			kills += ptr->BuildingsKilled[h];
 		}
-		sprintf(txt, "%2d", kills);
+		snprintf(txt, sizeof(txt), "%2d", kills);
 		Fancy_Text_Print(txt, *SidebarSurface, SidebarSurface->Get_Rect(), Point2D(RadX + RadOffX + RadIWidth - 2, y), color, TBLACK, TextPrintType(style | TPF_RIGHT));
 
 		y += 8+1;

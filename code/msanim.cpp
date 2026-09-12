@@ -606,7 +606,7 @@ MSVQAnim::MSVQAnim(char const * name, Surface * surface, MS_ANIM_LIST * vector, 
 			Movie->StretchRect = Rect((HiddenSurface->Get_Width() - 640) / 2, (HiddenSurface->Get_Height() - 400) / 2, 640, 400);
 		}
 		char pcx_name[64];
-		strcpy(pcx_name, name);
+		UTF8::Copy(pcx_name, name);
 		char *tok = strtok(pcx_name, ".");
 		if (tok != NULL) {
 			strcat(tok, ".PCX");
@@ -1445,7 +1445,7 @@ void MSButtonAnim::Render(Surface * surface)
 	char char1 = (Pressed || !Enabled) ? 'u' : 'd'; /// u is for "up", d is for "down"
 	char char2 = Enabled ? 'e' : 'd'; /// e is for "enabled", d is for "disabled"
 
-	sprintf(buffer, "b%c%c_li%02d.pcx", char1, char2, Height);
+	snprintf(buffer, sizeof(buffer), "b%c%c_li%02d.pcx", char1, char2, Height);
 	Surface * image = ImageCache->GetSurface(buffer);
 	if (image != NULL) {
 		Rect dr(Area.X, Area.Y, LeftCapWidth, Height);
@@ -1453,13 +1453,13 @@ void MSButtonAnim::Render(Surface * surface)
 		surface->Blit_From(dr, *image, sr);
 	}
 
-	sprintf(buffer, "b%c%c_mi%02d.pcx", char1, char2, Height);
+	snprintf(buffer, sizeof(buffer), "b%c%c_mi%02d.pcx", char1, char2, Height);
 	image = ImageCache->GetSurface(buffer);
 	if (image != NULL) {
 		ImageCache->Draw(Rect(Area.X + LeftCapWidth, Area.Y, Area.Width - RightCapWidth - LeftCapWidth, Height), *surface, *image, 0, 0);
 	}
 
-	sprintf(buffer, "b%c%c_ri%02d.pcx", char1, char2, Height);
+	snprintf(buffer, sizeof(buffer), "b%c%c_ri%02d.pcx", char1, char2, Height);
 	image = ImageCache->GetSurface(buffer);
 	if (image != NULL) {
 		Rect dr(Area.X + Area.Width - 10, Area.Y, RightCapWidth, Height);
@@ -1517,7 +1517,7 @@ MSPCXAnim::MSPCXAnim(const char * name, MS_ANIM_LIST * vector, bool transient) :
 	Active = true;
 
 	if (name != NULL) {
-		strcpy(buffer, name);
+		UTF8::Copy(buffer, name);
 		char * token = strtok(buffer, ".");
 		if (token != NULL) {
 			strcat(token, ".PCX");
@@ -1557,7 +1557,7 @@ MSPCXAnim::MSPCXAnim(const char * name, MS_ANIM_LIST * vector, const Point2D & p
 	Active = true;
 
 	if (name != NULL) {
-		strcpy(buffer, name);
+		UTF8::Copy(buffer, name);
 		char * token = strtok(buffer, ".");
 		if (token != NULL) {
 			strcat(token, ".PCX");

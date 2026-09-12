@@ -38,6 +38,7 @@
  *   _Need_To_Take -- Examines unit to determine if it should be confiscated.                  *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "utf8.h"
 #include "always.h"
 
 #include "reinf.h"
@@ -442,7 +443,7 @@ bool Do_Reinforcements(TeamTypeClass const * teamtype, WAYPOINT wp)
 
 		TeamTypeClass * dropship_teamtype = new TeamTypeClass;
 		static char name[24];
-		strcpy(name, dropship_teamtype->IniName);
+		UTF8::Copy(name, dropship_teamtype->IniName);
 		memcpy(dropship_teamtype, teamtype, sizeof(TeamTypeClass));
 		dropship_teamtype->TaskForce = dropship_taskforce;
 		dropship_teamtype->IniName = TStringID<24>(name);

@@ -32,6 +32,8 @@
 
 #pragma once
 
+#include <cstddef>
+
 #include "abstract.h"
 #include "ftimer.h"
 #include "timer.h"
