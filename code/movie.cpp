@@ -104,7 +104,7 @@ void Play_Movie(char const * name, ThemeType theme, bool clrscrn_after, bool str
 
 		bool dostretch = (stretch == true && Options.StretchMovies == true);
 
-		if (DSurface::AllowStretchBlits == true && dostretch == true && vqa->InitialRect.Is_Valid()) {
+		if (dostretch == true && vqa->InitialRect.Is_Valid()) {
 			double scalex = (double)VisibleRect.Width / (double)vqa->InitialRect.Width;
 			double scaley = (double)VisibleRect.Height / (double)vqa->InitialRect.Height;
 			double scale = (scalex < scaley) ? scalex : scaley;
@@ -187,7 +187,7 @@ void Play_Movie(VQType vq, ThemeType theme, bool clrscrn, bool stretch)
 {
 	static char _buf[20];
 	if (vq != VQ_NONE) {
-		strcpy(_buf, Movies[vq]);
+		UTF8::Copy(_buf, Movies[vq]);
 		strcpy(_buf + strlen(Movies[vq]), ".VQA");
 		Play_Movie(_buf, theme, clrscrn, stretch, true);
 	}

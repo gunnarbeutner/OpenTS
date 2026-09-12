@@ -34,6 +34,7 @@
 #include "buff.h"
 #include "rect.h"
 #include "rgb.h"
+#include "surface.hh"
 
 /*
 **	This is an abstract interface class for a graphic surface. Graphic operations will use this
@@ -51,9 +52,13 @@ class Surface
 		/*
 		**	Copies regions from one surface to another.
 		*/
-		virtual bool Blit_From(Rect const & dcliprect, Rect const & destrect, Surface const & source, Rect const & scliprect, Rect const & sourcerect, bool trans=false, bool unknown=true) = 0;
-		virtual bool Blit_From(Rect const & destrect, Surface const & source, Rect const & sourcerect, bool trans=false, bool unknown=true) = 0;
+		virtual bool Blit_From(Rect const & dcliprect, Rect const & destrect, Surface const & source, Rect const & scliprect, Rect const & sourcerect, bool trans=false, bool unknown=true, SurfaceFilterType filter=SURFACE_FILTER_POINT) = 0;
+		virtual bool Blit_From(Rect const & destrect, Surface const & source, Rect const & sourcerect, bool trans=false, bool unknown=true, SurfaceFilterType filter=SURFACE_FILTER_POINT) = 0;
 		virtual bool Blit_From(Surface const & source, bool trans=false, bool unknown=true) = 0;
+
+		// Copies one region of a scaling blit, computing every pixel against
+		// the whole blit rather than the region.
+		virtual bool Blit_Scaled_Region(Rect const & destrect, Surface const & source, Rect const & sourcerect, Rect const & region, SurfaceFilterType filter=SURFACE_FILTER_POINT) = 0;
 
 		/*
 		**	Fills a region with a constant color.
