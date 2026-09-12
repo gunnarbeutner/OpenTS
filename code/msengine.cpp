@@ -21,6 +21,7 @@
 #include "msanim.h"
 #include "msgloop.h"
 #include "mssfx.h"
+#include "platform/wait.h"
 #include "rect.h"
 #include "surface.h"
 #include "win.h"
@@ -377,7 +378,7 @@ void MSEngine::Wait_Delay(int delay)
 				timer.Start();
 			}
 
-			Sleep(0);
+			Platform_Sleep(0);
 
 		} while (timer.Value() > 0);
 
@@ -406,7 +407,7 @@ void MSEngine::Wait_For_Focus(void)
 
 		while (!GameInFocus) {
 			DebugString("MSEngine - Sleeping\n");
-			Sleep(500);
+			Platform_Sleep(500);
 			Windows_Message_Handler();
 		}
 

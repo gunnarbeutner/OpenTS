@@ -21,6 +21,7 @@
 #include "goptions.h"
 #include "mixfile.h"
 #include "movies.h"
+#include "platform/wait.h"
 #include "session.h"
 #include "unvqtblc.h"
 #include "vector.h"

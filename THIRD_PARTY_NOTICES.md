@@ -25,6 +25,8 @@ remains under its own license and copyright notices.
 | [stb](https://github.com/nothings/stb)                             | Rectangle packing, text editing, and TrueType headers bundled with Dear ImGui | MIT or Unlicense |
 | [stb_image](https://github.com/nothings/stb)                       | PNG and TGA decoding for the UI, bundled with bimg | MIT or Unlicense |
 | [Arimo](https://github.com/googlefonts/arimo)                      | The UI font                               | OFL-1.1      |
+| [ICU charset data](https://github.com/unicode-org/icu-data)        | The code page 437 table in `code/codepage.cpp` | Unicode-3.0 |
+| [Windows best fit tables](https://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/WindowsBestFit/) | The Windows-1252 table in `code/codepage.cpp` | Unicode data terms |
 
 The source checkout keeps the license texts under `thirdparty/`. Binary
 packages reproduce the license texts for the components used by OpenTS under

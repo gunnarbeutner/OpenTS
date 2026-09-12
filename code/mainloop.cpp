@@ -49,6 +49,7 @@
 #include "netdlg.h"
 #include "nettiming.h"
 #include "pcx.h"
+#include "platform/wait.h"
 #include "queue.h"
 #include "rules.h"
 #include "savemgr.h"
