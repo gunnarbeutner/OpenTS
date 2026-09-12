@@ -173,7 +173,7 @@ static void Check_For_Focus_Loss(void)
 			Windows_Message_Handler();
 			break;
 		}
-		Sleep(10);
+		Platform_Sleep(10);
 		Windows_Message_Handler();
 	}
 }
@@ -562,7 +562,7 @@ void Sync_Delay(void)
 				TacticalMap->AI();
 				Map.Render();
 			} else {
-				Sleep(0);
+				Platform_Sleep(0);
 			}
 			if (!FrameTimer()) {
 				break;
@@ -572,7 +572,7 @@ void Sync_Delay(void)
 		}
 
 		// Out of focus nothing is drawn, so the wait gives the processor back.
-		Sleep(GameInFocus ? 0 : 1);
+		Platform_Sleep(GameInFocus ? 0 : 1);
 	}
 
 	static CDTimerClass<MillisecondSystemTimerClass> fps_timer;

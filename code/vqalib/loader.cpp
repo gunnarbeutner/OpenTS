@@ -302,9 +302,9 @@ long VQA_LoadFrame(VQAHandleP *vqap, long flags)
 #pragma pack(push,1)
 struct VQASN2J {
 	short index;
-	long  predicted;
+	int   predicted;
 	short index2;
-	long  predicted2;
+	int   predicted2;
 };
 static_assert(sizeof(VQASN2J) == 12, "the SN2J chunk is 12 bytes on disk");
 #pragma pack(pop)

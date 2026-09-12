@@ -34,18 +34,23 @@
 
 #include "mpu.h"
 
-#include "win.h"
+#include <chrono>
+#include <cstdint>
+
+#if defined(_MSC_VER)
 
 #include <intrin.h>
-#include <math.h>
 
-typedef union {
-	LARGE_INTEGER LargeInt;
-	struct QuadPart {
-		unsigned int LowPart;
-		unsigned int HighPart;
-	} QuadPart;
-} QuadValue;
+#else
+
+// RDTSC is an x86 opcode reached through an MSVC intrinsic. The steady clock answers the same
+// question elsewhere, at the rate Get_CPU_Rate reports, which is all the callers here compare.
+static unsigned long long __rdtsc(void)
+{
+	return((unsigned long long)std::chrono::steady_clock::now().time_since_epoch().count());
+}
+
+#endif
 
 
 /***********************************************************************************************
@@ -65,13 +70,8 @@ typedef union {
  *=============================================================================================*/
 unsigned int Get_CPU_Rate(unsigned int & high)
 {
-	union {
-		LARGE_INTEGER LargeInt;
-		struct {
-			unsigned int LowPart;
-			unsigned int HighPart;
-		} QuadPart;
-	} value;
+	using Period = std::chrono::steady_clock::period;
+	std::uint64_t const rate = std::uint64_t(Period::den / Period::num);
 
 	high = (unsigned int)(rate >> 32);
 	return((unsigned int)rate);

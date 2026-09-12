@@ -172,7 +172,7 @@ intptr_t __cdecl Disk_VQA_Stream_Handler(VQAHandle *vqa, long action, void *buff
 intptr_t __cdecl Memory_VQA_Stream_Handler(VQAHandle *vqa, long action, void *buffer, long nbytes)
 {
 	long error = 0;
-	int p;
+	long p;
 	int bytes;
 	VQAHandleP *vqap = (VQAHandleP *)vqa;
 	VQALoopCache *cache = &vqap->LoopCache;

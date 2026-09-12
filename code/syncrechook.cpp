@@ -24,8 +24,11 @@
 #include "random.h"
 #include "scenario.h"
 #include "except.h"
+#include "platform/process.h"
 #include "session.h"
-#include "win.h"
+
+#include <cstdio>
+#include <string>
 
 
 static uintptr_t ModuleBase = 0;
@@ -64,43 +67,63 @@ namespace {
 }
 
 
+static bool Read_Bytes(std::FILE * file, long offset, unsigned char * buffer, size_t size)
+{
+	return(std::fseek(file, offset, SEEK_SET) == 0 && std::fread(buffer, 1, size, file) == size);
+}
+
+
+static uint32_t Little_Endian_32(unsigned char const * bytes)
+{
+	return(uint32_t(bytes[0]) | (uint32_t(bytes[1]) << 8) | (uint32_t(bytes[2]) << 16) | (uint32_t(bytes[3]) << 24));
+}
+
+
 /// <summary>
 /// Reads the image base the linker wrote this build's map file against. The loader rewrites that
 /// field in the mapped header whenever it relocates the image, which address space layout
 /// randomization makes the normal case, so the answer only survives in the file itself.
 /// </summary>
-/// <returns>The preferred base, or zero when the header could not be read.</returns>
+/// <returns>The preferred base, or zero when the executable is not a 32-bit PE image or its
+/// header could not be read.</returns>
 static uint32_t Sync_Preferred_Image_Base(void)
 {
-	char path[MAX_PATH];
-	if (GetModuleFileName(GetModuleHandle(nullptr), path, sizeof(path)) == 0) {
+	// Offsets fixed by the PE format: the DOS header's pointer to the NT headers, and within
+	// those the signature, the optional header's magic, and its ImageBase field.
+	constexpr long NT_HEADERS_POINTER = 0x3C;
+	constexpr long OPTIONAL_HEADER = 24;
+	constexpr long IMAGE_BASE = OPTIONAL_HEADER + 28;
+	constexpr uint32_t PE_SIGNATURE = 0x00004550;
+	constexpr unsigned PE32_MAGIC = 0x10B;
+
+	std::string const path = Executable_Path();
+	if (path.empty()) {
 		return(0);
 	}
 
-	HANDLE const file = CreateFile(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
-					nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (file == INVALID_HANDLE_VALUE) {
+	std::FILE * const file = std::fopen(path.c_str(), "rb");
+	if (file == nullptr) {
 		return(0);
 	}
 
 	uint32_t base = 0;
-	IMAGE_DOS_HEADER dos = {};
-	DWORD read = 0;
+	unsigned char bytes[4];
 
-	if (ReadFile(file, &dos, sizeof(dos), &read, nullptr) && read == sizeof(dos)
-		&& dos.e_magic == IMAGE_DOS_SIGNATURE
-		&& SetFilePointer(file, dos.e_lfanew, nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER) {
+	if (Read_Bytes(file, 0, bytes, 2) && bytes[0] == 'M' && bytes[1] == 'Z'
+		&& Read_Bytes(file, NT_HEADERS_POINTER, bytes, 4)) {
 
-		IMAGE_NT_HEADERS32 nt = {};
-		if (ReadFile(file, &nt, sizeof(nt), &read, nullptr) && read == sizeof(nt)
-			&& nt.Signature == IMAGE_NT_SIGNATURE
-			&& nt.OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
+		long const nt = long(Little_Endian_32(bytes));
 
-			base = nt.OptionalHeader.ImageBase;
+		if (Read_Bytes(file, nt, bytes, 4) && Little_Endian_32(bytes) == PE_SIGNATURE
+			&& Read_Bytes(file, nt + OPTIONAL_HEADER, bytes, 2)
+			&& (unsigned(bytes[0]) | (unsigned(bytes[1]) << 8)) == PE32_MAGIC
+			&& Read_Bytes(file, nt + IMAGE_BASE, bytes, 4)) {
+
+			base = Little_Endian_32(bytes);
 		}
 	}
 
-	CloseHandle(file);
+	std::fclose(file);
 
 	return(base);
 }
@@ -246,17 +269,17 @@ void Sync_Recorder_Arm(void)
 	bool const network = (Session.Type == GAME_IPX || Session.Type == GAME_INTERNET);
 	SyncRecorder.Set_Recording(network || Session.Record || Session.Play);
 
-	ModuleBase = (uintptr_t)GetModuleHandle(nullptr);
+	ModuleBase = 0;
 	ModuleSize = 0;
 	MapImageBase = 0;
-	if (ModuleBase != 0) {
-		IMAGE_DOS_HEADER const * dos = (IMAGE_DOS_HEADER const *)ModuleBase;
-		if (dos->e_magic == IMAGE_DOS_SIGNATURE) {
-			IMAGE_NT_HEADERS const * nt = (IMAGE_NT_HEADERS const *)(ModuleBase + dos->e_lfanew);
-			if (nt->Signature == IMAGE_NT_SIGNATURE) {
-				ModuleSize = nt->OptionalHeader.SizeOfImage;
-			}
-		}
+
+	// The image's extent turns a return address into an offset a map file can be read against.
+	// Where there is no image, a zero base makes every caller record as an address outside it.
+	std::uintptr_t base = 0;
+	std::size_t size = 0;
+	if (Executable_Image_Range(base, size)) {
+		ModuleBase = base;
+		ModuleSize = (uint32_t)size;
 	}
 
 	MapImageBase = Sync_Preferred_Image_Base();

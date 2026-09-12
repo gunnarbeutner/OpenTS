@@ -68,7 +68,7 @@ class SHAEngine
 	private:
 
 		typedef union {
-			unsigned long Long[5];
+			unsigned int Long[5];
 			unsigned char Char[20];
 		} SHADigest;
 
