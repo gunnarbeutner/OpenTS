@@ -45,12 +45,8 @@ unsigned int Wstring_Hash(Wstring & string);
 
 
 void __cdecl PMessagePrintf(int color, const char * fmt, ...);
-void __cdecl SMessagePrintf(int color, const char * fmt, ...);
 
-void _DrawMessage(int color, const char * msg, HWND window);
-void _SetMessageString(HWND window,  const char * msg, int len, int color);
-
-HWND GameoptWindow(void);
+WSScreenHandle GameoptWindow(void);
 
 void PumpGameopts(bool, bool = false);
 bool DecodePubGameopt(char * options, char * name);
@@ -64,8 +60,7 @@ int CreateRandomMap(void);
 extern std::uint32_t PlayerColorTable[MAX_PLAYERS];
 
 /*
- * These are the predefined colors that PMessagePrintf and SMessagePrintf display their
- * messages in.
+ * These are the predefined colors that PMessagePrintf displays its messages in.
  */
 extern const std::uint32_t ColorSystem;
 extern const std::uint32_t ColorUser;

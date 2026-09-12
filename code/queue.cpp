@@ -2079,22 +2079,25 @@ static int Process_Reconnect_Dialog(CDTimerClass<SystemTimerClass> *timeout_time
 	if (fresh) {
 		TacticalActive = false;
 		disconnect_return = -1;
-		disconnect_dialog = WS_Create_Dialog(ProgramInstance, IDD_MPLAYER_DISCONNECT, MainWindow, Reconnect_Dialog_Proc, true);
-		Center_Window_Within_Window(disconnect_dialog);
-		if (disconnect_dialog) {
-			SetWindowLongPtr(disconnect_dialog, DWLP_USER, (LONG_PTR)&disconnect_return);
-			MouseCursor->Hide_Mouse();
-			ShowWindow(disconnect_dialog, SW_SHOWNORMAL);
-			UpdateWindow(disconnect_dialog);
-			MouseCursor->Show_Mouse();
+		if (!UI_Disconnect_Open()) {
+			DebugString("The disconnect box could not be prepared; waiting without it\n");
 		}
 	}
+
+	// The box's buttons act here, where the dialog's WM_COMMAND would already have acted.
+	UI_Disconnect_Service([](UIIntent const & intent) {
+		if (intent.Action == UI_DISCONNECT_KICK) {
+			Propose_Kick_Player(intent.Identity);
+		} else if (intent.Action == UI_ACTION_CANCEL) {
+			disconnect_return = DIALOG_CANCEL;
+		}
+	});
 
 	//------------------------------------------------------------------------
 	/// If the user hit Cancel, bail out of the game.
 	//------------------------------------------------------------------------
-	if (disconnect_return == IDCANCEL) {
-		WS_Destroy_Dialog(disconnect_dialog, false);
+	if (disconnect_return == DIALOG_CANCEL) {
+		UI_Disconnect_Close();
 		TacticalActive = true;
 		Map.Flag_To_Redraw(GS_REDRAW_ALL);
 		return(1);

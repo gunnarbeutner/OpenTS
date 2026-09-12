@@ -1,0 +1,120 @@
+<rml>
+<!--
+	The template carries its labels as literal control text rather than as string
+	identifiers, so they stay literal here; a localized build ships a translated copy.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * IDD_MPLAYER_GAME_LIST is 426 by 240 dialog units at MS Sans Serif 8, which is 639
+		 * by 390 logical pixels, centred on the frame. Each control sits at its template
+		 * position converted the same way, except that the lists and fields sit where the
+		 * dialog's own scaling put their frames, a pixel above that and a pixel taller.
+		 */
+		#lobby
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -319dp;
+			margin-top: -195dp;
+			width: 639dp;
+			height: 390dp;
+			decorator: image(frame:639x390);
+		}
+
+		#lobby .label, #lobby .list, #lobby input.text, #lobby button
+		{
+			position: absolute;
+			margin: 0;
+		}
+
+		#lobby .label
+		{
+			display: block;
+			line-height: 17dp;
+			white-space: nowrap;
+		}
+
+		#lobby .list
+		{
+			box-sizing: border-box;
+		}
+
+		/* Rows step 14 pixels and are cut short rather than wrapped. */
+		#lobby .list p
+		{
+			height: 14dp;
+			line-height: 14dp;
+			overflow: hidden;
+		}
+
+		/* A message longer than the list is wide went on to further lines of its own. */
+		#messages p
+		{
+			height: auto;
+			white-space: normal;
+		}
+
+		#lobby button
+		{
+			width: 93dp;
+			height: 30dp;
+			line-height: 29dp;
+			decorator: image(button:u:93x30);
+		}
+
+		#lobby button:active:hover
+		{
+			decorator: image(button:d:93x30);
+		}
+
+		#label-name { left: 36dp; top: 15dp; width: 93dp; height: 16dp; }
+		#label-games { left: 444dp; top: 23dp; width: 75dp; height: 16dp; }
+		#label-players { left: 444dp; top: 161dp; width: 75dp; height: 16dp; }
+
+		/* The edit sat its text against the top of its frame, three pixels in. */
+		#name { left: 134dp; top: 12dp; width: 102dp; height: 21dp; padding: 0 3dp; line-height: 18dp; }
+		#messages { left: 28dp; top: 43dp; width: 399dp; height: 271dp; }
+		#input { left: 28dp; top: 321dp; width: 399dp; height: 21dp; padding: 0 3dp; line-height: 18dp; }
+		#games { left: 441dp; top: 43dp; width: 170dp; height: 111dp; }
+		#users { left: 441dp; top: 179dp; width: 170dp; height: 163dp; }
+
+		#cancel { left: 272dp; top: 347dp; }
+		#join { left: 396dp; top: 347dp; }
+		#new { left: 518dp; top: 347dp; }
+	</style>
+</head>
+<body>
+	<div id="lobby" class="dialog" data-model="lobby">
+		<p id="label-name" class="label">Your Name:</p>
+		<p id="label-games" class="label">Games:</p>
+		<p id="label-players" class="label">Players:</p>
+
+		<input id="name" type="text" class="text" data-attr-maxlength="name.Limit"
+			data-event-change="act('text', 'name')"/>
+
+		<div id="messages" class="list">
+			<p data-for="line : messages.Lines" data-style-color="line.Color">{{line.Text}}</p>
+		</div>
+
+		<input id="input" type="text" class="text"/>
+
+		<div id="games" class="list" data-event-mousedown="act('down', 'games')"
+			data-event-dblclick="act('double', 'games')">
+			<p data-for="row : games.Rows" data-attr-data-row="it_index" data-class-picked="row.Picked"
+				data-style-color="row.Color">{{row.Text}}</p>
+		</div>
+
+		<div id="users" class="list" data-event-mousedown="act('down', 'users')"
+			data-event-dblclick="act('double', 'users')">
+			<p data-for="row : users.Rows" data-attr-data-row="it_index" data-class-picked="row.Picked"
+				data-style-color="row.Color">{{row.Text}}</p>
+		</div>
+
+		<button id="cancel" data-event-click="act('click', 'cancel')">Cancel</button>
+		<button id="join" data-event-click="act('click', 'join')">Join</button>
+		<button id="new" data-event-click="act('click', 'new')">New</button>
+	</div>
+</body>
+</rml>
