@@ -1,0 +1,267 @@
+<rml>
+<!--
+	The template this replaces carried its labels as literal control text rather than as
+	string identifiers, so there is no identifier to name for them here.
+-->
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * The template is 426 by 240 dialog units at MS Sans Serif 8, which is 639 by 390
+		 * logical pixels. Every position below is a control's template rectangle converted
+		 * the same way, relative to the dialog's top left corner.
+		 */
+		#skirmish
+		{
+			left: 50%;
+			top: 50%;
+			margin-left: -319dp;
+			margin-top: -195dp;
+			width: 639dp;
+			height: 390dp;
+			decorator: image(frame:639x390);
+		}
+
+		#skirmish p,
+		#skirmish .at
+		{
+			position: absolute;
+			margin: 0;
+		}
+
+		#skirmish p
+		{
+			white-space: nowrap;
+		}
+
+		/*
+		 * A group box drew its frame from half its caption's height below its top, and its
+		 * right and bottom edges one pixel outside its rectangle. These have no caption.
+		 */
+		.group
+		{
+			position: absolute;
+			box-sizing: border-box;
+			border: 1dp #4eb6dcff;
+			pointer-events: none;
+		}
+
+		/* The edit box drew its text against its left edge. */
+		#skirmish input.text
+		{
+			padding: 2dp 2dp;
+		}
+
+		/*
+		 * A track bar here is 150 by 23, its value printed in the trough to the right of the
+		 * track. Its grip was as tall as the control.
+		 */
+		#skirmish .numbered
+		{
+			width: 150dp;
+			height: 23dp;
+		}
+
+		/*
+		 * The painter printed a readout only for a track bar with no step. Credits is the one
+		 * bar this dialog steps (OD_SETTRACKSTEP 250), so its track fills the control.
+		 */
+		#skirmish .stepped
+		{
+			padding-right: 0;
+		}
+
+		#skirmish .numbered slidertrack,
+		#skirmish .numbered sliderprogress
+		{
+			height: 23dp;
+		}
+
+		#skirmish .numbered sliderbar
+		{
+			height: 23dp;
+		}
+
+		.check input
+		{
+			position: absolute;
+			left: 0;
+			top: 0;
+		}
+
+		/* Only the box took a click; the caption beside it did not. */
+		.check span
+		{
+			position: absolute;
+			left: 20dp;
+			top: 0;
+			height: 16dp;
+			line-height: 18dp;
+			white-space: nowrap;
+			pointer-events: none;
+		}
+
+		#preview
+		{
+			position: absolute;
+		}
+
+		#preview-label
+		{
+			left: 33dp;
+			top: 268dp;
+			width: 322dp;
+			height: 21dp;
+			line-height: 21dp;
+			text-align: center;
+			pointer-events: none;
+		}
+
+		#skirmish button
+		{
+			position: absolute;
+			margin-left: 0;
+			height: 23dp;
+			line-height: 23dp;
+		}
+
+		#map
+		{
+			left: 441dp;
+			top: 320dp;
+			width: 165dp;
+			decorator: image(button:u:165x23);
+		}
+
+		#map:active:hover
+		{
+			decorator: image(button:d:165x23);
+		}
+
+		#accept
+		{
+			left: 441dp;
+			top: 348dp;
+			width: 75dp;
+			min-width: 0;
+			decorator: image(button:u:75x23);
+		}
+
+		#cancel
+		{
+			left: 531dp;
+			top: 348dp;
+			width: 75dp;
+			min-width: 0;
+			decorator: image(button:u:75x23);
+		}
+
+		#accept:active:hover,
+		#cancel:active:hover
+		{
+			decorator: image(button:d:75x23);
+		}
+	</style>
+</head>
+<body>
+	<div id="skirmish" class="dialog" data-model="skirmish">
+		<p style="left: 33dp; top: 20dp;">Name:</p>
+		<input type="text" class="text at" style="left: 33dp; top: 39dp; width: 117dp;" maxlength="63"
+			data-value="Name" data-event-change="act('name')"/>
+
+		<p style="left: 33dp; top: 68dp;">Side:</p>
+		<select class="at" style="left: 33dp; top: 84dp; width: 117dp;"
+			data-value="Side" data-event-change="act('side')">
+			<option data-for="side : Sides" data-attr-value="side.Country">{{side.Name}}</option>
+		</select>
+
+		<p style="left: 33dp; top: 115dp;">Color:</p>
+		<select class="at" style="left: 33dp; top: 133dp; width: 117dp;"
+			data-value="Color" data-event-change="act('color')">
+			<option data-for="color : Colors" data-attr-value="color.Index"
+				data-style-color="color.Swatch">{{color.Name}}</option>
+		</select>
+
+		<p style="left: 33dp; top: 158dp;">Map:</p>
+		<p style="left: 33dp; top: 180dp; width: 402dp;">{{Scenario}}</p>
+
+		<img id="preview" src="surface:skirmish-preview" data-if="HasPreview"
+			data-style-left="(33 + PreviewLeft) + 'dp'" data-style-top="(198 + PreviewTop) + 'dp'"
+			data-style-width="PreviewWidth + 'dp'" data-style-height="PreviewHeight + 'dp'"/>
+		<div class="group" style="left: 33dp; top: 206dp; width: 323dp; height: 165dp;"/>
+		<p id="preview-label" data-if="!HasPreview">Preview</p>
+
+		<div class="group" style="left: 176dp; top: 28dp; width: 251dp; height: 149dp;"/>
+
+		<div class="check at" style="left: 184dp; top: 34dp;">
+			<input type="checkbox" data-checked="Bases" data-event-change="act('bases')"/>
+			<span>Bases</span>
+		</div>
+		<div class="check at" style="left: 184dp; top: 54dp;">
+			<input type="checkbox" data-checked="Crates" data-event-change="act('crates')"/>
+			<span>Crates</span>
+		</div>
+		<div class="check at" style="left: 184dp; top: 73dp;">
+			<input type="checkbox" data-checked="Fog" data-event-change="act('fog')"/>
+			<span>Fog Of War</span>
+		</div>
+		<div class="check at" style="left: 184dp; top: 93dp;">
+			<input type="checkbox" data-checked="Bridges" data-event-change="act('bridges')"/>
+			<span>Bridges Destroyable</span>
+		</div>
+		<div class="check at" style="left: 184dp; top: 112dp;">
+			<input type="checkbox" data-checked="Redeploy" data-event-change="act('redeploy')"/>
+			<span>Re-Deployable MCV</span>
+		</div>
+		<div class="check at" style="left: 184dp; top: 132dp;">
+			<input type="checkbox" data-checked="Short" data-event-change="act('short')"/>
+			<span>Short Game</span>
+		</div>
+		<div class="check at" style="left: 184dp; top: 151dp;">
+			<input type="checkbox" data-checked="Engineers" data-event-change="act('engineers')"/>
+			<span>Multi Engineer</span>
+		</div>
+
+		<div class="group" style="left: 441dp; top: 28dp; width: 166dp; height: 287dp;"/>
+
+		<p style="left: 447dp; top: 29dp;">Unit Count:</p>
+		<div class="numbered at" style="left: 447dp; top: 49dp;">
+			<input type="range" id="units" class="slider" data-value="UnitCount" data-event-change="act('units')"/>
+			<span class="number">{{UnitCount}}</span>
+		</div>
+
+		<p style="left: 447dp; top: 76dp;">Credits:</p>
+		<div class="numbered stepped at" style="left: 447dp; top: 96dp;">
+			<input type="range" id="credits" class="slider" data-value="Credits" data-event-change="act('credits')"/>
+		</div>
+
+		<p style="left: 447dp; top: 124dp;">Tech Level:</p>
+		<div class="numbered at" style="left: 447dp; top: 143dp;">
+			<input type="range" id="tech" class="slider" data-value="TechLevel" data-event-change="act('tech')"/>
+			<span class="number">{{TechLevel}}</span>
+		</div>
+
+		<p style="left: 447dp; top: 171dp;">AI Level:</p>
+		<div class="numbered at" style="left: 447dp; top: 190dp;">
+			<input type="range" id="difficulty" class="slider" data-value="Difficulty" data-event-change="act('difficulty')"/>
+			<span class="number">{{Difficulty}}</span>
+		</div>
+
+		<p style="left: 447dp; top: 218dp;">AI Players:</p>
+		<div class="numbered at" style="left: 447dp; top: 237dp;">
+			<input type="range" id="players" class="slider" data-value="AIPlayers" data-event-change="act('players')"/>
+			<span class="number">{{AIPlayers}}</span>
+		</div>
+
+		<p style="left: 447dp; top: 265dp;">Game Speed</p>
+		<div class="numbered at" style="left: 447dp; top: 284dp;">
+			<input type="range" id="speed" class="slider" data-value="Speed" data-event-change="act('speed')"/>
+			<span class="number">{{Speed}}</span>
+		</div>
+
+		<button id="map" data-event-click="act('map')">Multiplay Map</button>
+		<button id="accept" data-event-click="act('accept')">[[TXT_OK]]</button>
+		<button id="cancel" data-event-click="act('cancel')">[[TXT_CANCEL]]</button>
+	</div>
+</body>
+</rml>

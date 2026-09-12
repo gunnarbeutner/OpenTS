@@ -28,6 +28,7 @@
 #include "newmenu.h"
 #include "ownrdraw.h"
 #include "rules.h"
+#include "ui/uiskirmish.h"
 #include "win.h"
 #include <windowsx.h>
 
