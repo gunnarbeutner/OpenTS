@@ -54,7 +54,11 @@
  *   Load_Prolog_Page -- Loads the special pre-prolog "please wait" page.                      *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "utf8.h"
+#include "mstimer.h"
 #include "always.h"
+
+#include <windowsx.h>
 
 #include "init.h"
 
@@ -1541,7 +1545,7 @@ bool Parse_Command_Line(int argc, char * argv[])
 		// Matching is done on an upper case copy, so that an option carrying a directory
 		// can still take it in the case it was written.
 		char original[512];
-		strcpy(original, arg_string);
+		UTF8::Copy(original, arg_string);
 		strupr(string);
 
 		/*
@@ -1863,7 +1867,7 @@ void Init_Random(void)
 			Seed = CustomSeed;
 		} else {
 			CryptRandom.Get(&Seed, sizeof(Seed));
-			Seed = GetTickCount();
+			Seed = System_Milliseconds();
 			//srand(time(NULL));
 			//Seed = rand();
 		}
@@ -2191,7 +2195,7 @@ static void Init_Expand_Mixfiles(void)
 	MFCD * expand;
 
 	for (index = 99; index >= 0; index--) {
-		sprintf(name, "EXPAND%02d.MIX", index);
+		snprintf(name, sizeof(name), "EXPAND%02d.MIX", index);
 		// Searched for as a loose file wherever the game's files are kept, but never
 		// inside another archive.
 		if (CDFileClass(name).Is_Available()) {
@@ -2203,7 +2207,7 @@ static void Init_Expand_Mixfiles(void)
 	}
 
 	for (index = 99; index >= 0; index--) {
-		sprintf(name, "ECACHE%02d.MIX", index);
+		snprintf(name, sizeof(name), "ECACHE%02d.MIX", index);
 		if (CCFileClass(name).Is_Available()) {
 			expand = new MFCD(name, &FastKey);
 
@@ -2984,7 +2988,7 @@ void Draw_Version_Text(Surface * surface)
 	}
 
 	version[0] = '\0';
-	strcpy(version, Version_Name());
+	UTF8::Copy(version, Version_Name());
 
 	Cheat_Version_Suffix(version);
 
@@ -4604,7 +4608,7 @@ class ScreenCaptureCommandClass : public CommandClass
 
 				do {
 					index++;
-					sprintf(fname, "SCRN%04d.png", index);
+					snprintf(fname, sizeof(fname), "SCRN%04d.png", index);
 					path = Screenshot_Name(fname);
 				} while (RawFileClass(path.c_str()).Is_Available());
 
@@ -6071,7 +6075,7 @@ bool Prep_For_Side(SideType side)
 
 	if (Addon_Enabled(ADDON_ANY) == true) {
 		for (index = 99; index >= 0; index--) {
-			sprintf(name, "E%02dSC%02d.MIX", index, id);
+			snprintf(name, sizeof(name), "E%02dSC%02d.MIX", index, id);
 
 			if (CCFileClass(name).Is_Available()) {
 
@@ -6083,7 +6087,7 @@ bool Prep_For_Side(SideType side)
 		}
 	}
 
-	sprintf(name, "SIDEC%02d.MIX", id);
+	snprintf(name, sizeof(name), "SIDEC%02d.MIX", id);
 	DebugString("     Initializing %s\n", name);
 
 	if (CCFileClass(name).Is_Available()) {
@@ -6099,7 +6103,7 @@ bool Prep_For_Side(SideType side)
 
 	if (Addon_Enabled(ADDON_ANY) == true) {
 		for (index = 99; index >= 0; index--) {
-			sprintf(name, "E%02dSNC%02d.MIX", index, id);
+			snprintf(name, sizeof(name), "E%02dSNC%02d.MIX", index, id);
 
 			if (CCFileClass(name).Is_Available()) {
 
@@ -6110,7 +6114,7 @@ bool Prep_For_Side(SideType side)
 		}
 	}
 
-	sprintf(name, "SIDENC%02d.MIX", id);
+	snprintf(name, sizeof(name), "SIDENC%02d.MIX", id);
 	DebugString("     Initializing %s\n", name);
 
 	if (CCFileClass(name).Is_Available()) {
@@ -6120,7 +6124,7 @@ bool Prep_For_Side(SideType side)
 	if (Session.Type == GAME_NORMAL) {
 
 		if (Addon_Enabled(ADDON_ANY) == true) {
-			sprintf(name, "E%02dSCD%02d.MIX", Get_Required_Addon(), id);
+			snprintf(name, sizeof(name), "E%02dSCD%02d.MIX", Get_Required_Addon(), id);
 
 			DebugString("     Initializing %s\n", name);
 			if (CCFileClass(name).Is_Available()) {
@@ -6130,7 +6134,7 @@ bool Prep_For_Side(SideType side)
 
 		// An installation may keep the expansion's copies in the base archive instead.
 		if (SideCDMix == NULL) {
-			sprintf(name, "SIDECD%02d.MIX", id);
+			snprintf(name, sizeof(name), "SIDECD%02d.MIX", id);
 
 			DebugString("     Initializing %s\n", name);
 			if (CCFileClass(name).Is_Available()) {
@@ -6187,7 +6191,7 @@ bool Prep_Speech_For_Side(SideType side)
 
 	for (AddonType addon = ADDON_COUNT; addon > 0; --addon) {
 		if (Addon_Enabled(addon) == true) {
-			sprintf(name, "E%02dVOX%02d.MIX", addon, id);
+			snprintf(name, sizeof(name), "E%02dVOX%02d.MIX", addon, id);
 
 			if (CCFileClass(name).Is_Available()) {
 				MFCD *mix = new MFCD(name, &FastKey);
@@ -6197,7 +6201,7 @@ bool Prep_Speech_For_Side(SideType side)
 		}
 	}
 
-	sprintf(name, "SPEECH%02d.MIX", id);
+	snprintf(name, sizeof(name), "SPEECH%02d.MIX", id);
 	DebugString("     Initializing %s\n", name);
 	if (CCFileClass(name).Is_Available()) {
 		SpeechMix = new MFCD(name, &FastKey);

@@ -13,6 +13,8 @@
 
 #include "always.h"
 
+#include <windowsx.h>
+
 #include "mapgen.h"
 
 #include "_map.h"
@@ -5328,7 +5330,7 @@ void MapGeneratorClass::Generate_Swamp(DynamicVectorClass<Cell> &cells, int last
 		if (Map[c].Cell_Terrain(false) == NULL) {
 			char terrain_name[8];
 			int terrain_index = Pick_Random_UInt(1, 5);
-			sprintf(terrain_name, "FONA0%d", terrain_index);
+			snprintf(terrain_name, sizeof(terrain_name), "FONA0%d", terrain_index);
 			new TerrainClass(TerrainTypes[TerrainTypeClass::From_Name(terrain_name)], c);
 		}
 	}
@@ -7925,7 +7927,7 @@ void MapGeneratorClass::Place_Forest(CellClass const * cellptr, int count, doubl
 			if (Random_Fraction() < density) {
 				char tree_name[20];
 				int tree_index = Pick_Random_UInt(min_tree, max_tree);
-				sprintf(tree_name, "TREE%d%d", tree_index / 10, tree_index % 10);
+				snprintf(tree_name, sizeof(tree_name), "TREE%d%d", tree_index / 10, tree_index % 10);
 				new TerrainClass(TerrainTypes[TerrainTypeClass::From_Name(tree_name)], cptr->Fetch_CellID());
 			}
 		}
@@ -8151,7 +8153,7 @@ void MapGeneratorClass::Generate_Mold(void)
 			if (Random_Fraction() < 0.75) {
 				char terrain_name[8];
 				int terrain_index = Pick_Random_UInt(1, 5);
-				sprintf(terrain_name, "FONA0%d", terrain_index);
+				snprintf(terrain_name, sizeof(terrain_name), "FONA0%d", terrain_index);
 				new TerrainClass(TerrainTypes[TerrainTypeClass::From_Name(terrain_name)], c);
 			} else {
 				Map[c].Overlay = OVERLAY_LARGE_TIBERIUM01;
@@ -8304,7 +8306,7 @@ void MapGeneratorClass::Generate_Crystals(const Cell & cell)
 		if (Map[c].Cell_Terrain(false) == NULL) {
 			char terrain_name[8];
 			int terrain_index = Pick_Random_UInt(6, 15);
-			sprintf(terrain_name, "FONA%d%d", terrain_index / 10, terrain_index % 10);
+			snprintf(terrain_name, sizeof(terrain_name), "FONA%d%d", terrain_index / 10, terrain_index % 10);
 			new TerrainClass(TerrainTypes[TerrainTypeClass::From_Name(terrain_name)], c);
 		}
 	}

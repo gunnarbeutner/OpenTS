@@ -7,6 +7,7 @@
  * See LICENSE.md for applicable additional terms and warranty disclaimers.
  ******************************************************************************/
 
+#include "utf8.h"
 #include "always.h"
 
 #include "skirmish.h"

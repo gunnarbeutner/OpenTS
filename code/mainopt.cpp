@@ -9,6 +9,8 @@
 
 #include "always.h"
 
+#include <windowsx.h>
+
 #include "mainopt.h"
 
 #include "_map.h"
