@@ -110,6 +110,7 @@ static int _DisplayWidth = 0;
 static int _DisplayHeight = 0;
 
 static bool _Hidden = false;
+static bool _Unfocused = false;
 
 static int _MouseX = 0;
 static int _MouseY = 0;
@@ -1511,6 +1512,18 @@ void Browser_Service(void)
 	// Visibility stands in for window focus; a lockstep game paused on focus
 	// loss would stall its peers.
 	GameInFocus = !_Hidden;
+
+	// A hidden tab keeps its audio, so the engine is told about the change the
+	// way a window host tells it about focus.
+	if (_Hidden != _Unfocused) {
+		_Unfocused = _Hidden;
+
+		if (_Hidden) {
+			Focus_Loss();
+		} else {
+			Focus_Restore();
+		}
+	}
 
 	Service_Text_Input();
 

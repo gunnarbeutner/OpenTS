@@ -696,9 +696,13 @@ the page's handle apart from the mixer's, because only one of the two ever
 plays. Fades are in milliseconds, as the mixer's are. A track that autoplay
 blocked is retried on the same first-gesture unlock the movies use.
 
-`AudioEngineClass::Focus_Loss` pauses the mix, and the audio element is not in
-it, so `Focus_Loss` silences the element itself and `Focus_Restore` starts it
-again. Only what that pause silenced resumes: a track autoplay is still
+A hidden tab keeps its audio, so `Browser_Service` calls `Focus_Loss` when the
+page becomes hidden and `Focus_Restore` when it comes back, whatever the
+session type: only the simulation is exempt from parking with peers, not the
+sound. That pauses the mix. The audio element is not in the mix and is not
+silenced from the engine loop either, because the loop can be inside a wait
+when the tab goes away: the page's own `visibilitychange` listener pauses the
+tracks and starts them again. Only what that pause silenced resumes: a track autoplay is still
 holding stays held, and one that ended in the meantime is left alone.
 
 ### 6.3 Movies
