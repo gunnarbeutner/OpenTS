@@ -809,6 +809,19 @@ match, so a page whose items are only partly prepared still lines up. A
 backdrop that is a movie, or a release with no prepared copies at all, leaves
 every coordinate as it was.
 
+The hit rectangle is the whole of what the INI names, which is wrong for a
+choice drawn as a disc: the corners of the game selection page's two
+rectangles are backdrop and nothing else. `GraphicMenuImageItem` reads the
+item's highlight picture against the backdrop it is drawn over, since the two
+agree everywhere the item is not, and picks the item within an ellipse
+inscribed in its rectangle where the artwork fills that ellipse and leaves the
+corners clear. Both pictures have to be the copies prepared at the same
+multiple, and they are compared in their own pixels rather than the page's, so
+a page laid out between two multiples reaches the same answer instead of
+sampling the two half a pixel apart. Everything else -- a movie backdrop, a
+missing picture, a size that does not match -- stays rectangular, which is
+what a lettered button is.
+
 ## 7 Saved games
 
 Every object record begins with the 16-byte class identifier its
