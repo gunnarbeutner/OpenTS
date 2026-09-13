@@ -442,8 +442,8 @@ class MSButtonAnim : public MSAnim
 class MSPCXAnim : public MSAnim
 {
 	public:
-		MSPCXAnim(char const * name, MS_ANIM_LIST * vector, bool transient=true);
-		MSPCXAnim(char const * name, MS_ANIM_LIST * vector, Point2D const & position, bool transient=true);
+		MSPCXAnim(char const * name, MS_ANIM_LIST * vector, bool transient=true, int scale=1, int design=1);
+		MSPCXAnim(char const * name, MS_ANIM_LIST * vector, Point2D const & position, bool transient=true, int scale=1, int design=1);
 		virtual ~MSPCXAnim(void) override;
 
 		virtual bool Advance(Surface * surface, Rect & rect) override;

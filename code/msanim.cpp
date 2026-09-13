@@ -1499,14 +1499,77 @@ void MSButtonAnim::Set_Pressed(bool pressed)
 }
 
 
+// A picture drawn at another size than it was prepared at is resampled rather
+// than sampled, which point sampling would do by dropping pixels out of the
+// lettering. The shell page itself is resized with the same filter.
+static SurfaceFilterType const PICTURE_FILTER = SURFACE_FILTER_SHARP;
+
+
+// A page laid out wider than the space it was drawn in wants the copy prepared
+// at the next multiple up, so what is drawn is reduced rather than magnified.
+static int Wanted_Scale(int scale, int design)
+{
+	if (design <= 0 || scale <= design) {
+		return(1);
+	}
+
+	return((scale + design - 1) / design);
+}
+
+
+// The span a picture covers once the page's own proportions are applied to it,
+// counted in the space the page was drawn in rather than the copy's pixels.
+static int Fit_Span(int span, int scale, int design, int prepared)
+{
+	if (design <= 0 || prepared <= 0) {
+		return(span);
+	}
+
+	int const fitted = (int)(((long long)span * scale + (long long)design * prepared / 2) / ((long long)design * prepared));
+	return(fitted > 0 ? fitted : 1);
+}
+
+
+/// <summary>
+/// Loads a shell picture, preferring a copy the release prepared at up to
+/// <paramref name="wanted"/> times the artwork's own size. Reports what the
+/// copy taken was prepared at, which is one for the artwork itself.
+/// </summary>
+static Surface * Load_Shell_Picture(char const * name, int wanted, int & scale)
+{
+	scale = 1;
+	(void)wanted;
+
+	char buffer[64];
+	UTF8::Copy(buffer, name);
+
+	char * token = strtok(buffer, ".");
+	if (token == nullptr) {
+		return(nullptr);
+	}
+
+	strcat(token, ".PCX");
+
+	CCFileClass file(buffer);
+	if (!file.Is_Available()) {
+		return(nullptr);
+	}
+
+	return(Read_PCX_File(file));
+}
+
+
 /// <summary>
 /// Creates a PCX image anim centered on the screen.
 /// The artwork is loaded from the file matching the name given and placed in the
-/// middle of the alternate surface.
+/// middle of the alternate surface. A page laid out at a multiple of the artwork's
+/// own size takes a prepared copy at that multiple where the release carries one,
+/// and magnifies the artwork itself where it does not.
 /// </summary>
 /// <param name="name">Name of the artwork file; the extension is replaced with ".PCX".</param>
 /// <param name="vector">The anim list this anim belongs to.</param>
-MSPCXAnim::MSPCXAnim(const char * name, MS_ANIM_LIST * vector, bool transient) :
+/// <param name="scale">The multiple of the artwork's own size the page is laid out at.</param>
+MSPCXAnim::MSPCXAnim(const char * name, MS_ANIM_LIST * vector, bool transient, int scale, int design) :
 	MSAnim(0, 0, false),
 	Anims(vector),
 	Image(NULL),
@@ -1514,25 +1577,18 @@ MSPCXAnim::MSPCXAnim(const char * name, MS_ANIM_LIST * vector, bool transient) :
 	Drawn(false),
 	Area(0, 0, 0, 0)
 {
-	char buffer[64];
-
 	Active = true;
 
 	if (name != NULL) {
-		UTF8::Copy(buffer, name);
-		char * token = strtok(buffer, ".");
-		if (token != NULL) {
-			strcat(token, ".PCX");
-			CCFileClass file(buffer);
-			if (file.Is_Available()) {
-				Image = Read_PCX_File(file);
-				if (Image != NULL) {
-					Area = Image->Get_Rect();
-					Rect surface_rect = AlternateSurface->Get_Rect();
-					Area.X += (surface_rect.Width - Area.Width) / 2;
-					Area.Y += (surface_rect.Height - Area.Height) / 2;
-				}
-			}
+		int prepared = 1;
+		Image = Load_Shell_Picture(name, Wanted_Scale(scale, design), prepared);
+		if (Image != NULL) {
+			Rect const source = Image->Get_Rect();
+			Area = Rect(0, 0, Fit_Span(source.Width, scale, design, prepared),
+				Fit_Span(source.Height, scale, design, prepared));
+			Rect surface_rect = AlternateSurface->Get_Rect();
+			Area.X += (surface_rect.Width - Area.Width) / 2;
+			Area.Y += (surface_rect.Height - Area.Height) / 2;
 		}
 	}
 }
@@ -1545,7 +1601,8 @@ MSPCXAnim::MSPCXAnim(const char * name, MS_ANIM_LIST * vector, bool transient) :
 /// </summary>
 /// <param name="name">Name of the artwork file; the extension is replaced with ".PCX".</param>
 /// <param name="vector">The anim list this anim belongs to.</param>
-MSPCXAnim::MSPCXAnim(const char * name, MS_ANIM_LIST * vector, const Point2D & position, bool transient) :
+/// <param name="scale">The multiple of the artwork's own size the page is laid out at.</param>
+MSPCXAnim::MSPCXAnim(const char * name, MS_ANIM_LIST * vector, const Point2D & position, bool transient, int scale, int design) :
 	MSAnim(0, 0, false),
 	Anims(vector),
 	Image(NULL),
@@ -1553,24 +1610,16 @@ MSPCXAnim::MSPCXAnim(const char * name, MS_ANIM_LIST * vector, const Point2D & p
 	Drawn(false),
 	Area(0, 0, 0, 0)
 {
-	char buffer[64];
-
 	Active = true;
 
 	if (name != NULL) {
-		UTF8::Copy(buffer, name);
-		char * token = strtok(buffer, ".");
-		if (token != NULL) {
-			strcat(token, ".PCX");
-			CCFileClass file(buffer);
-			if (file.Is_Available()) {
-				Image = Read_PCX_File(file);
-				if (Image != NULL) {
-					Area = Image->Get_Rect();
-					Area.X = position.X;
-					Area.Y = position.Y;
-				}
-			}
+		int prepared = 1;
+		Image = Load_Shell_Picture(name, Wanted_Scale(scale, design), prepared);
+		if (Image != NULL) {
+			Rect const source = Image->Get_Rect();
+			Area = Rect(position.X, position.Y,
+				Fit_Span(source.Width, scale, design, prepared),
+				Fit_Span(source.Height, scale, design, prepared));
 		}
 	}
 }
@@ -1599,7 +1648,7 @@ bool MSPCXAnim::Advance(Surface * surface, Rect & rect)
 	if (!Drawn) {
 		if (Active) {
 			if (Image != NULL) {
-				AlternateSurface->Blit_From(Area, *Image, Image->Get_Rect());
+				AlternateSurface->Blit_From(Area, *Image, Image->Get_Rect(), false, true, PICTURE_FILTER);
 				Redraw(surface);
 
 				Rect rect2 = Area;
@@ -1630,7 +1679,7 @@ void MSPCXAnim::Redraw(Surface * surface, const Rect * rect)
 {
 	if (Image != NULL && !Drawn && Active) {
 		if (rect == NULL || Intersect(*rect, Area).Is_Valid()) {
-			surface->Blit_From(Area, *Image, Image->Get_Rect());
+			surface->Blit_From(Area, *Image, Image->Get_Rect(), false, true, PICTURE_FILTER);
 		}
 	}
 }
@@ -1644,7 +1693,7 @@ void MSPCXAnim::Redraw(Surface * surface, const Rect * rect)
 void MSPCXAnim::Restore(const Rect & rect)
 {
 	if (Image != NULL && Active) {
-		AlternateSurface->Blit_From(Area, *Image, Image->Get_Rect());
+		AlternateSurface->Blit_From(Area, *Image, Image->Get_Rect(), false, true, PICTURE_FILTER);
 	}
 }
 
