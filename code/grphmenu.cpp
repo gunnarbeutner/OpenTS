@@ -224,7 +224,6 @@ void GraphicMenu::Set_Item_Visible(int id, bool visible)
 /// GMENU_REDISPLAY if the page must be rebuilt for a new frame size.</returns>
 int GraphicMenu::Presentation(void)
 {
-	PhaseScope phase("menu", Name.c_str());
 	CurrentMenuGuard current(this);
 
 	if (!ThemeIsPlaying) {
@@ -249,6 +248,11 @@ int GraphicMenu::Presentation(void)
 	GraphicMenuItem * pressed = NULL;
 
 	Keyboard->Clear();
+
+	// Announced only once the buffer has been emptied, or a press made as the page appeared
+	// would be cleared away by the setup above and the menu would sit on a choice nobody
+	// could see was lost. The setup suspends whenever it reads, so that window is real.
+	PhaseScope phase("menu", Name.c_str());
 
 	if (CurrentAnim != NULL) {
 		Engine.Wait_For_Anim(CurrentAnim);
