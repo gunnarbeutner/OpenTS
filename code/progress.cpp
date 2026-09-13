@@ -190,7 +190,7 @@ void ProgressScreenClass::Set_Graphic_Data(const char * progbar, const char * ba
 			ycenter = Shape->Get_Height() / 2;
 		}
 		if (PlayerCount == 1) {
-			pt = Point2D(HiddenSurface->Get_Width() / 2, (HiddenSurface->Get_Height() / 2) - ycenter - 20);
+			pt = Pos + Point2D(0, -ycenter - 20);
 		} else {
 			rect = Shape->Get_Rect(0);
 			pt = Point2D((Pos.X - rect.Width / 2) - 1, Pos.Y - (rect.Height / 2)) + Point2D(-80, 89);
