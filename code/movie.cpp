@@ -30,6 +30,7 @@
 #include "movieformat.h"
 #include "session.h"
 #include "vector.h"
+#include "video.h"
 
 #include "vq.hh"
 
@@ -149,6 +150,11 @@ void Play_Movie(char const * name, ThemeType theme, bool clrscrn_after, bool str
 		if (clrscrn_after == true) {
 			HiddenSurface->Fill(0);
 			Update_Visible_Surface(HiddenSurface);
+
+			// The window keeps the movie's last frame until a present reaches it, and the
+			// caller may draw nothing else for seconds, so this one is not left to the
+			// throttle.
+			Video_Present();
 		}
 
 		Map.Flag_To_Redraw(GS_REDRAW_ALL);
