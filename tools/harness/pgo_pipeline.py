@@ -1,11 +1,17 @@
-"""End-to-end: captures a menu profile and a first-mission profile for one asset tree.
+"""End-to-end: captures the menu, campaign and first-mission profiles for one asset tree.
 
-Drives the harness twice against a build and the asset tree to profile -- once reaching
-the main menu, once through a scenario to the first playing frame -- with the profile-capture
-switch on both times, so each capture holds only what that session actually read rather than
-what the ordinary prefetch heuristic guesses ahead of it. The two captures are then folded
-into a menu profile and a first-mission profile (the delta beyond menu), each tied to the
-asset tree's own manifest hash.
+Drives the harness three times against a build and the asset tree to profile -- once reaching
+the main menu, once on to the campaign list, once through a scenario to the first playing
+frame -- with the profile-capture switch on every time, so each capture holds only what that
+session actually read rather than what the ordinary prefetch heuristic guesses ahead of it.
+The captures are then folded into a menu profile, a campaign profile (the delta beyond menu)
+and a first-mission profile (likewise), each tied to the asset tree's own manifest hash.
+
+The menu profile is what the engine waits for before it shows anything, so it is captured on
+the shortest honest path to a menu the player can act on. The campaign list is captured
+separately because the engine reaches it the other way about: it banks that profile behind a
+menu that is already up, and reads whatever it has not reached by the time the player opens
+the list.
 
 Usage:
     python3 tools/harness/pgo_pipeline.py --bin build-wasm/bin --assets build/web \
@@ -83,7 +89,7 @@ def main():
     parser.add_argument("--scenario", required=True,
         help="the mission to capture the first-mission profile against")
     parser.add_argument("--out", required=True,
-        help="directory to write menu.json and first-mission.json into")
+        help="directory to write menu.json, campaign.json and first-mission.json into")
     args = parser.parse_args()
 
     harness_py = os.path.join(os.path.dirname(os.path.abspath(__file__)), "harness.py")
@@ -94,6 +100,7 @@ def main():
 
     with tempfile.TemporaryDirectory() as tmp:
         menu_report_path = os.path.join(tmp, "menu-report.json")
+        campaign_report_path = os.path.join(tmp, "campaign-report.json")
         mission_report_path = os.path.join(tmp, "mission-report.json")
 
         # The way a visitor actually reaches the menu, rather than the shortest way a
@@ -108,14 +115,20 @@ def main():
         menu_report = _run_harness(harness_py, args.bin, assets_dir, [
             "to-menu tibsun",
             "sleep 20",
-            # Opening the campaign list reads the scenario descriptions and the dialog's own
-            # art, which the menu behind it never touches. It is dismissed rather than
-            # accepted: what a campaign then loads belongs to the first-mission profile. The
-            # list is an RmlUi screen, which the engine's description of what is on screen
-            # does not cover, so the key is what dismisses it.
+        ], menu_report_path, timeout=360, skip_intro=False)
+
+        # Opening the campaign list reads the scenario descriptions and the dialog's own art,
+        # which the menu behind it never touches. It is dismissed rather than accepted: what a
+        # campaign then loads belongs to the first-mission profile. The list is an RmlUi
+        # screen, which the engine's description of what is on screen does not cover, so the
+        # key is what dismisses it.
+        print("capturing campaign...", file=sys.stderr)
+        campaign_report = _run_harness(harness_py, args.bin, assets_dir, [
+            "to-menu tibsun",
+            "sleep 20",
             "click @NSEL_START_NEW_GAME", "wait dialog", "sleep 12",
             "key escape", "wait menu", "sleep 8",
-        ], menu_report_path, timeout=360, skip_intro=False)
+        ], campaign_report_path, timeout=360, skip_intro=False)
 
         # A mission with a briefing holds its restatement screen up inside the load until it
         # is dismissed, and the map behind it is what the profile is for.
@@ -139,13 +152,22 @@ def main():
             manifest = json.load(handle)
 
     menu_profile = build_profile("menu", [menu_report], manifest)
+    campaign_profile = subtract_profile(
+        build_profile("campaign", [campaign_report], manifest), menu_profile)
+
+    # The first mission keeps whatever it shares with the campaign list, because a session
+    # launched straight into a scenario never opened that list and a session that did has the
+    # bytes already: the store answers a range it holds without asking for it again.
     mission_profile = subtract_profile(
         build_profile("first-mission", [mission_report], manifest), menu_profile)
 
-    menu_out = os.path.join(args.out, "menu.json")
-    mission_out = os.path.join(args.out, "first-mission.json")
+    outputs = (
+        (os.path.join(args.out, "menu.json"), menu_profile),
+        (os.path.join(args.out, "campaign.json"), campaign_profile),
+        (os.path.join(args.out, "first-mission.json"), mission_profile),
+    )
 
-    for path, profile in ((menu_out, menu_profile), (mission_out, mission_profile)):
+    for path, profile in outputs:
         with open(path, "w") as handle:
             json.dump(profile, handle, indent=2)
             handle.write("\n")

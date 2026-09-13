@@ -393,7 +393,7 @@ established rather than asserted.
 
 The browser build can be told, before it opens anything, which byte ranges of
 which archives a session is going to read. `tools/harness/pgo_pipeline.py`
-records that by driving two runs and writing the two profiles a deployment
+records that by driving three runs and writing the three profiles a deployment
 serves:
 
 ```bash
@@ -413,7 +413,7 @@ back under its content hash (its `tools/tsprofile.py`, which refuses a profile
 holding no ranges).
 [Building OpenTS](BUILDING.md#in-a-container) covers serving the result.
 
-Both runs pass `?pgocapture=1`, which is `-PGOCAPTURE`. It makes the engine
+Every run passes `?pgocapture=1`, which is `-PGOCAPTURE`. It makes the engine
 prefetch nothing at all and stand any profile it finds down, so what a capture
 records is what the session read rather than what a guess fetched ahead of it or
 what the previous profile named. Without it a profile grows every time it is
@@ -421,18 +421,26 @@ regenerated, each generation naming the last one's guesses as though the game
 had asked for them.
 
 The menu run takes the way a player reaches the menu rather than the shortest
-way a harness can: the startup films play and are dismissed, the side is chosen
-off the screen offering Tiberian Sun against Firestorm, and the campaign list is
-opened and cancelled. Each of those reads art the one before it does not --
-`GMENU.MIX` most of all, which `?nointro=1` never opens -- and a profile that
-skips them leaves the real path fetching that art a piece at a time. The run is
-`to-menu`, `click @NSEL_START_NEW_GAME` and `click text:Cancel`, each waiting
-on the phase it leads to, so a change to the menu's layout moves nothing.
+way a harness can: the startup films play and are dismissed, and the side is
+chosen off the screen offering Tiberian Sun against Firestorm. Each of those
+reads art the one before it does not -- `GMENU.MIX` most of all, which
+`?nointro=1` never opens -- and a profile that skips them leaves the real path
+fetching that art a piece at a time. The run stops at the main menu, because the
+menu profile is the one stage the engine waits out before it shows anything, and
+every range in it is time the player spends looking at nothing.
+
+The campaign run goes on to open the campaign list and cancel it, and what it
+names beyond the menu profile becomes the campaign profile. The engine banks
+that one behind a menu that is already up, so a range it has not reached when
+the list is opened is read the ordinary way.
 
 The mission run then plays a scenario, and what it names beyond the menu profile
-becomes the second one. Neither profile names a film or a music track: those are
-handed to the page's own `<video>` and `<audio>` elements by URL and never read
-through the block reader, so naming one only fetches it twice.
+becomes the third. It keeps whatever it shares with the campaign profile: a
+session launched straight into a scenario never opened that list, and one that
+did has the bytes already, since the store answers a range it holds without
+asking for it again. No profile names a film or a music track: those are handed
+to the page's own `<video>` and `<audio>` elements by URL and never read through
+the block reader, so naming one only fetches it twice.
 
 A profile carries the hash of the manifest it was captured against and is
 ignored unless the deployment is serving that same manifest, so a stale one
