@@ -602,8 +602,11 @@ and a separate service; neither one needs the other to run.
 
 Fetch profiles need no configuration of their own. A profile names the byte
 ranges reaching a point in the game reads, so the engine fetches them up front
-in a few large requests rather than discovering them one read at a time. The two
-the engine asks for are `menu` and `first-mission`.
+in a few large requests rather than discovering them one read at a time. The
+three the engine asks for are `menu`, `campaign` and `first-mission`. Only
+`menu` is waited for; `campaign` is banked a chunk at a time behind a menu that
+is already up, and whatever it has not reached when the campaign list is opened
+is read the ordinary way.
 
 `assets.json` names them, and they are served out of `assets/files/` like any
 other object, so a profile is reached only through the release that owns it and

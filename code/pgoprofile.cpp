@@ -13,10 +13,14 @@
 
 #include "pgoprofile.h"
 
+#include "fetchqueue.h"
 #include "globals.h"
+#include "phase.h"
 #include "platform/filehint.h"
 
 #include <emscripten/emscripten.h>
+
+#include <cstring>
 
 
 namespace {
@@ -97,6 +101,31 @@ EM_JS(double, PGO_Profile_Total, (void), {
 	return total;
 });
 
+
+char const * Profile_Name(PgoProfileKind kind)
+{
+	switch (kind) {
+		case PGO_PROFILE_MENU:
+			return("menu");
+
+		case PGO_PROFILE_CAMPAIGN:
+			return("campaign");
+
+		default:
+			return("first-mission");
+	}
+}
+
+
+// The campaign profile is banked behind an interactive screen, so one step of it has to be
+// short enough that the screen still answers the pointer while the fetch it waits for is in
+// flight. A profile range spans whatever files happened to sit together in the archive and
+// can run to a megabyte or more, which on a slow line is seconds.
+std::uint32_t const MENU_CHUNK = 256u * 1024u;
+
+FetchQueueClass CampaignQueue(MENU_CHUNK);
+bool CampaignLoaded = false;
+
 }	// namespace
 
 
@@ -108,6 +137,12 @@ static double PgoDoneBytes = 0.0;
 extern "C" {
 EMSCRIPTEN_KEEPALIVE double OpenTS_PGO_Total(void) {return(PgoTotalBytes);}
 EMSCRIPTEN_KEEPALIVE double OpenTS_PGO_Done(void) {return(PgoDoneBytes);}
+
+// What the campaign profile still has to bank, which the page adds to what it says is left
+// to arrive. It is kept apart from the two figures above because those drive the loading
+// bar, and this stage is behind a menu the player is already using.
+EMSCRIPTEN_KEEPALIVE double OpenTS_PGO_Queued(void)
+	{return((double)(CampaignQueue.Total_Bytes() - CampaignQueue.Done_Bytes()));}
 }
 
 
@@ -117,8 +152,7 @@ void PGO_Profile_Apply(PgoProfileKind kind)
 	// next capture.
 	if (Debug_PGO_Capture) return;
 
-	char const * name = (kind == PGO_PROFILE_MENU) ? "menu" : "first-mission";
-	int const entry_count = PGO_Profile_Load(name);
+	int const entry_count = PGO_Profile_Load(Profile_Name(kind));
 
 	if (entry_count > 0) PGO_Profile_In_Effect = true;
 
@@ -156,6 +190,48 @@ void PGO_Profile_Apply(PgoProfileKind kind)
 		PgoTotalBytes = 0.0;
 		PgoDoneBytes = 0.0;
 	}
+}
+
+
+void PGO_Profile_Service(void)
+{
+	// Banking a profile while capturing one would write its ranges into the
+	// next capture.
+	if (Debug_PGO_Capture) return;
+
+	// A menu waiting for a choice is the one place the engine has nothing else to read, and
+	// the campaign screen is reached from it whatever the player picks. Anything else on top
+	// -- the campaign screen itself, a load, the game -- is reading for its own sake, so the
+	// queue stands down and what it has not reached is read the ordinary way.
+	if (std::strcmp(Phase_Top(), "menu") != 0) return;
+
+	if (!CampaignLoaded) {
+		CampaignLoaded = true;
+
+		int const entry_count = PGO_Profile_Load(Profile_Name(PGO_PROFILE_CAMPAIGN));
+
+		for (int entry_index = 0; entry_index < entry_count; entry_index++) {
+			char archive_name[64];
+
+			for (int range_index = 0; ; range_index++) {
+				unsigned int offset = 0;
+				unsigned int length = 0;
+
+				if (!PGO_Profile_Entry_Range(entry_index, range_index, archive_name,
+					sizeof(archive_name), &offset, &length)) {
+					break;
+				}
+
+				CampaignQueue.Add(archive_name, offset, length);
+			}
+		}
+
+		// Reading the profile is itself a round trip the menu waits out, so the first fetch
+		// is left to the next frame.
+		return;
+	}
+
+	CampaignQueue.Step();
 }
 
 #endif

@@ -484,6 +484,16 @@ capture (`-PGOCAPTURE`) reads only what the game asks for, so applying a
 profile while recording one would write the profile's own ranges into the
 next; `Prefetch` and `Read_Scenario`'s hints also stand down during a capture.
 
+The `menu` profile is the only one the engine waits out, so it covers the path
+to a menu the player can act on and nothing further. `PGO_Profile_Service`
+banks the `campaign` profile behind that menu instead, a bounded chunk per
+frame through the same queue `Offline_Service` drains its own work list with
+(`code/fetchqueue.h`), and only while a menu is the innermost phase: a campaign
+screen, a load or the game is reading for its own sake, and the queue stands
+down rather than sitting in front of those reads. A range it has not reached is
+read the ordinary way, and a range it has reached is answered out of the store,
+so the screen opens the same either way.
+
 **Figures.** The source exports its counters (requests, bytes, store hits,
 read-ahead waste, stalls with the read that stalled) to the page as
 `OpenTS_Iso_*` values and a stall log on `OpenTS_State`;

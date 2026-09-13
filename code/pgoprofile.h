@@ -13,12 +13,20 @@
 
 enum PgoProfileKind {
 	PGO_PROFILE_MENU,
+	PGO_PROFILE_CAMPAIGN,
 	PGO_PROFILE_FIRST_MISSION
 };
 
-// Prefetches every archive range that "profiles/<kind>.json" beside the
-// manifest names. A missing, malformed, or mismatched profile does nothing;
-// the per-archive prefetch heuristic still covers every archive.
+// Prefetches every archive range that the release's pointer names for this kind
+// and returns only once they are banked. A missing, malformed, or mismatched
+// profile does nothing; the per-archive prefetch heuristic still covers every
+// archive.
 void PGO_Profile_Apply(PgoProfileKind kind);
+
+// Banks the campaign profile behind a menu that is already up, a bounded chunk
+// per call, and leaves anything it has not reached to an ordinary read. Called
+// once a frame from Browser_Service, which is inside the engine's own suspending
+// context.
+void PGO_Profile_Service(void);
 
 #endif

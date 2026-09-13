@@ -33,6 +33,7 @@
 #include "mainwindow.h"
 #include "misc.h"
 #include "movies.h"
+#include "pgoprofile.h"
 #include "rect.h"
 #include "surface.h"
 #include "tactical.h"
@@ -1493,6 +1494,7 @@ void Browser_Service(void)
 	Block_Source_Service();
 
 	Offline_Service();
+	PGO_Profile_Service();
 
 	if (Measure_Canvas()) {
 
