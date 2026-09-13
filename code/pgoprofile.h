@@ -23,9 +23,10 @@ enum PgoProfileKind {
 // archive.
 void PGO_Profile_Apply(PgoProfileKind kind);
 
-// Banks the campaign profile behind a menu that is already up, a bounded chunk
-// per call, and leaves anything it has not reached to an ordinary read. Called
-// once a frame from Browser_Service, which is inside the engine's own suspending
+// Banks the campaign profile and then the first-mission profile behind a menu
+// that is already up, a bounded chunk per call and for a bounded share of the
+// time, and leaves anything it has not reached to an ordinary read. Called once
+// a frame from Browser_Service, which is inside the engine's own suspending
 // context.
 void PGO_Profile_Service(void);
 

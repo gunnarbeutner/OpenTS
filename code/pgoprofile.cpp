@@ -15,6 +15,7 @@
 
 #include "fetchqueue.h"
 #include "globals.h"
+#include "httpsource.h"
 #include "phase.h"
 #include "platform/filehint.h"
 
@@ -117,14 +118,53 @@ char const * Profile_Name(PgoProfileKind kind)
 }
 
 
-// The campaign profile is banked behind an interactive screen, so one step of it has to be
+// The idle profiles are banked behind an interactive screen, so one step of it has to be
 // short enough that the screen still answers the pointer while the fetch it waits for is in
 // flight. A profile range spans whatever files happened to sit together in the archive and
 // can run to a megabyte or more, which on a slow line is seconds.
 std::uint32_t const MENU_CHUNK = 256u * 1024u;
 
-FetchQueueClass CampaignQueue(MENU_CHUNK);
-bool CampaignLoaded = false;
+// The share of the time behind the menu the drain may spend fetching. Half leaves the link
+// as good as half free for whatever the screen in front of the player reads, and costs a
+// player who looks at the menu and leaves half of what the link could have delivered in the
+// time they stayed.
+double const IDLE_SHARE = 0.5;
+
+// The profiles the drain banks, in the order a player reaches what they name.
+PgoProfileKind const IDLE_STAGES[] = {PGO_PROFILE_CAMPAIGN, PGO_PROFILE_FIRST_MISSION};
+
+FetchQueueClass IdleQueue(MENU_CHUNK);
+unsigned int IdleStage = 0;
+
+
+// Reads the next stage's ranges into the queue. False once every stage has been read.
+bool Idle_Load_Stage(void)
+{
+	if (IdleStage >= (sizeof(IDLE_STAGES) / sizeof(IDLE_STAGES[0]))) return(false);
+
+	int const entry_count = PGO_Profile_Load(Profile_Name(IDLE_STAGES[IdleStage]));
+	IdleStage++;
+
+	IdleQueue.Clear();
+
+	for (int entry_index = 0; entry_index < entry_count; entry_index++) {
+		char archive_name[64];
+
+		for (int range_index = 0; ; range_index++) {
+			unsigned int offset = 0;
+			unsigned int length = 0;
+
+			if (!PGO_Profile_Entry_Range(entry_index, range_index, archive_name,
+				sizeof(archive_name), &offset, &length)) {
+				break;
+			}
+
+			IdleQueue.Add(archive_name, offset, length);
+		}
+	}
+
+	return(true);
+}
 
 }	// namespace
 
@@ -138,11 +178,11 @@ extern "C" {
 EMSCRIPTEN_KEEPALIVE double OpenTS_PGO_Total(void) {return(PgoTotalBytes);}
 EMSCRIPTEN_KEEPALIVE double OpenTS_PGO_Done(void) {return(PgoDoneBytes);}
 
-// What the campaign profile still has to bank, which the page adds to what it says is left
-// to arrive. It is kept apart from the two figures above because those drive the loading
-// bar, and this stage is behind a menu the player is already using.
+// What the idle drain still has to bank, which the page adds to what it says is left to
+// arrive. It is kept apart from the two figures above because those drive the loading bar,
+// and this runs behind a menu the player is already using.
 EMSCRIPTEN_KEEPALIVE double OpenTS_PGO_Queued(void)
-	{return((double)(CampaignQueue.Total_Bytes() - CampaignQueue.Done_Bytes()));}
+	{return((double)(IdleQueue.Total_Bytes() - IdleQueue.Done_Bytes()));}
 }
 
 
@@ -200,38 +240,26 @@ void PGO_Profile_Service(void)
 	if (Debug_PGO_Capture) return;
 
 	// A menu waiting for a choice is the one place the engine has nothing else to read, and
-	// the campaign screen is reached from it whatever the player picks. Anything else on top
-	// -- the campaign screen itself, a load, the game -- is reading for its own sake, so the
-	// queue stands down and what it has not reached is read the ordinary way.
+	// a player sitting on one is on their way to a campaign screen and a mission. Anything
+	// else on top -- the campaign screen itself, a load, the game -- is reading for its own
+	// sake, so the queue stands down and what it has not reached is read the ordinary way.
 	if (std::strcmp(Phase_Top(), "menu") != 0) return;
 
-	if (!CampaignLoaded) {
-		CampaignLoaded = true;
+	// A read the engine or the menu asked for is already on its way, and a step here would
+	// queue a request behind it on the same link.
+	if (Block_Background_Left() > 0.0) return;
 
-		int const entry_count = PGO_Profile_Load(Profile_Name(PGO_PROFILE_CAMPAIGN));
+	IdleQueue.Set_Share(IDLE_SHARE);
 
-		for (int entry_index = 0; entry_index < entry_count; entry_index++) {
-			char archive_name[64];
-
-			for (int range_index = 0; ; range_index++) {
-				unsigned int offset = 0;
-				unsigned int length = 0;
-
-				if (!PGO_Profile_Entry_Range(entry_index, range_index, archive_name,
-					sizeof(archive_name), &offset, &length)) {
-					break;
-				}
-
-				CampaignQueue.Add(archive_name, offset, length);
-			}
-		}
+	if (IdleQueue.Is_Done()) {
+		if (!Idle_Load_Stage()) return;
 
 		// Reading the profile is itself a round trip the menu waits out, so the first fetch
 		// is left to the next frame.
 		return;
 	}
 
-	CampaignQueue.Step();
+	IdleQueue.Step();
 }
 
 #endif

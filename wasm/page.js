@@ -397,8 +397,9 @@
 	// landing and the next starting and so reads as the fetching having finished and begun
 	// again -- the whole of the queue behind it is what makes the figure fall once.
 	//
-	// The campaign profile is banked behind the menu by a queue of its own, and counts the
-	// same way: still to arrive, and not what the loading bar is measuring.
+	// The campaign and first-mission profiles are banked behind the menu by a queue of their
+	// own, and count the same way: still to arrive, and not what the loading bar is
+	// measuring.
 	function OpenTS_Background_Left() {
 		var queued = Module._OpenTS_PGO_Queued ? Module._OpenTS_PGO_Queued() : 0;
 

@@ -484,15 +484,26 @@ capture (`-PGOCAPTURE`) reads only what the game asks for, so applying a
 profile while recording one would write the profile's own ranges into the
 next; `Prefetch` and `Start_Scenario`'s hints also stand down during a capture.
 
-The `menu` profile is the only one the engine waits out, so it covers the path
-to a menu the player can act on and nothing further. `PGO_Profile_Service`
-banks the `campaign` profile behind that menu instead, a bounded chunk per
-frame through the same queue `Offline_Service` drains its own work list with
-(`code/fetchqueue.h`), and only while a menu is the innermost phase: a campaign
-screen, a load or the game is reading for its own sake, and the queue stands
-down rather than sitting in front of those reads. A range it has not reached is
-read the ordinary way, and a range it has reached is answered out of the store,
-so the screen opens the same either way.
+The `menu` profile is the only one the engine waits out at startup, so it
+covers the path to a menu the player can act on and nothing further.
+`PGO_Profile_Service` banks the `campaign` profile and then the `first-mission`
+profile behind that menu instead, a bounded chunk per frame through the same
+queue `Offline_Service` drains its own work list with (`code/fetchqueue.h`).
+It runs only while a menu is the innermost phase and only while the block
+layer's own background fetch has nothing left to deliver: a campaign screen, a
+load or the game is reading for its own sake, and the queue stands down rather
+than sitting in front of those reads. A range it has not reached is read the
+ordinary way, and a range it has reached is answered out of the store, so the
+screen opens the same either way.
+
+The queue takes half the time it runs for and stands idle for the other half
+(`FetchQueueClass::Set_Share`), timing each chunk against the clock rather than
+against an estimate of the link, so the share holds whatever the connection is
+worth. A player who reaches the menu and leaves has therefore spent about half
+of what their connection could have delivered while they stayed, and one who
+starts a mission finds however much of it arrived already banked:
+`Start_Scenario` applies the `first-mission` profile before the bulk cache, and
+both read out of the store for everything the drain reached.
 
 **Figures.** The source exports its counters (requests, bytes, store hits,
 read-ahead waste, stalls with the read that stalled) to the page as
