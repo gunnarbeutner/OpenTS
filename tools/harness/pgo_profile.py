@@ -210,7 +210,8 @@ def subtract_profile(profile, baseline):
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--kind", required=True, choices=["menu", "first-mission"],
+    parser.add_argument("--kind", required=True,
+        choices=["menu", "campaign", "first-mission"],
         help="what reaching this point in the game means")
     parser.add_argument("--manifest", required=True,
         help="the manifest.json every report was captured against")
