@@ -161,10 +161,13 @@ COPY --from=build /src/engine-tree/ /usr/share/nginx/html/
 # every visitor cost this origin one round trip per pointer, and relay.json is generated
 # rather than served from a file, so it has no validator and could not even answer 304.
 #
-# A day of edge lifetime is only safe because publishing ends by purging these paths: the
-# release is seen at once because the old copy is dropped, not because it expired. A deploy
-# that cannot purge leaves the previous release served for up to a day with no way to
-# correct it, which is why deploy.py treats a failed purge as a failed deploy.
+# A day of edge lifetime is only safe because publishing ends by emptying the zone: the
+# release is seen at once because the old copy is dropped, not because it expired. The page
+# is reached with arbitrary query strings, each its own key at the edge, so dropping the
+# paths by name would leave those copies behind; deploy.py purges everything for that
+# reason. A deploy that cannot purge leaves the previous release served for up to a day
+# with no way to correct it, which is why deploy.py treats a failed purge as a failed
+# deploy.
 #
 # Nothing here is ever offered pre-compressed. A cache in front of this image (Cloudflare
 # included) can fill itself for a byte-range request with a plain GET of its own -- Range

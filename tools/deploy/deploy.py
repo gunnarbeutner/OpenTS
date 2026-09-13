@@ -39,6 +39,15 @@ DEFAULT_REMOTE_DIR = "opents"
 # The documents a shared cache is allowed to hold for a day, and so the ones a release has
 # to drop from the edge before it can be said to have shipped. Everything else a page loads
 # is named for its own content and never needs dropping.
+#
+# They are named for the report alone. A query string is part of Cloudflare's cache key and
+# the page takes arbitrary ones -- "?crt=on", "?scenario=GDI1A.MAP" -- so each is its own
+# copy of the same document, and a purge by URL reaches none of them: a visitor who had
+# been to "/?crt=on" went on being served the previous release's page there, naming the
+# previous release's modules, whatever the deploy dropped. Purging by prefix, tag or host
+# would cover them, but all three are Enterprise; purging everything is what this plan
+# offers and what a release can rely on. The cost is the content-addressed objects going
+# with them, which the edge refills from here on demand.
 PURGE_PATHS = ("/", "/index.html", "/sw.js", "/assets.json", "/downloads.json",
                "/relay.json", "/manifest.webmanifest", "/engine.json")
 DEFAULT_DOWNLOADS = ROOT / "downloads"
@@ -191,8 +200,8 @@ def check_downloads(downloads):
 
 
 def purge_edge(options):
-    """Drops the mutable pointers from Cloudflare, so the release just installed
-    is the one served rather than the one the edge is still holding.
+    """Empties the zone at Cloudflare, so the release just installed is the one
+    served rather than the one the edge is still holding.
 
     A deployment that cannot purge has not shipped: the pointers carry a day of
     shared-cache lifetime, so the previous release would go on being served with
@@ -207,7 +216,6 @@ def purge_edge(options):
     zone = os.environ.get("CLOUDFLARE_ZONE_ID")
 
     base = options.public_url.rstrip("/")
-    files = [base + path for path in PURGE_PATHS]
 
     # A token carrying only Zone.Cache Purge cannot read the zone list, so the
     # zone is named rather than looked up.
@@ -221,17 +229,17 @@ def purge_edge(options):
 
         say("purge: %s" % message)
 
-    say("purge: asking Cloudflare to drop %d pointers from the edge" % len(files))
+    say("purge: asking Cloudflare to empty the edge for %s" % base)
+    say("        the pointers it holds are %s" % ", ".join(PURGE_PATHS))
 
     if options.dry_run:
         say("  $ POST api.cloudflare.com/client/v4/zones/<zone>/purge_cache")
-        for url in files:
-            say("        files[]: %s" % url)
+        say("        purge_everything: true")
         return
 
     request = urllib.request.Request(
         "https://api.cloudflare.com/client/v4/zones/%s/purge_cache" % zone,
-        data=json.dumps({"files": files}).encode(),
+        data=json.dumps({"purge_everything": True}).encode(),
         headers={"Authorization": "Bearer %s" % token,
                  "Content-Type": "application/json"},
         method="POST")
@@ -246,7 +254,7 @@ def purge_edge(options):
         raise SystemExit("Cloudflare refused the purge: %s"
                          % json.dumps(body.get("errors", body)))
 
-    say("purge: the edge is holding none of them now")
+    say("purge: the edge is holding nothing of this zone now")
 
 
 def build_stamp():
