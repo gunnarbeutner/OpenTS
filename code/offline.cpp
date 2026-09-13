@@ -13,6 +13,7 @@
 
 #include "offline.h"
 
+#include "fetchqueue.h"
 #include "manifest.h"
 #include "platform/filehint.h"
 
@@ -55,17 +56,7 @@ bool Is_Streamed(std::string const & name)
 // them, small enough that the fetch each one waits for does not stall a drawing frame.
 std::uint32_t const CHUNK = 4u * 1024u * 1024u;
 
-struct OfflineItemClass
-{
-	std::string Name;
-	std::uint64_t Size;
-	std::uint64_t Done;
-};
-
-std::vector<OfflineItemClass> Items;
-std::size_t Cursor = 0;
-std::uint64_t TotalBytes = 0;
-std::uint64_t DoneBytes = 0;
+FetchQueueClass Queue(CHUNK);
 
 // The page asks; the engine answers on its own frame. A fetch suspends, and a call that
 // enters WebAssembly from an ordinary page callback has nothing to suspend into: it raises
@@ -86,10 +77,7 @@ int const STEPS_PER_FRAME = 2;
 
 bool Offline_Begin(void)
 {
-	Items.clear();
-	Cursor = 0;
-	TotalBytes = 0;
-	DoneBytes = 0;
+	Queue.Clear();
 
 	for (std::string const & name : Manifest_List_Files()) {
 		BlockEntryClass entry;
@@ -102,41 +90,16 @@ bool Offline_Begin(void)
 		if (!Manifest_Find(name.c_str(), entry)) continue;
 		if (entry.Size == 0) continue;
 
-		OfflineItemClass item;
-		item.Name = name;
-		item.Size = entry.Size;
-		item.Done = 0;
-		Items.push_back(item);
-		TotalBytes += entry.Size;
+		Queue.Add(name.c_str(), 0, entry.Size);
 	}
 
-	return(!Items.empty());
+	return(!Queue.Is_Empty());
 }
 
 
 bool Offline_Step(void)
 {
-	while (Cursor < Items.size()) {
-		OfflineItemClass & item = Items[Cursor];
-
-		if (item.Done >= item.Size) {
-			Cursor++;
-			continue;
-		}
-
-		std::uint64_t const remaining = item.Size - item.Done;
-		std::uint32_t const span = (remaining < CHUNK) ? (std::uint32_t)remaining : CHUNK;
-
-		// A range the store declines is not retried: it counts as done either way, or the
-		// run would never reach its end.
-		Platform_Prefetch_File(item.Name.c_str(), (std::uint32_t)item.Done, span);
-
-		item.Done += span;
-		DoneBytes += span;
-		return(true);
-	}
-
-	return(false);
+	return(Queue.Step());
 }
 
 
@@ -178,13 +141,13 @@ double Offline_Set_Bytes(void)
 
 double Offline_Total_Bytes(void)
 {
-	return((double)TotalBytes);
+	return((double)Queue.Total_Bytes());
 }
 
 
 double Offline_Done_Bytes(void)
 {
-	return((double)DoneBytes);
+	return((double)Queue.Done_Bytes());
 }
 
 
