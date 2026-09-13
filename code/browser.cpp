@@ -108,6 +108,7 @@ static int _ScreenHeight = 0;
 static BrowserDisplayPolicy _DisplayPolicy = BROWSER_DISPLAY_NATIVE;
 static int _DisplayWidth = 0;
 static int _DisplayHeight = 0;
+static bool _CRTFilter = false;
 
 static bool _Hidden = false;
 static bool _Unfocused = false;
@@ -189,6 +190,11 @@ static void Read_Page_Configuration(void)
 		var parts = /^(\\d+)x(\\d+)$/.exec((new URLSearchParams(location.search).get("display") || "").toLowerCase());
 		return parts ? parseInt(parts[2], 10) : 0;
 	});
+
+	_CRTFilter = EM_ASM_INT({
+		var value = (new URLSearchParams(location.search).get("crt") || "").toLowerCase();
+		return (value === "on" || value === "1") ? 1 : 0;
+	}) != 0;
 
 	_ScreenWidth = EM_ASM_INT({ return (window.screen && window.screen.width) ? (window.screen.width | 0) : 0; });
 	_ScreenHeight = EM_ASM_INT({ return (window.screen && window.screen.height) ? (window.screen.height | 0) : 0; });
@@ -1685,6 +1691,12 @@ int Browser_Display_Width(void)
 int Browser_Display_Height(void)
 {
 	return(_DisplayHeight);
+}
+
+
+bool Browser_CRT_Filter(void)
+{
+	return(_CRTFilter);
 }
 
 

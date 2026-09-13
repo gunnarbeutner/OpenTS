@@ -657,6 +657,61 @@ cursor on the next mouse move; a page has no class cursor, so the game's own
 image stands in for it (`Host_Has_Class_Cursor`). Capture is bookkeeping,
 because a page delivers every mouse event over the canvas to the canvas.
 
+### 5.6 The CRT filter
+
+`?crt=on` (`?crt=1` is accepted too) puts the picture on a cathode ray tube.
+The engine reads the switch in `Read_Page_Configuration` beside `?display=`,
+and `Video_Init` hands it to the presenter. It is off by default, and while it
+is off `Backend_Present` submits the quads it always did: the filter costs
+nothing that is not asked for.
+
+The filter is a dozen more quads over the frame the present pass already drew,
+all of them through the embedded shader the presenter already uses, because the
+build compiles no shaders of its own. In order: the picture bleeds sideways,
+two faint copies of it added about a pixel to each side, because a beam has a
+width and no pixel of a tube has a razor edge along its line; a mask texture of
+one cell, three columns for an aperture grille and one row per destination
+pixel of a scanline period, is tiled over that and multiplied in; a 64 by 64
+radial texture is multiplied over it for the corners; and seven more copies of
+the picture are added on top, spread from one pixel to seven, which is the
+halation the glass throws around anything bright. An added copy carries the
+brightness of what it copies, so the dark ground stays dark and only the
+lettering and the lit ground bloom. The taps are spaced for a 720 line picture
+and scale from there.
+
+The scanline period is the destination height over the frame height, and never
+less than two destination pixels, so a picture the page draws at its own
+resolution still gets the line structure of a tube of that size rather than
+none. At that period a mask cell is as large as the detail it covers, so the
+mask is eased to four fifths of its depth there rather than competing with the
+picture. Both tile counts are whole numbers, which keeps the pattern in phase
+with the destination pixels at any window size. The filter's passes read what
+the passes before them left, so the present view is put in sequential mode
+while it is on.
+
+The glass curves. Every pass is drawn as a 24 by 18 grid whose points are
+pushed out by `Warp_Point`, and the curve is normalized so the corners stay
+where they are: the picture bulges within the rectangle it was given rather
+than spilling over the edges of the window, and the middle of each edge comes
+in by about 1.8 per cent of half the picture.
+
+The frame's rectangle stays authoritative for input. The engine converts a
+window position against the flat rectangle it drew into, so a click lands on
+the control it always did, and the curve is a display-only offset of at most a
+few pixels at the middle of an edge. Clicking the edge pixel of a control at
+the top left and at the bottom of the picture reaches the same screens with the
+filter on as with it off.
+
+The UI shell submits `VIEW_UI` after the present pass
+([viewid.hh](../code/viewid.hh)), which leaves the overlay outside the filter.
+That is deliberate: the overlay is a document at the window's resolution rather
+than part of the 1990s picture, and scanlines across small text would cost more
+legibility than the look is worth.
+
+The page is not involved. The canvas fills the window and the engine measures
+the same box whether the switch is on or off ([5.1](#51-the-frame-follows-the-canvas)),
+so a frame is the size it would have been either way.
+
 ## 6 Audio and movies
 
 ### 6.1 The backend
