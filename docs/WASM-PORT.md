@@ -456,9 +456,9 @@ of the videos its items play when it is built), which turns the seconds the
 player spends reading the screen into the time the bytes arrive in; nothing in
 it fetches, it only resolves a name to the run it occupies. `Abandon` marks the
 end of reading, which is what stops the rest of a skipped film being fetched.
-`Read_Scenario` hints `TIBSUN.MIX` and `EXPAND01.MIX` whole as soon as a mission
-has a name, because the speech, theatre and local data a mission reads a
-piece at a time would otherwise each arrive as a stall.
+`Start_Scenario` hints `TIBSUN.MIX` and `EXPAND01.MIX` whole as soon as a
+mission has a name, because the speech, theatre and local data a mission reads
+a piece at a time would otherwise each arrive as a stall.
 
 **Deferred reads.** `DeferredReadClass` is a scope in which a read may answer
 that the bytes are not here yet instead of fetching them. For a map or a cameo
@@ -482,7 +482,7 @@ the profile has already fetched what it names. A profile that banked nothing
 (a private window, a store that declined) leaves the heuristic running. A
 capture (`-PGOCAPTURE`) reads only what the game asks for, so applying a
 profile while recording one would write the profile's own ranges into the
-next; `Prefetch` and `Read_Scenario`'s hints also stand down during a capture.
+next; `Prefetch` and `Start_Scenario`'s hints also stand down during a capture.
 
 The `menu` profile is the only one the engine waits out, so it covers the path
 to a menu the player can act on and nothing further. `PGO_Profile_Service`

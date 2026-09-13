@@ -192,7 +192,7 @@ of the stack is the phase; `wait` takes any of them:
 | `none` | No loop below: starting up, or moving from one phase to the next. |
 | `menu` | `GraphicMenu::Presentation`, waiting for a choice. The disc chooser and the main menus are all this; the [UI description](#targets) carries the page's INI section, `MainMenu` for the chooser. |
 | `movie` | `Movie_Play`, whichever film format the build plays. |
-| `loading` | `Start_Scenario`, from just before it reads the scenario to its return. |
+| `loading` | `Start_Scenario`, from the first thing it fetches to its return. |
 | `game` | The `Game_Frame` loop in `code/conquer.cpp`. |
 | `dialog` | One layer for each modal RmlUi screen open, as each dialog they replaced was. The modeless boxes (disconnect, desync, wait) add none. |
 | `alert` | The page-side message box `Host_Message_Box` in `code/hostwindow_page.cpp` puts up, such as "Failed to initialize". |

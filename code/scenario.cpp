@@ -369,6 +369,25 @@ bool Start_Scenario(char const * name, bool briefing, CampaignType campaign)
 		}
 	}
 
+	// The whole of the mission start is one load as far as the player is concerned, so the
+	// phase opens before the first thing that fetches rather than at the scenario file.
+	PhaseScope phase("loading", name);
+
+#if defined(__EMSCRIPTEN__)
+	// Ahead of the bulk cache, because the profile names the ranges that cache is about to
+	// read: taken here they arrive as one span under the loading bar instead of as a
+	// synchronous read apiece.
+	PGO_Profile_Apply(PGO_PROFILE_FIRST_MISSION);
+
+	// A mission reads speech, theater and local data a piece at a time, which
+	// no profile can name in advance; hinting the archives whole avoids a stall
+	// per read.
+	if (!Debug_PGO_Capture) {
+		Platform_Hint_File("TIBSUN.MIX", BLOCK_HINT_SOON, 0, 0);
+		Platform_Hint_File("EXPAND01.MIX", BLOCK_HINT_SOON, 0, 0);
+	}
+#endif
+
 	// The unit and building art, the samples and the systems that hold pointers into them
 	// are made resident here rather than at startup, since nothing before this point draws
 	// or plays any of it.
@@ -395,7 +414,6 @@ bool Start_Scenario(char const * name, bool briefing, CampaignType campaign)
 
 	DebugString("Reading scenario: %s\n", name);
 	Phase_Event("scenario", name);
-	PhaseScope phase("loading", name);
 
 	if (!Read_Scenario(name)) {
 		return(false);
@@ -691,20 +709,6 @@ bool Read_Scenario(char const * fname)
 	char name[_MAX_PATH];
 
 	UTF8::Copy(name, fname);
-
-#if defined(__EMSCRIPTEN__)
-	// Applied as soon as the mission has a name, so the profile's hints are in
-	// flight while the loading screen shows.
-	PGO_Profile_Apply(PGO_PROFILE_FIRST_MISSION);
-
-	// A mission reads speech, theater and local data a piece at a time, which
-	// no profile can name in advance; hinting the archives whole avoids a stall
-	// per read.
-	if (!Debug_PGO_Capture) {
-		Platform_Hint_File("TIBSUN.MIX", BLOCK_HINT_SOON, 0, 0);
-		Platform_Hint_File("EXPAND01.MIX", BLOCK_HINT_SOON, 0, 0);
-	}
-#endif
 
 	Frame = 0;
 
