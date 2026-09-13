@@ -17,7 +17,7 @@ class GraphicMenuImageItem : public GraphicMenuItem
 	friend GraphicMenuItem * GM_Read_Image_Item(const char * name, INIClass const & ini, MSEngine & engine, Point2D & image_size);
 
 	public:
-		GraphicMenuImageItem(int id, MSEngine & engine, Point2D const & origin, Rect const & rect, const char * image, const char * highlight_image, const char * disabled_image, char * highlight_sound, const char * select_vq, int scale=1, int design=1);
+		GraphicMenuImageItem(int id, MSEngine & engine, MSAnim const * backdrop, Point2D const & origin, Rect const & rect, Rect const & drawn_rect, const char * image, const char * highlight_image, const char * disabled_image, char * highlight_sound, const char * select_vq, int scale=1, int design=1);
 		virtual ~GraphicMenuImageItem(void) override;
 
 		virtual bool Is_Mouse_Over(Point2D const & mouse) override;
@@ -41,6 +41,13 @@ class GraphicMenuImageItem : public GraphicMenuItem
 		 * is also the area redrawn whenever the item's artwork is swapped.
 		 */
 		Rect ActiveRect;
+
+		/*
+		 * If this item's artwork fills an ellipse inscribed in its active area rather than
+		 * the whole of it, then this flag will be true and the corners of the rectangle
+		 * select nothing.
+		 */
+		bool Elliptical;
 
 		/*
 		 * These are the three pieces of artwork this item is drawn with, one for each of its

@@ -53,6 +53,10 @@ class MSAnim
 		/// Returns the anim's bounding rect
 		virtual Rect Get_Rect(void) const = 0;
 
+		// The still picture the anim draws from, which it keeps ownership of. An anim
+		// with none, such as a movie, returns nullptr.
+		virtual Surface const * Get_Picture(void) const { return(nullptr); }
+
 		/// Returns if the anim's done drawing itself
 		virtual bool Has_Finished(void) const { return(false); }
 
@@ -449,6 +453,7 @@ class MSPCXAnim : public MSAnim
 		virtual bool Advance(Surface * surface, Rect & rect) override;
 		virtual void Redraw(Surface * surface, Rect const * rect=NULL) override;
 		virtual Rect Get_Rect(void) const override;
+		virtual Surface const * Get_Picture(void) const override { return(Image); }
 		virtual bool Has_Finished(void) const override;
 		virtual void Restore(Rect const & rect) override;
 

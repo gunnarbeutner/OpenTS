@@ -27,7 +27,7 @@
 #include "wwmouse.h"
 
 GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name);
-GraphicMenuItem * GM_Create_Item_From_INI(const char * name, INIClass const & ini, MSEngine & engine, Point2D & image_size, int scale, int design);
+GraphicMenuItem * GM_Create_Item_From_INI(const char * name, INIClass const & ini, MSEngine & engine, MSAnim const * backdrop, Point2D & image_size, int scale, int design);
 
 
 // The pages are laid out in the 640 pixel wide space their artwork was drawn in.
@@ -80,10 +80,10 @@ GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name)
 
 	Point2D pt(0,0);
 	int scale = SHELL_DESIGN_WIDTH;
+	MSAnim * anim = NULL;
 
 	if (has_background) {
 		strncat(buffer, Movie_Extension(), sizeof(buffer) - strlen(buffer) - 1);
-		MSAnim * anim = NULL;
 		if (Movie_Is_Available(buffer)) {
 			anim = new MSVQAnim(buffer, AlternateSurface, menu->Engine.Get_Anims(), true);
 		}
@@ -114,7 +114,7 @@ GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name)
 	for (int i = 0; i <= item_max; i++) {
 		snprintf(entry, sizeof(entry), "%d", i);
 		if (ini.Get_String(name, entry, "", buffer, sizeof(buffer)) > 0) {
-			GraphicMenuItem * item = GM_Create_Item_From_INI(buffer, ini, menu->Engine, pt, scale, SHELL_DESIGN_WIDTH);
+			GraphicMenuItem * item = GM_Create_Item_From_INI(buffer, ini, menu->Engine, anim, pt, scale, SHELL_DESIGN_WIDTH);
 			if (item != NULL) {
 				menu->Add_Item(item);
 			}
