@@ -317,7 +317,7 @@ harness fills it in from flags rather than from a hand-edited copy of the page:
 | `--playmovie NAME` | `?playmovie=`, the named movie in place of the startup sequence |
 | `--display native\|scaled\|WxH` | `?display=` |
 | `--arg SWITCH` | `?arg=`, repeatable, passed to the engine verbatim |
-| `--query NAME=VALUE` | anything else the page reads, such as `hud=on`, `jspi=off`, or `jspi=ignore` |
+| `--query NAME=VALUE` | anything else the page reads, such as `nointro=1`, `nobriefing=1`, `hud=on`, `jspi=off`, or `jspi=ignore` |
 
 Settings that exist only in the configuration file are given as
 `--ini SECTION.KEY=VALUE`, repeatable:

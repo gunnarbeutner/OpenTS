@@ -167,6 +167,10 @@
 			args.push("-NOINTRO");
 		}
 
+		if (query.get("nobriefing")) {
+			args.push("-NOBRIEFING");
+		}
+
 		if (query.get("pgocapture")) {
 			args.push("-PGOCAPTURE");
 		}
