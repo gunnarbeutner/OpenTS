@@ -28,7 +28,11 @@
 #include "ui/uishell.h"
 
 GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name);
-GraphicMenuItem * GM_Create_Item_From_INI(const char * name, INIClass const & ini, MSEngine & engine, Point2D & image_size);
+GraphicMenuItem * GM_Create_Item_From_INI(const char * name, INIClass const & ini, MSEngine & engine, Point2D & image_size, int scale, int design);
+
+
+// The pages are laid out in the 640 pixel wide space their artwork was drawn in.
+int const SHELL_DESIGN_WIDTH = 640;
 
 
 /// <summary>
@@ -76,6 +80,7 @@ GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name)
 	menu->BackgroundName.Replace_With_Extension(buffer, ".PCX", sizeof(".PCX") - 1);
 
 	Point2D pt(0,0);
+	int scale = SHELL_DESIGN_WIDTH;
 
 	if (has_background) {
 		strncat(buffer, Movie_Extension(), sizeof(buffer) - strlen(buffer) - 1);
@@ -84,7 +89,7 @@ GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name)
 			anim = new MSVQAnim(buffer, AlternateSurface, menu->Engine.Get_Anims(), true);
 		}
 		if (anim == NULL) {
-			anim = new MSPCXAnim(buffer, menu->Engine.Get_Anims(), true);
+			anim = new MSPCXAnim(buffer, menu->Engine.Get_Anims(), true, scale, SHELL_DESIGN_WIDTH);
 		}
 
 		menu->Set_Animation(anim);
@@ -94,6 +99,11 @@ GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name)
 		Rect const backdrop = anim->Get_Rect();
 		pt = backdrop.TopLeft;
 		menu->LayoutSize = Point2D(backdrop.Width, backdrop.Height);
+
+		// Whatever the backdrop came back at is what the rest of the page is
+		// placed and sized against, whether that is prepared artwork, a movie,
+		// or the pictures on the discs.
+		scale = backdrop.Width;
 	}
 
 	if (ini.Get_String(name, "Theme", "", buffer, sizeof(buffer)) > 0) {
@@ -105,7 +115,7 @@ GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name)
 	for (int i = 0; i <= item_max; i++) {
 		snprintf(entry, sizeof(entry), "%d", i);
 		if (ini.Get_String(name, entry, "", buffer, sizeof(buffer)) > 0) {
-			GraphicMenuItem * item = GM_Create_Item_From_INI(buffer, ini, menu->Engine, pt);
+			GraphicMenuItem * item = GM_Create_Item_From_INI(buffer, ini, menu->Engine, pt, scale, SHELL_DESIGN_WIDTH);
 			if (item != NULL) {
 				menu->Add_Item(item);
 			}

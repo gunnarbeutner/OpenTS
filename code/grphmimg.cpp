@@ -29,20 +29,23 @@
 /// <param name="image_size">The backdrop offset that the item coordinates are relative to.</param>
 /// <returns>Returns with a pointer to the item created. If the section names no item
 /// identifier, then NULL is returned.</returns>
-GraphicMenuItem * GM_Read_Image_Item(const char * name, INIClass const & ini, MSEngine & engine, Point2D & image_size)
+GraphicMenuItem * GM_Read_Image_Item(const char * name, INIClass const & ini, MSEngine & engine, Point2D & image_size, int scale, int design)
 {
 	int id = ini.Get_Int(name, "ID", -1);
 	if (id == -1) {
 		return(NULL);
 	}
 
+	// The description is written in the artwork's own pixels, so a page laid out
+	// at another size carries its positions across with it.
 	Point2D origin(0,0);
 	origin = ini.Get_Point(name, "Origin", origin);
-	origin += image_size;
+	origin = Point2D(origin.X * scale / design, origin.Y * scale / design) + image_size;
 
 	Rect active_rect(0,0,0,0);
 	active_rect = ini.Get_Rect(name, "ActiveRect", active_rect);
-	active_rect += image_size;
+	active_rect = Rect(active_rect.X * scale / design, active_rect.Y * scale / design,
+		active_rect.Width * scale / design, active_rect.Height * scale / design) + image_size;
 
 	char image[256];
 	char highlighted[256];
@@ -59,7 +62,7 @@ GraphicMenuItem * GM_Read_Image_Item(const char * name, INIClass const & ini, MS
 	ini.Get_String(name, "HighlightSound", "", highlight_sound, sizeof(highlight_sound));
 	ini.Get_String(name, "SelectVQ", "", select_vq, sizeof(select_vq));
 
-	return(new GraphicMenuImageItem(id, engine, origin, active_rect, image, highlighted, disabled, highlight_sound, select_vq));
+	return(new GraphicMenuImageItem(id, engine, origin, active_rect, image, highlighted, disabled, highlight_sound, select_vq, scale, design));
 }
 
 
@@ -79,7 +82,9 @@ GraphicMenuItem * GM_Read_Image_Item(const char * name, INIClass const & ini, MS
 /// <param name="disabled_image">Filename of the artwork shown while disabled.</param>
 /// <param name="highlight_sound">Filename of the sound to play as this item is selected.</param>
 /// <param name="select_vq">Filename of the movie to play when this item is chosen.</param>
-GraphicMenuImageItem::GraphicMenuImageItem(int id, MSEngine & engine, Point2D const & origin, Rect const & rect, const char * image, const char * highlight_image, const char * disabled_image, char * highlight_sound, const char * select_vq) :
+/// <param name="scale">The width the page is laid out at, against <paramref name="design"/>.</param>
+/// <param name="design">The width the page was drawn at.</param>
+GraphicMenuImageItem::GraphicMenuImageItem(int id, MSEngine & engine, Point2D const & origin, Rect const & rect, const char * image, const char * highlight_image, const char * disabled_image, char * highlight_sound, const char * select_vq, int scale, int design) :
 	GraphicMenuItem(id),
 	Engine(&engine),
 	ActiveRect(rect)
@@ -100,7 +105,7 @@ GraphicMenuImageItem::GraphicMenuImageItem(int id, MSEngine & engine, Point2D co
 	strncpy(SelectVQ, select_vq != NULL ? select_vq : "", sizeof(SelectVQ));
 
 	if (strlen(highlight_image)) {
-		HighlightImage = new MSPCXAnim(highlight_image, engine.Get_Anims(), origin, true);
+		HighlightImage = new MSPCXAnim(highlight_image, engine.Get_Anims(), origin, true, scale, design);
 		if (HighlightImage != NULL) {
 			HighlightImage->Set_Active(false);
 			engine.Add_Animation(HighlightImage);
@@ -108,14 +113,14 @@ GraphicMenuImageItem::GraphicMenuImageItem(int id, MSEngine & engine, Point2D co
 	}
 
 	if (strlen(image)) {
-		Image = new MSPCXAnim(image, engine.Get_Anims(), origin, true);
+		Image = new MSPCXAnim(image, engine.Get_Anims(), origin, true, scale, design);
 		if (Image != NULL) {
 			engine.Add_Animation(Image);
 		}
 	}
 
 	if (strlen(disabled_image)) {
-		DisabledImage = new MSPCXAnim(disabled_image, engine.Get_Anims(), origin, true);
+		DisabledImage = new MSPCXAnim(disabled_image, engine.Get_Anims(), origin, true, scale, design);
 		if (DisabledImage != NULL) {
 			DisabledImage->Set_Active(false);
 			engine.Add_Animation(DisabledImage);

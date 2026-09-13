@@ -14,7 +14,7 @@
 #include "ini.h"
 #include "mschoice.h"
 
-GraphicMenuItem * GM_Read_Image_Item(const char * name, INIClass const & ini, MSEngine & engine, Point2D & image_size);
+GraphicMenuItem * GM_Read_Image_Item(const char * name, INIClass const & ini, MSEngine & engine, Point2D & image_size, int scale, int design);
 GraphicMenuItem * GM_Read_Shortcut_Item(const char * name, INIClass const & ini);
 GraphicMenuItem * GM_Read_Version_Item(const char * name, INIClass const & ini, MSEngine & engine);
 
@@ -30,15 +30,17 @@ GraphicMenuItem * GM_Read_Version_Item(const char * name, INIClass const & ini, 
 /// <param name="engine">The menu engine that the new item will belong to.</param>
 /// <param name="image_size">The screen offset of the menu backdrop. Item positions are
 /// relative to it.</param>
+/// <param name="scale">The width the page is laid out at, against <paramref name="design"/>.</param>
+/// <param name="design">The width the page was drawn at.</param>
 /// <returns>Returns with a pointer to the item created. Otherwise, NULL is returned.</returns>
-GraphicMenuItem *GM_Create_Item_From_INI(const char * name, INIClass const & ini, MSEngine & engine, Point2D & image_size)
+GraphicMenuItem *GM_Create_Item_From_INI(const char * name, INIClass const & ini, MSEngine & engine, Point2D & image_size, int scale, int design)
 {
 	char type[256];
 	ini.Get_String(name, "Type", "", type, sizeof(type));
 	GraphicMenuItem * item = NULL;
 
 	if (strcmpi(type, "Image") == 0) {
-		item = GM_Read_Image_Item(name, ini, engine, image_size);
+		item = GM_Read_Image_Item(name, ini, engine, image_size, scale, design);
 	} else if (strcmpi(type, "Shortcut") == 0) {
 		item = GM_Read_Shortcut_Item(name, ini);
 	} else if (strcmpi(type, "Version") == 0) {
