@@ -396,10 +396,15 @@
 	// has in flight. The pool alone reports only the latter, which empties between one run
 	// landing and the next starting and so reads as the fetching having finished and begun
 	// again -- the whole of the queue behind it is what makes the figure fall once.
+	//
+	// The campaign profile is banked behind the menu by a queue of its own, and counts the
+	// same way: still to arrive, and not what the loading bar is measuring.
 	function OpenTS_Background_Left() {
-		return Module._OpenTS_Iso_Background_Left
+		var queued = Module._OpenTS_PGO_Queued ? Module._OpenTS_PGO_Queued() : 0;
+
+		return queued + (Module._OpenTS_Iso_Background_Left
 			? Module._OpenTS_Iso_Background_Left()
-			: Module._OpenTS_Iso_Bytes_Remaining();
+			: Module._OpenTS_Iso_Bytes_Remaining());
 	}
 
 	function OpenTS_Show_Speed() {
@@ -1254,7 +1259,7 @@
 		"OpenTS_Iso_Store_Kept", "OpenTS_Iso_Store_State", "OpenTS_Iso_Unique_Blocks",
 		"OpenTS_Offline_Active", "OpenTS_Offline_Done", "OpenTS_Offline_Set",
 		"OpenTS_Offline_Stored", "OpenTS_Offline_Total", "OpenTS_PGO_Done",
-		"OpenTS_PGO_Total"
+		"OpenTS_PGO_Queued", "OpenTS_PGO_Total"
 	];
 
 	function OpenTS_Read_Counters() {
