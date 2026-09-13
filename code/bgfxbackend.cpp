@@ -26,6 +26,8 @@
 #include <bgfx/bgfx.h>
 #include <bgfx/embedded_shader.h>
 #include <bx/allocator.h>
+#include <cmath>
+#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -85,6 +87,32 @@ static int _VideoFrameWidth = 0;
 static int _VideoFrameHeight = 0;
 
 
+// The CRT filter. Everything here is skipped while it is off, so the ordinary present path
+// submits the quads it always did.
+static bool _CRTEnabled = false;
+static bgfx::TextureHandle _MaskTexture = BGFX_INVALID_HANDLE;
+static bgfx::TextureHandle _VignetteTexture = BGFX_INVALID_HANDLE;
+static int _MaskPeriod = 0;
+
+// How far a scanline dips, how far a stripe of the aperture grille dims the two channels
+// beside it, and how dark the corners go.
+static float const CRT_SCAN_DEPTH = 0.58f;
+static float const CRT_GRILLE_DEPTH = 0.34f;
+static float const CRT_VIGNETTE_DEPTH = 0.55f;
+
+// How far the glass bulges, as a fraction of half the picture. The corners stay where they
+// are and the middle of each edge is drawn in by about this much.
+static float const CRT_BARREL = 0.018f;
+
+// The additive passes are spaced in pixels of a 720 line picture and scaled from there, so
+// the bleed and the halation keep their proportions at any size.
+static float const CRT_TAP_REFERENCE = 720.0f;
+
+// The picture is drawn as a grid, because the glass it is drawn on curves.
+static int const CRT_COLUMNS = 24;
+static int const CRT_ROWS = 18;
+
+
 struct BackendVertex
 {
 	float X;
@@ -92,6 +120,24 @@ struct BackendVertex
 	float U;
 	float V;
 	unsigned int Color;
+};
+
+
+// How far a point of the picture is moved off the flat rectangle the engine thinks it draws
+// into by the curve of the glass.
+struct CRTWarp
+{
+	float Barrel;
+};
+
+
+// One more copy of the picture, offset by this many pixels of a 720 line picture and added
+// at this strength.
+struct CRTTap
+{
+	float X;
+	float Y;
+	float Alpha;
 };
 
 
@@ -206,38 +252,99 @@ static void Build_Convert_Table(void)
 }
 
 
+// Where a point of the picture lands on the glass. The coordinates are measured from the
+// middle of the picture and run to one at its edges, and they come back in the same
+// measure. The corners are held in place, so the curve keeps the picture inside the
+// rectangle it was given rather than spilling over the moulding.
+static void Warp_Point(CRTWarp const & warp, float nx, float ny, float & warpedx, float & warpedy)
+{
+	// Convex glass: the edges bow out and the corners draw in, within the picture's bounds.
+	float const radius = nx * nx + ny * ny;
+	float const bulge = 1.0f + warp.Barrel * (1.0f - radius);
+
+	warpedx = nx * bulge;
+	warpedy = ny * bulge;
+}
+
+
+/// <summary>
+/// Submits one textured rectangle covering the given destination, tiled to the requested
+/// number of texture repeats and tinted by the given colour. A warp subdivides it into a
+/// grid whose points are moved onto the curve of the glass.
+/// </summary>
+static bool Submit_Rect(bgfx::ViewId view, bgfx::TextureHandle texture, float x, float y, float width, float height,
+	float urepeat, float vrepeat, unsigned int color, uint64_t state, unsigned int samplerflags, bool flipv,
+	CRTWarp const * warp)
+{
+	int const columns = (warp != nullptr) ? CRT_COLUMNS : 1;
+	int const rows = (warp != nullptr) ? CRT_ROWS : 1;
+	uint32_t const count = (uint32_t)(columns * rows * 6);
+
+	bgfx::TransientVertexBuffer buffer;
+
+	if (bgfx::getAvailTransientVertexBuffer(count, _VertexLayout) < count) {
+		return(false);
+	}
+
+	bgfx::allocTransientVertexBuffer(&buffer, count, _VertexLayout);
+
+	BackendVertex * vertex = (BackendVertex *)buffer.data;
+
+	for (int row = 0; row < rows; row++) {
+		for (int column = 0; column < columns; column++) {
+			float const u0 = urepeat * (float)column / (float)columns;
+			float const u1 = urepeat * (float)(column + 1) / (float)columns;
+			float const t0 = (float)row / (float)rows;
+			float const t1 = (float)(row + 1) / (float)rows;
+			float const v0 = flipv ? vrepeat * (1.0f - t0) : vrepeat * t0;
+			float const v1 = flipv ? vrepeat * (1.0f - t1) : vrepeat * t1;
+
+			float corner[4][2] = {
+				{ x + width * (float)column / (float)columns, y + height * t0 },
+				{ x + width * (float)(column + 1) / (float)columns, y + height * t0 },
+				{ x + width * (float)(column + 1) / (float)columns, y + height * t1 },
+				{ x + width * (float)column / (float)columns, y + height * t1 },
+			};
+
+			if (warp != nullptr) {
+				for (int point = 0; point < 4; point++) {
+					float const nx = (corner[point][0] - (x + width * 0.5f)) / (width * 0.5f);
+					float const ny = (corner[point][1] - (y + height * 0.5f)) / (height * 0.5f);
+					float warpedx = nx;
+					float warpedy = ny;
+
+					Warp_Point(*warp, nx, ny, warpedx, warpedy);
+					corner[point][0] = x + width * 0.5f + warpedx * width * 0.5f;
+					corner[point][1] = y + height * 0.5f + warpedy * height * 0.5f;
+				}
+			}
+
+			vertex[0] = { corner[0][0], corner[0][1], u0, v0, color };
+			vertex[1] = { corner[1][0], corner[1][1], u1, v0, color };
+			vertex[2] = { corner[2][0], corner[2][1], u1, v1, color };
+			vertex[3] = { corner[0][0], corner[0][1], u0, v0, color };
+			vertex[4] = { corner[2][0], corner[2][1], u1, v1, color };
+			vertex[5] = { corner[3][0], corner[3][1], u0, v1, color };
+			vertex += 6;
+		}
+	}
+
+	bgfx::setVertexBuffer(0, &buffer);
+	bgfx::setTexture(0, _TextureSampler, texture, samplerflags);
+	bgfx::setState(state);
+	bgfx::submit(view, _Program);
+	return(true);
+}
+
+
 /// <summary>
 /// Submits one textured rectangle covering the given destination. False means the
 /// transient vertex memory ran out and nothing was submitted.
 /// </summary>
 static bool Submit_Quad(bgfx::ViewId view, bgfx::TextureHandle texture, float x, float y, float width, float height, unsigned int samplerflags, bool flipv = false)
 {
-	bgfx::TransientVertexBuffer buffer;
-
-	if (bgfx::getAvailTransientVertexBuffer(6, _VertexLayout) < 6) {
-		return(false);
-	}
-
-	bgfx::allocTransientVertexBuffer(&buffer, 6, _VertexLayout);
-
-	BackendVertex * vertex = (BackendVertex *)buffer.data;
-	const unsigned int white = 0xFFFFFFFF;
-
-	const float vtop = flipv ? 1.0f : 0.0f;
-	const float vbottom = flipv ? 0.0f : 1.0f;
-
-	vertex[0] = { x, y, 0.0f, vtop, white };
-	vertex[1] = { x + width, y, 1.0f, vtop, white };
-	vertex[2] = { x + width, y + height, 1.0f, vbottom, white };
-	vertex[3] = { x, y, 0.0f, vtop, white };
-	vertex[4] = { x + width, y + height, 1.0f, vbottom, white };
-	vertex[5] = { x, y + height, 0.0f, vbottom, white };
-
-	bgfx::setVertexBuffer(0, &buffer);
-	bgfx::setTexture(0, _TextureSampler, texture, samplerflags);
-	bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A);
-	bgfx::submit(view, _Program);
-	return(true);
+	return(Submit_Rect(view, texture, x, y, width, height, 1.0f, 1.0f, 0xFFFFFFFF,
+		BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A, samplerflags, flipv, nullptr));
 }
 
 
@@ -314,6 +421,188 @@ static bool Ensure_Prescale_Target(int width, int height)
 	_PrescaleWidth = width;
 	_PrescaleHeight = height;
 	return(true);
+}
+
+
+// One texel of the phosphor mask: a scanline profile down the rows and an aperture grille
+// across the columns, one column to a channel.
+static void Build_Mask_Texel(int column, int row, int height, float depth, unsigned char * texel)
+{
+	// The row is sampled at the texel rather than between two, or a two row cell would give
+	// both rows the same value and the scanlines would be a flat dimming.
+	float const scan = 1.0f - CRT_SCAN_DEPTH * depth * (0.5f - 0.5f * cosf(6.2831853f * (float)row / (float)height));
+
+	for (int channel = 0; channel < 3; channel++) {
+		float const grille = (channel == column) ? 1.0f : (1.0f - CRT_GRILLE_DEPTH * depth);
+		texel[channel] = (unsigned char)(255.0f * scan * grille + 0.5f);
+	}
+
+	texel[3] = 255;
+}
+
+
+// The mask is tiled over the picture rather than stretched, so its texture only has to
+// hold one cell: three columns for the grille and one row per destination pixel of a
+// scanline period.
+static bool Ensure_Mask_Texture(int period)
+{
+	if (bgfx::isValid(_MaskTexture) && _MaskPeriod == period) {
+		return(true);
+	}
+
+	if (bgfx::isValid(_MaskTexture)) {
+		bgfx::destroy(_MaskTexture);
+		_MaskTexture = BGFX_INVALID_HANDLE;
+	}
+	_MaskPeriod = 0;
+
+	int const height = std::min(std::max(period, 2), 8);
+	unsigned char texels[3 * 8 * 4];
+
+	// A picture the page draws at its own resolution has a cell no larger than the detail
+	// it covers, so the mask is eased off there rather than competing with the picture.
+	float const depth = (period >= 3) ? 1.0f : 0.8f;
+
+	for (int row = 0; row < height; row++) {
+		for (int column = 0; column < 3; column++) {
+			Build_Mask_Texel(column, row, height, depth, texels + (row * 3 + column) * 4);
+		}
+	}
+
+	_MaskTexture = bgfx::createTexture2D(3, (uint16_t)height, false, 1, bgfx::TextureFormat::RGBA8,
+		BGFX_TEXTURE_NONE, bgfx::copy(texels, (uint32_t)(3 * height * 4)));
+
+	if (!bgfx::isValid(_MaskTexture)) {
+		return(false);
+	}
+
+	_MaskPeriod = period;
+	return(true);
+}
+
+
+static bool Ensure_Vignette_Texture(void)
+{
+	if (bgfx::isValid(_VignetteTexture)) {
+		return(true);
+	}
+
+	int const size = 64;
+	unsigned char texels[size * size * 4];
+
+	for (int y = 0; y < size; y++) {
+		for (int x = 0; x < size; x++) {
+			float const nx = ((float)x + 0.5f) / (float)size * 2.0f - 1.0f;
+			float const ny = ((float)y + 0.5f) / (float)size * 2.0f - 1.0f;
+			float falloff = std::min(std::max((nx * nx + ny * ny) * 0.58f, 0.0f), 1.0f);
+
+			falloff = falloff * falloff * (3.0f - 2.0f * falloff);
+			falloff = falloff * (0.45f + 0.55f * falloff);
+
+			unsigned char const level = (unsigned char)(255.0f * (1.0f - CRT_VIGNETTE_DEPTH * falloff) + 0.5f);
+			unsigned char * texel = texels + (y * size + x) * 4;
+
+			texel[0] = level;
+			texel[1] = level;
+			texel[2] = level;
+			texel[3] = 255;
+		}
+	}
+
+	_VignetteTexture = bgfx::createTexture2D((uint16_t)size, (uint16_t)size, false, 1, bgfx::TextureFormat::RGBA8,
+		BGFX_TEXTURE_NONE, bgfx::copy(texels, (uint32_t)sizeof(texels)));
+
+	return(bgfx::isValid(_VignetteTexture));
+}
+
+
+// Adds one more copy of the picture, offset and faint. An additive copy carries the
+// brightness of what it copies, so a dark ground stays dark and only what is already
+// bright spreads.
+static void Submit_CRT_Tap(bgfx::TextureHandle source, float x, float y, float width, float height,
+	float offsetx, float offsety, float alpha, bool flipv, CRTWarp const & warp)
+{
+	unsigned int const color = 0x00FFFFFF | ((unsigned int)(255.0f * std::min(alpha, 1.0f) + 0.5f) << 24);
+
+	Submit_Rect(VIEW_PRESENT, source, x + offsetx, y + offsety, width, height, 1.0f, 1.0f, color,
+		BGFX_STATE_WRITE_RGB | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_ONE),
+		BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP, flipv, &warp);
+}
+
+
+// The picture on the curve of the glass.
+static bool Submit_CRT_Picture(bgfx::TextureHandle source, int destx, int desty, int destwidth, int destheight,
+	unsigned int samplerflags, bool flipv)
+{
+	CRTWarp const glass = { CRT_BARREL };
+
+	return(Submit_Rect(VIEW_PRESENT, source, (float)destx, (float)desty, (float)destwidth, (float)destheight,
+		1.0f, 1.0f, 0xFFFFFFFF, BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A, samplerflags, flipv, &glass));
+}
+
+
+// The picture bleeding sideways, then the mask and the corners over it, then the halation
+// the glass spreads around anything bright. The UI shell submits its own view after this
+// one, so the overlay is drawn over the filter and stays as legible as it is without it.
+static void Submit_CRT_Overlays(bgfx::TextureHandle source, int destx, int desty, int destwidth, int destheight,
+	bool flipv)
+{
+	// Sideways only, and about a pixel: a beam has a width, so no pixel of a tube has a
+	// razor edge along the line it is drawn on.
+	static CRTTap const bleed[] = {
+		{ -1.2f, 0.0f, 0.14f },
+		{ 1.2f, 0.0f, 0.14f },
+	};
+
+	// Light spread through the glass. The near taps are the glow around lettering and the
+	// far ones the wider halo a bright field throws.
+	static CRTTap const halation[] = {
+		{ 0.0f, 0.0f, 0.07f },
+		{ -3.0f, 0.0f, 0.045f },
+		{ 3.0f, 0.0f, 0.045f },
+		{ 0.0f, -3.0f, 0.035f },
+		{ 0.0f, 3.0f, 0.035f },
+		{ -7.0f, -7.0f, 0.025f },
+		{ 7.0f, 7.0f, 0.025f },
+	};
+
+	float const x = (float)destx;
+	float const y = (float)desty;
+	float const width = (float)destwidth;
+	float const height = (float)destheight;
+
+	// A tap is spaced for a 720 line picture and scales from there, with a floor so the
+	// spread does not collapse into the pixel it came from in a small window.
+	float const spacing = std::max(std::min(width, height) / CRT_TAP_REFERENCE, 0.5f);
+	CRTWarp const glass = { CRT_BARREL };
+
+	for (CRTTap const & tap : bleed) {
+		Submit_CRT_Tap(source, x, y, width, height, tap.X * spacing, tap.Y * spacing, tap.Alpha, flipv, glass);
+	}
+
+	// One scanline to a frame row where the picture is magnified, and a two pixel period
+	// where it is not, which is the line count a tube of this size would have had. Both
+	// counts are whole so the pattern keeps its phase against the destination pixels.
+	int const period = std::max(2, (_FrameHeight > 0) ? (destheight / _FrameHeight) : 2);
+	int const grille = 3 * std::max(1, period / 2);
+	float const vrepeat = (float)std::max(1, (int)((float)destheight / (float)period + 0.5f));
+	float const urepeat = (float)std::max(1, (int)((float)destwidth / (float)grille + 0.5f));
+
+	if (Ensure_Mask_Texture(period)) {
+		Submit_Rect(VIEW_PRESENT, _MaskTexture, x, y, width, height, urepeat, vrepeat, 0xFFFFFFFF,
+			BGFX_STATE_WRITE_RGB | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_DST_COLOR, BGFX_STATE_BLEND_ZERO),
+			BGFX_SAMPLER_POINT, false, &glass);
+	}
+
+	if (Ensure_Vignette_Texture()) {
+		Submit_Rect(VIEW_PRESENT, _VignetteTexture, x, y, width, height, 1.0f, 1.0f, 0xFFFFFFFF,
+			BGFX_STATE_WRITE_RGB | BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_DST_COLOR, BGFX_STATE_BLEND_ZERO),
+			BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP, false, &glass);
+	}
+
+	for (CRTTap const & tap : halation) {
+		Submit_CRT_Tap(source, x, y, width, height, tap.X * spacing, tap.Y * spacing, tap.Alpha, flipv, glass);
+	}
 }
 
 
@@ -407,6 +696,10 @@ bool Backend_Init(NativeWindow const & window, int drawablewidth, int drawablehe
 		return(false);
 	}
 
+	if (_CRTEnabled) {
+		bgfx::setViewMode(VIEW_PRESENT, bgfx::ViewMode::Sequential);
+	}
+
 	_Initialized = true;
 	return(true);
 }
@@ -434,6 +727,15 @@ void Backend_Shutdown(void)
 	_VideoTextureWidth = 0;
 	_VideoTextureHeight = 0;
 	_VideoPending = false;
+	if (bgfx::isValid(_MaskTexture)) {
+		bgfx::destroy(_MaskTexture);
+		_MaskTexture = BGFX_INVALID_HANDLE;
+	}
+	_MaskPeriod = 0;
+	if (bgfx::isValid(_VignetteTexture)) {
+		bgfx::destroy(_VignetteTexture);
+		_VignetteTexture = BGFX_INVALID_HANDLE;
+	}
 	if (bgfx::isValid(_TextureSampler)) {
 		bgfx::destroy(_TextureSampler);
 		_TextureSampler = BGFX_INVALID_HANDLE;
@@ -655,20 +957,35 @@ bool Backend_Present(void const * pixels, int pitch, int destx, int desty, int d
 	_FramePointSampled = (samplerflags & BGFX_SAMPLER_POINT) != 0;
 
 	bool flipv = from_prescale && bgfx::getCaps()->originBottomLeft;
-bool submitted = Submit_Quad(VIEW_PRESENT, source, (float)destx, (float)desty, (float)destwidth, (float)destheight, samplerflags, flipv);
+	bool submitted = _CRTEnabled
+		? Submit_CRT_Picture(source, destx, desty, destwidth, destheight, samplerflags, flipv)
+		: Submit_Quad(VIEW_PRESENT, source, (float)destx, (float)desty, (float)destwidth, (float)destheight, samplerflags, flipv);
 	if (_VideoPending && bgfx::isValid(_VideoTexture)) {
 		Submit_Quad(VIEW_PRESENT, _VideoTexture,
 			(float)_VideoFrameX, (float)_VideoFrameY,
 			(float)_VideoFrameWidth, (float)_VideoFrameHeight,
 			BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP);
 	}
+	if (_CRTEnabled) {
+		Submit_CRT_Overlays(source, destx, desty, destwidth, destheight, flipv);
+	}
 	return(submitted);
+}
+
+
+void Backend_Set_CRT_Filter(bool enabled)
+{
+	_CRTEnabled = enabled;
+	if (_Initialized && enabled) {
+		bgfx::setViewMode(VIEW_PRESENT, bgfx::ViewMode::Sequential);
+	}
 }
 
 
 bool Backend_Frame_Is_Point_Sampled(void)
 {
-	return(_FramePointSampled);}
+	return(_FramePointSampled);
+}
 
 
 void Backend_End_Frame(void)

@@ -317,7 +317,11 @@ harness fills it in from flags rather than from a hand-edited copy of the page:
 | `--playmovie NAME` | `?playmovie=`, the named movie in place of the startup sequence |
 | `--display native\|scaled\|WxH` | `?display=` |
 | `--arg SWITCH` | `?arg=`, repeatable, passed to the engine verbatim |
-| `--query NAME=VALUE` | anything else the page reads, such as `nointro=1`, `nobriefing=1`, `hud=on`, `jspi=off`, or `jspi=ignore` |
+| `--query NAME=VALUE` | anything else the page reads, such as `nointro=1`, `nobriefing=1`, `hud=on`, `crt=on`, `jspi=off`, or `jspi=ignore` |
+
+`--query crt=on` is the CRT filter ([the port's design](WASM-PORT.md#56-the-crt-filter)).
+It changes what a screenshot looks like and nothing else: the frame is the size
+it would have been without it, and a target lands where it always did.
 
 Settings that exist only in the configuration file are given as
 `--ini SECTION.KEY=VALUE`, repeatable:

@@ -38,6 +38,9 @@ BrowserDisplayPolicy Browser_Display_Policy(void);
 int Browser_Display_Width(void);
 int Browser_Display_Height(void);
 
+// Whether "?crt=on" asked for the presenter's CRT filter. Off by default.
+bool Browser_CRT_Filter(void);
+
 
 char const * Browser_Canvas_Selector(void);
 

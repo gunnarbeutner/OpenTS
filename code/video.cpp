@@ -418,6 +418,10 @@ bool Video_Init(NativeWindow const & window, int drawablewidth, int drawableheig
 
 	DebugString("Video: renderer is %s\n", Backend_Renderer_Name());
 
+#if defined(__EMSCRIPTEN__)
+	Backend_Set_CRT_Filter(Browser_CRT_Filter());
+#endif
+
 	_Initialized = true;
 
 	if (!Backend_Set_Frame_Size(VideoModeWidth, VideoModeHeight)) {

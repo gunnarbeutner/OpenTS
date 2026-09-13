@@ -53,4 +53,10 @@ void Backend_Queue_Video_Frame(void const * pixels, int pitch, int width, int he
 
 void Backend_Clear_Video_Frame(void);
 
+// The CRT filter, which draws the frame on the curve of a tube under scanlines, a phosphor
+// mask, a vignette and the glow around what is bright. It is display only: a window
+// position still names the frame pixel it named without it. While it is off the present
+// path submits exactly what it did before.
+void Backend_Set_CRT_Filter(bool enabled);
+
 char const * Backend_Renderer_Name(void);
