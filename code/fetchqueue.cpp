@@ -15,6 +15,8 @@
 
 #include "platform/filehint.h"
 
+#include <emscripten/emscripten.h>
+
 
 void FetchQueueClass::Clear(void)
 {
@@ -22,6 +24,7 @@ void FetchQueueClass::Clear(void)
 	Cursor = 0;
 	TotalBytes = 0;
 	DoneBytes = 0;
+	Resume = 0.0;
 }
 
 
@@ -39,8 +42,23 @@ void FetchQueueClass::Add(char const * name, std::uint64_t offset, std::uint64_t
 }
 
 
+void FetchQueueClass::Set_Share(double share)
+{
+	if (share <= 0.0 || share > 1.0) {
+		Share = 1.0;
+		return;
+	}
+
+	Share = share;
+}
+
+
 bool FetchQueueClass::Step(void)
 {
+	double const now = emscripten_get_now();
+
+	if (now < Resume) return(false);
+
 	while (Cursor < Runs.size()) {
 		RunClass & run = Runs[Cursor];
 
@@ -55,6 +73,12 @@ bool FetchQueueClass::Step(void)
 		// A range the store declines is not retried: it counts as done either way, or the
 		// queue would never reach its end.
 		Platform_Prefetch_File(run.Name.c_str(), (std::uint32_t)(run.Start + run.Done), span);
+
+		// What the fetch cost is the only measure of the link the queue needs: standing
+		// idle for as long again in proportion leaves the rest of it to everything else.
+		// A range the store already held costs nothing and so waits for nothing.
+		double const landed = emscripten_get_now();
+		Resume = landed + (landed - now) * (1.0 - Share) / Share;
 
 		run.Done += span;
 		DoneBytes += span;

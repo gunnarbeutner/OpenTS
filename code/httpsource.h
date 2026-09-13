@@ -595,5 +595,9 @@ void Block_Store_Mark_Main(void);
 /// HttpBlockSourceClass::Service_All.</summary>
 void Block_Source_Service(void);
 
+/// <summary>Bytes the block layer's own background fetch has still to deliver,
+/// queued and in flight together.</summary>
+double Block_Background_Left(void);
+
 
 #endif

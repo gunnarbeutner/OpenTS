@@ -604,9 +604,10 @@ Fetch profiles need no configuration of their own. A profile names the byte
 ranges reaching a point in the game reads, so the engine fetches them up front
 in a few large requests rather than discovering them one read at a time. The
 three the engine asks for are `menu`, `campaign` and `first-mission`. Only
-`menu` is waited for; `campaign` is banked a chunk at a time behind a menu that
-is already up, and whatever it has not reached when the campaign list is opened
-is read the ordinary way.
+`menu` is waited for at startup; `campaign` and then `first-mission` are banked
+a chunk at a time behind a menu that is already up, for half the time the
+player spends there, and whatever has not been reached when a mission starts is
+fetched then.
 
 `assets.json` names them, and they are served out of `assets/files/` like any
 other object, so a profile is reached only through the release that owns it and

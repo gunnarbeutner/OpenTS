@@ -1206,6 +1206,16 @@ void Block_Source_Service(void)
 }
 
 
+double Block_Background_Left(void)
+{
+#if defined(OPENTS_WASM_JSPI)
+	return(Block_Http_Idle_Outstanding() + Block_Http_Pool_Remaining());
+#else
+	return(0.0);
+#endif
+}
+
+
 // Bumped from opents-iso-1 because a store written before the block size was
 // passed in can hold a block at the wrong offset, over data it overwrote. The
 // damage cannot be found from the record, so such a store is discarded whole the
@@ -2103,11 +2113,7 @@ EMSCRIPTEN_KEEPALIVE double OpenTS_Iso_Soon_Bytes(void) {return((double)_SoonByt
 /// plus what is in flight.</summary>
 EMSCRIPTEN_KEEPALIVE double OpenTS_Iso_Background_Left(void)
 {
-#if defined(OPENTS_WASM_JSPI)
-	return(Block_Http_Idle_Outstanding() + Block_Http_Pool_Remaining());
-#else
-	return(0.0);
-#endif
+	return(Block_Background_Left());
 }
 
 // A launch whose locations are unchanged reports only recalls.
