@@ -28,9 +28,4 @@ bool Music_Browser_Still_Playing(int handle);
 
 void Music_Browser_Set_Volume(int handle, int volume);
 
-// Silences and restores whatever is playing, for the window losing and regaining focus.
-// A track autoplay is still holding, or one that ended meanwhile, is left alone.
-void Music_Browser_Pause(void);
-void Music_Browser_Resume(void);
-
 #endif

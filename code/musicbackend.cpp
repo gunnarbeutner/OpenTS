@@ -50,6 +50,30 @@ EM_JS(int, Music_Element_Create, (char const * url, int volume), {
 		['pointerdown', 'mousedown', 'touchstart', 'touchend', 'keydown', 'click'].forEach(function (name) {
 			document.addEventListener(name, unlock, true);
 		});
+
+		// A hidden tab plays its audio elements on, and the engine loop that would
+		// otherwise silence them may be inside a wait, so the page does it. Only what
+		// this paused resumes: not a track autoplay is holding, and not one that ended
+		// meanwhile.
+		document.addEventListener('visibilitychange', function () {
+			Object.keys(music.records).forEach(function (key) {
+				var record = music.records[key];
+
+				if (document.hidden) {
+					if (record.blocked || record.ended || record.error || record.audio.paused) return;
+					record.focusPaused = true;
+					record.audio.pause();
+					return;
+				}
+
+				if (!record.focusPaused) return;
+				record.focusPaused = false;
+				if (record.ended || record.error || record.audio.ended) return;
+
+				var promise = record.audio.play();
+				if (promise) promise.catch(function () { record.blocked = true; });
+			});
+		});
 	}
 
 	var id = music.next++;
@@ -128,37 +152,6 @@ EM_JS(int, Music_Element_Still_Playing, (int id), {
 });
 
 
-// A track the window's focus silenced is marked, so what resumes is only what this
-// paused: not one autoplay is still holding, and not one the game stopped meanwhile.
-EM_JS(void, Music_Element_Pause_All, (void), {
-	var music = Module.OpenTSMusic;
-	if (!music) return;
-
-	Object.keys(music.records).forEach(function (key) {
-		var record = music.records[key];
-		if (record.blocked || record.ended || record.error || record.audio.paused) return;
-		record.focusPaused = true;
-		record.audio.pause();
-	});
-});
-
-
-EM_JS(void, Music_Element_Resume_All, (void), {
-	var music = Module.OpenTSMusic;
-	if (!music) return;
-
-	Object.keys(music.records).forEach(function (key) {
-		var record = music.records[key];
-		if (!record.focusPaused) return;
-		record.focusPaused = false;
-		if (record.ended || record.error || record.audio.ended) return;
-
-		var promise = record.audio.play();
-		if (promise) promise.catch(function () { record.blocked = true; });
-	});
-});
-
-
 EM_JS(void, Music_Element_Set_Volume, (int id, int volume), {
 	var music = Module.OpenTSMusic;
 	var record = music && music.records[id];
@@ -213,18 +206,6 @@ void Music_Browser_Fade(int handle, int milliseconds)
 bool Music_Browser_Still_Playing(int handle)
 {
 	return(handle > 0 && Music_Element_Still_Playing(handle) != 0);
-}
-
-
-void Music_Browser_Pause(void)
-{
-	Music_Element_Pause_All();
-}
-
-
-void Music_Browser_Resume(void)
-{
-	Music_Element_Resume_All();
 }
 
 
