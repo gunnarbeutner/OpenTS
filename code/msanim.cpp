@@ -24,6 +24,7 @@
 #include "dsurface.h"
 #include "globals.h"
 #include "goptions.h"
+#include "imagebackend.h"
 #include "mixfile.h"
 #include "movies.h"
 #include "msfont.h"
@@ -1597,9 +1598,13 @@ Surface * Prepared_Picture_Load(char const * name, int wanted, int & scale)
 {
 	scale = 1;
 
+#if defined(__EMSCRIPTEN__)
+	return(Image_Browser_Load(name, wanted, scale));
+#else
 	(void)name;
 	(void)wanted;
 	return(nullptr);
+#endif
 }
 
 

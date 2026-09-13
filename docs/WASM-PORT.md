@@ -733,6 +733,27 @@ has no playback loop of its own; its sound is fed by the mixer's pass in
 `Windows_Message_Handler`, as every other sound is. Anything that replaces the
 drawing surfaces waits until no movie handle is live.
 
+### 6.4 Prepared artwork
+
+A release may carry a WebP copy of a shell picture prepared at a multiple of
+the artwork's own size, for the pages the graphic menu draws. The multiple is
+part of the name the manifest carries -- `TSTBACK.2X.WEBP` beside the
+`TSTBACK.PCX` on the discs, `TSTBACK.WEBP` for a copy at the artwork's own
+size -- so a page learns what a copy is without opening the picture it
+replaces. `code/imagebackend.cpp` resolves the name the way a film resolves,
+fetches it, and decodes it through the browser's own decoder, which is the
+only WebP decoder either side has; the pixels land in the shell's 16-bit
+surfaces through the same ordered dither the inline movie path uses.
+
+`MSPCXAnim` asks for the largest copy the surface can show of the 640 by 400
+space the pages are drawn in, takes a larger one where that is all a release
+prepared, and falls back to the picture on the discs. What the backdrop comes
+back at is the page's scale: `NEWMENU.INI` positions and hit rectangles are
+multiplied by it, and a picture prepared at another multiple is drawn to
+match, so a page whose items are only partly prepared still lines up. A
+backdrop that is a movie, or a release with no prepared copies at all, leaves
+every coordinate as it was.
+
 ## 7 Saved games
 
 Every object record begins with the 16-byte class identifier its

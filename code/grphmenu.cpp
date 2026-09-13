@@ -12,11 +12,13 @@
 #include "grphmenu.h"
 
 #include "_keyboar.h"
+#include "_rect.h"
 #include "_surface.h"
 #include "_ui.h"
 #include "ccfile.h"
 #include "globals.h"
 #include "grphmitm.h"
+#include "imagebackend.h"
 #include "ini.h"
 #include "keyboard.h"
 #include "msanim.h"
@@ -30,8 +32,26 @@
 #include "video.h"
 #include "wwmouse.h"
 
+#include <algorithm>
+
 GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name);
 GraphicMenuItem * GM_Create_Item_From_INI(const char * name, INIClass const & ini, MSEngine & engine, MSAnim const * backdrop, Point2D & image_size, int scale, int design);
+
+
+// The height of the space the pages are drawn in; screenlayout.h owns the width.
+int const SHELL_DESIGN_HEIGHT = 400;
+
+
+// The largest picture the surface can hold in the proportions the pages are
+// drawn in. A page whose artwork a release prepared is laid out at this size,
+// so what reaches the screen is resampled once instead of being fitted to the
+// 640 by 400 space and magnified out of it again.
+static Rect Shell_Page_Fit(void)
+{
+	Rect const surface = (HiddenSurface != NULL) ? HiddenSurface->Get_Rect() : VisibleRect;
+
+	return(Fit_Centered(Point2D(SHELL_DESIGN_WIDTH, SHELL_DESIGN_HEIGHT), surface));
+}
 
 
 /// <summary>
@@ -112,6 +132,14 @@ GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name)
 			anim = new MSVQAnim(buffer, AlternateSurface, menu->Engine.Get_Anims(), true);
 		}
 		if (anim == NULL) {
+#if defined(__EMSCRIPTEN__)
+			// Only a page the release prepared is laid out at the surface's size;
+			// one drawn from the pictures on the discs keeps its own, which the
+			// shell magnifies as it always has.
+			if (Image_Browser_Available(buffer)) {
+				scale = Shell_Page_Fit().Width;
+			}
+#endif
 			anim = new MSPCXAnim(buffer, menu->Engine.Get_Anims(), true, scale, SHELL_DESIGN_WIDTH);
 		}
 
