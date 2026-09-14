@@ -276,7 +276,6 @@ class MSPrintAnim : public MSAnim
 		void Set_Transient(bool transient);
 		static int Word_Wrap(char * string, MSFont * font, int line_width);
 		static int Word_Wrap(char * string, int length, MSFont * font, int line_width);
-		static int Paginate(char * string, MSFont * font, int page_height);
 
 	protected:
 		void Set_Dimensions(Rect const & rect);

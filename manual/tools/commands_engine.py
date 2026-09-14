@@ -301,7 +301,7 @@ def _guard_map(text):
 
 
 def _key_expression(value):
-    tokens = re.findall(r"\b(?:KN|VK)_[A-Z0-9_]+\b", value)
+    tokens = re.findall(r"\b(?:KN|VK|KI)_[A-Z0-9_]+\b", value)
     return "+".join(dict.fromkeys(tokens)) if tokens else None
 
 
@@ -334,7 +334,7 @@ def discover_fixed_sites(code_directory=CODE):
             for delimiter in delimiters:
                 end = len(value) if delimiter is None else delimiter.start()
                 branch = value[cursor:end]
-                key = re.search(r"\b(?:KN|VK)_[A-Z0-9_]+\b", branch)
+                key = re.search(r"\b(?:KN|VK|KI)_[A-Z0-9_]+\b", branch)
                 branch_position = position + cursor + (key.start() if key else 0)
                 add(branch_position, branch)
                 cursor = len(value) if delimiter is None else delimiter.end()
@@ -352,7 +352,7 @@ def discover_fixed_sites(code_directory=CODE):
             add_branches(stripped[opening + 1:closing], opening + 1)
 
         # Comparisons in return statements and assignments are direct tests too.
-        for match in re.finditer(r"^.*\b(?:KN|VK)_[A-Z0-9_]+.*$", stripped, re.M):
+        for match in re.finditer(r"^.*\b(?:KN|VK|KI)_[A-Z0-9_]+.*$", stripped, re.M):
             line_text = match.group(0)
             if re.search(r"(?:==|!=|<=|>=|(?<!-)[<>])", line_text):
                 add_branches(line_text, match.start())

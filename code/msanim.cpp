@@ -1002,48 +1002,6 @@ int MSPrintAnim::Word_Wrap(char * string, int length, MSFont * font, int line_wi
 
 
 /// <summary>
-/// Breaks a string into pages of the height specified.
-/// The line breaks that fall on a page boundary are turned into form feeds, in place,
-/// so that the printing code knows where to pause.
-/// </summary>
-/// <param name="string">The text to paginate; modified in place.</param>
-/// <param name="font">The font the text will be printed with.</param>
-/// <param name="page_height">The height of a single page, in pixels.</param>
-/// <returns>Returns with the number of page breaks inserted.</returns>
-/// <remarks>The string must already be wrapped; this routine only breaks at a newline.</remarks>
-int MSPrintAnim::Paginate(char * string, MSFont * font, int page_height)
-{
-	if (string != NULL && font != NULL && page_height >= font->Get_Font_Height()) {
-		int overflow_count = 0; /// Count of height overflows
-		int current_height = 0; /// Accumulated height
-		char *str = string;
-		if (str) {
-			while (*str) {
-				for (char c = *str; *str; c = *str) {
-					if (c == '\n') {
-						break;
-					}
-					str++;
-				}
-
-				if (*str == '\n') {
-					current_height += font->Get_Font_Height();
-					if (current_height >= page_height) {
-						current_height = 0;
-						overflow_count++;
-						*str = '\f'; /// Replace newline with form feed
-					}
-					str++;
-				}
-			}
-		}
-		return(overflow_count);
-	}
-	return(0);
-}
-
-
-/// <summary>
 /// Types out one more character of the text.
 /// This routine prints the string a character at a time, trailing a short fade behind
 /// the newest ones so the text appears to arrive over a teletype. When the text runs

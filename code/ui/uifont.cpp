@@ -110,6 +110,11 @@ int UIDialogFontClass::Glyph(char32_t code)
 	if (code < ' ') {
 		return((int)code);
 	}
+
+	// A no-break space carries no ink, whatever the sheet holds in its cell.
+	if (code == 0x00A0) {
+		return(' ');
+	}
 	int const index = UTF8::Windows_1252_Glyph(code);
 	return((index < 0) ? '?' : index);
 }

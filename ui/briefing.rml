@@ -1,0 +1,56 @@
+<rml>
+<head>
+	<link type="text/rcss" href="opents.rcss"/>
+	<style>
+		/*
+		 * The screen claims no design space of its own. Its geometry is placed against the
+		 * plate wherever the frame fitted it, so the view sets every position, size and
+		 * type size in the window's own pixels; only what does not depend on that is here.
+		 *
+		 * The lettering is the dialogs' own glyph sheets, which the font engine magnifies
+		 * by whole steps, so the page keeps the game's letterforms at the size the window
+		 * asks for.
+		 */
+		body
+		{
+			font-family: opents-dialog;
+		}
+
+		#page
+		{
+			position: absolute;
+			overflow: hidden;
+		}
+
+		/*
+		 * The briefing carries its own line breaks, and the rest wraps to the box. Runs of
+		 * spaces collapse, as the legacy view's word wrap left them, so a line the box
+		 * broke does not begin with the space it broke at. The colour is the menu font's,
+		 * measured against the legacy view.
+		 */
+		#text
+		{
+			display: block;
+			white-space: pre-line;
+			color: #19c65aff;
+		}
+
+		#briefing button
+		{
+			position: absolute;
+			min-width: 0;
+			margin: 0;
+			decorator: image(button:u:150x24);
+		}
+
+		#briefing button:active:hover { decorator: image(button:d:150x24); }
+	</style>
+</head>
+<body id="briefing">
+	<div id="page"><p id="text"></p></div>
+
+	<button id="more" data-action="more">[[TXT_MORE]]</button>
+	<button id="resume" data-action="resume">[[TXT_RESUME_MISSION]]</button>
+	<button id="video" data-action="video">[[TXT_VIDEO]]</button>
+</body>
+</rml>

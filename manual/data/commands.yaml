@@ -2168,7 +2168,7 @@ fixed_controls:
   - Escape
   context: Mission restatement
   _provenance:
-    source: code/restate.cpp
+    source: code/ui/uibriefing.cpp
     guard: null
 - id: fixed:skip-vqa
   route_id: fixed-skip-vqa

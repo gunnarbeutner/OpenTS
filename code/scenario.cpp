@@ -145,7 +145,6 @@
 #include "score.h"
 #include "script.h"
 #include "session.h"
-#include "srfcache.h"
 #include "smudge.h"
 #include "spawnhouse.h"
 #include "stats.h"
@@ -412,10 +411,6 @@ bool Start_Scenario(char const * name, bool briefing, CampaignType campaign)
 	bool transit_playing = false;
 
 	if (briefing && Session.Type == GAME_NORMAL && !has_briefing_movie) {
-
-		// The briefing's buttons and lettering come from the dialogs' artwork, which nothing
-		// may have loaded yet in a game a client launched.
-		Cache_Dialog_Artwork();
 
 		if (Scen->TransitTheme != THEME_NONE) {
 			Theme.Play_Song(Scen->TransitTheme);

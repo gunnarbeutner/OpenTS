@@ -260,8 +260,7 @@ fixed_controls:
     context: Mission restatement
     availability: *all
     sites:
-      - { file: code/restate.cpp, function: RestateMission::User_Input, expression: KN_SPACE }
-      - { file: code/restate.cpp, function: RestateMission::User_Input, expression: KN_ESC }
+      - { file: code/ui/uibriefing.cpp, function: UIBriefingView::ProcessEvent, expression: KI_UNKNOWN+KI_SPACE }
   - id: fixed:skip-vqa
     title: Skip video
     description: Stops a VQA when the caller permits user breakout; in a game against other machines it casts this machine's vote to stop it.
@@ -379,9 +378,24 @@ fixed_exclusions:
       - { file: code/msglist.cpp, function: MessageListClass::Input, expression: KN_ESC }
     reason: Message editor polling, cursor placement, and text-edit termination.
   - sites:
-      - { file: code/restate.cpp, function: RestateMission::User_Input, expression: KN_NONE }
-      - { file: code/restate.cpp, function: RestateMission::User_Input, expression: KN_BUTTON }
-    reason: Input sentinel and encoded button IDs surrounding the documented dismissal keys.
+      - { file: code/ui/uihotkey.cpp, function: UIHotkeyView::ProcessEvent, expression: KI_UNKNOWN }
+      - { file: code/ui/uihotkey.cpp, function: UIHotkeyView::ProcessEvent, expression: KI_RETURN }
+      - { file: code/ui/uihotkey.cpp, function: UIHotkeyView::ProcessEvent, expression: KI_NUMPADENTER }
+      - { file: code/ui/uilobby.cpp, function: UILobbyView::Process_Early, expression: KI_UNKNOWN }
+      - { file: code/ui/uilobby.cpp, function: UILobbyView::Process_Early, expression: KI_RETURN }
+      - { file: code/ui/uilobby.cpp, function: UILobbyView::Process_Early, expression: KI_NUMPADENTER }
+      - { file: code/ui/uirmlview.cpp, function: UIRmlViewClass::Process_Capture, expression: KI_UNKNOWN }
+      - { file: code/ui/uirmlview.cpp, function: UIRmlViewClass::Process_Capture, expression: KI_ESCAPE }
+      - { file: code/ui/uirmlview.cpp, function: UIRmlViewClass::Process_Capture, expression: KI_RETURN }
+      - { file: code/ui/uirmlview.cpp, function: UIRmlViewClass::Process_Capture, expression: KI_NUMPADENTER }
+      - { file: code/ui/uirmlview.cpp, function: UIRmlViewClass::ProcessEvent, expression: KI_UNKNOWN }
+      - { file: code/ui/uirmlview.cpp, function: UIRmlViewClass::ProcessEvent, expression: KI_ESCAPE }
+      - { file: code/ui/uirmlview.cpp, function: UIRmlViewClass::ProcessEvent, expression: KI_RETURN }
+      - { file: code/ui/uirmlview.cpp, function: UIRmlViewClass::ProcessEvent, expression: KI_NUMPADENTER }
+      - { file: code/ui/uishell.cpp, function: UI_Handle_Key, expression: KI_UNKNOWN }
+    reason: The shell's accept and cancel for every screen it draws, and the sentinel that stands
+      for a key it has no identifier for. What accepting or cancelling means belongs to each
+      screen, not to the toolkit that raises it.
   - sites:
       - { file: code/score.cpp, function: ScoreClass::Input_Name, expression: KN_BACKSPACE }
       - { file: code/score.cpp, function: ScoreClass::Input_Name, expression: KN_KEYPAD_RETURN }

@@ -13,8 +13,8 @@ frame and the keyboard queue but nothing else.
 
 | System | Files | Used by | Draws into |
 | --- | --- | --- | --- |
-| RmlUi shell | `code/ui/`, with the documents, styles and fonts in `ui/` | main menu, options, skirmish, load and save, network lobbies, disconnect and desync, map generator, message boxes, progress and wait boxes, version | a GPU overlay over the presented frame |
-| GadgetClass | `gadget.cpp`, `control.cpp`, `toggle.cpp`, `list.cpp`, `edit.cpp`, `slider.cpp`, ... | sidebar, radar, tactical buttons, message list, checklist, mission restate | `LogicalSurface` (`SidebarSurface`, `HiddenSurface`) |
+| RmlUi shell | `code/ui/`, with the documents, styles and fonts in `ui/` | main menu, options, skirmish, load and save, network lobbies, disconnect and desync, map generator, message boxes, progress and wait boxes, version, mission briefing | a GPU overlay over the presented frame |
+| GadgetClass | `gadget.cpp`, `control.cpp`, `toggle.cpp`, `list.cpp`, `edit.cpp`, `slider.cpp`, ... | sidebar, radar, tactical buttons, message list, checklist | `LogicalSurface` (`SidebarSurface`, `HiddenSurface`) |
 | MSEngine | `msengine.cpp`, `msanim.cpp`, `grphmenu.cpp` | graphic menu, map select, score screens, WDT screens, credits | `AlternateSurface`, `HiddenSurface` |
 | Bespoke | `progress.cpp`, `score.cpp`, `movies.cpp` | loading screen, score, movies | `HiddenSurface` |
 
@@ -68,7 +68,7 @@ A modal screen spins in `UI_Run_Modal`, whose pass calls `UI_Service_Game`:
 keeps stepping under a screen, as it did under
 `OwnerDraw::Dialog_Message_Handler`. The lobbies keep `WS_Wait_Dialog` with a
 callback, over the screen stack in `windlg.cpp`. MSEngine screens spin on
-`Engine.Wait_Delay`. `RestateMission` mixes gadgets with MSEngine.
+`Engine.Wait_Delay`.
 `Keyboard->Clear()`, which a modal screen calls as it opens and closes, pumps
 messages through `Fill_Buffer_From_System`, so cleanup can re-enter UI code.
 
@@ -871,13 +871,13 @@ cannot cancel. Loading stays on its thread with explicit cooperative service
 points that drain nothing unrelated while scenario objects are being
 replaced, and the first paint happens before long work begins.
 
-MSEngine screens (campaign selection, briefings, score screens) are features
+MSEngine screens (campaign selection, map selection, score screens) are features
 with animation, audio, and navigation. RmlUi can replace their layout and
 controls while the existing image, animation, video, and audio services
 supply content; their waits, focus pause, and callbacks stay explicit, and
 replacing their timing with CSS animation is a deliberate per-screen choice.
-A stable bespoke screen may stay bespoke. The message list and restate screen
-can follow the screen contract when someone wants them.
+A stable bespoke screen may stay bespoke. The message list can follow the
+screen contract when someone wants it.
 
 ## Compatibility
 
@@ -1358,10 +1358,41 @@ string where it enters a document instead. Steps 1 and 2 need no text at all.
     has not been compiled with MSVC.
 14. **Sidebar** (M, then L). The model and view split with the gadget view;
     later the RmlUi view over the whole column and its selection key.
+15. **Mission briefing** (S, landed). `code/ui/uibriefing.cpp` and
+    `ui/briefing.rml` replace the gadget and MSEngine screen in
+    `code/restate.cpp`, which keeps only the driver: the plate, the screen, and
+    the movie the player may ask for. It is the first screen laid out against
+    the frame rather than at a dialog's own size, because the briefing is read
+    rather than glanced at and the glyph sheets cannot be made larger. The
+    driver fills `SCORE.PCX` out to the frame as the title page does, and the
+    view places the page and the buttons where the legacy screen placed them in
+    the 640 by 400 artwork, scaled by the fit the plate took, in the window's own
+    pixels. The lettering is `opents-sans` at that scale, so it is rasterized at
+    the window's resolution where the legacy screen magnified a 640 by 400 page;
+    the plate and the button skins are still magnified artwork.
+
+    The presenter holds the briefing text, the phase and the choices; the view
+    owns the reveal, because where a line ends is a question only the layout can
+    answer. It grows the shown prefix a word at a time through
+    `ElementDocument::UpdateDocument`, stopping when the measured height reaches
+    the next line, and raises an intent for each line that lands, for a page that
+    is full, and for the last line printed. The presenter plays `BLEEP1.AUD` on a
+    line and at the end, as `MSWordAnim` did, and the page turns on the "more"
+    control, on space and on escape.
+
+    Evidence, on the WebAssembly target through the harness: `GDI1A.MAP` at
+    1280x800, 1100x700, 1920x1200 and 960x620, printing and then resuming; a
+    quick click on Resume Mission, one held for a second, and one that drifted
+    five pixels between press and release; space and escape; `GDI2A.MAP`
+    paginating and resuming from its second page; and the two-button layout with
+    the film replayed and control returned, driven with a scenario's briefing
+    movie forced, since no shipped campaign map this run could reach sets one
+    while its film is missing. Not run: the supported Visual Studio 2022 Win32
+    target.
 
 ImGui overlays (S each) can follow step 2: frame benchmarks first, then what
-a developer needs next. GadgetClass screens, MSEngine screens, and the
-credits are unscheduled.
+a developer needs next. The remaining GadgetClass screens, the MSEngine
+screens, and the credits are unscheduled.
 
 ## Validation and evidence
 

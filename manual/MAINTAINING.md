@@ -73,7 +73,9 @@ spelling live where it works.
 Command discovery is also fail-closed. Objects registered through
 `AllCommands` form the rebindable command catalog. Every discovered direct key
 handler and launch-parser branch needs exactly one public adapter or one
-reasoned exclusion. Command IDs are case-sensitive. Do not infer default
+reasoned exclusion. A key handler is a test of a `KN_`, `VK_` or `KI_`
+identifier, the last being the one the UI shell's screens read. Command IDs are
+case-sensitive. Do not infer default
 bindings from a declaration or nearby code.
 
 Enums are authored selections backed by explicit source adapters. Documenting
