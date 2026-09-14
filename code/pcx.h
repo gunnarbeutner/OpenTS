@@ -70,5 +70,6 @@ static_assert(sizeof(PCX_HEADER) == 128, "the PCX header is 128 bytes on disk");
 #pragma pack(pop)
 
 bool Read_PCX_Size(FileClass & file, int & width, int & height);
+bool Read_PCX_Palette(FileClass & file, PaletteClass & palette);
 Surface * Read_PCX_File(FileClass & file_handle, PaletteClass * palette=NULL, void * buff=NULL, int size=0);
 bool Write_PCX_File(FileClass & file, Surface & pic, PaletteClass * palette);

@@ -14,6 +14,7 @@
 #if defined(__EMSCRIPTEN__)
 
 #include "httpsource.h"
+#include "mixfile.h"
 
 #include <emscripten/emscripten.h>
 
@@ -109,7 +110,8 @@ EM_JS(int, Manifest_Http_Fetch, (void), {
 // The manifest is a flat array of {name, path, sha256, size} records, and
 // the path is relative to the release root rather than the page. The size
 // crosses as a double, which loses nothing below 2^53 bytes.
-EM_JS(int, Manifest_Http_Lookup, (char const * section, char const * name, char * url_buf, int url_buf_size, double * out_size), {
+EM_JS(int, Manifest_Http_Lookup, (char const * section, char const * name, char const * archive,
+	char * url_buf, int url_buf_size, double * out_size), {
 	try {
 		var manifest = globalThis.__opentsManifest;
 		if (!manifest) return 0;
@@ -119,14 +121,33 @@ EM_JS(int, Manifest_Http_Lookup, (char const * section, char const * name, char 
 
 		// Names match without regard to case, as the engine's file layer does.
 		var wanted = UTF8ToString(name).toUpperCase();
+		var from = archive ? UTF8ToString(archive).toUpperCase() : "";
+
+		// A name can belong to more than one archive -- SCORE.PCX is a different
+		// picture for each side -- so a caller that knows which archive answered
+		// takes the copy from that one, and takes none when that archive has no
+		// copy. The manifest writes the whole chain an archive is nested in,
+		// while the caller knows the innermost name alone.
 		var record = null;
 		for (var index = 0; index < group.length; index++) {
-			var entry_name = group[index]["name"];
-			if (typeof entry_name === "string" && entry_name.toUpperCase() === wanted) {
-				record = group[index];
+			var entry = group[index];
+			var entry_name = entry["name"];
+			if (typeof entry_name !== "string" || entry_name.toUpperCase() !== wanted) continue;
+
+			if (from === "") {
+				record = entry;
+				break;
+			}
+
+			var owner = entry["archive"];
+			if (typeof owner !== "string") continue;
+			owner = owner.toUpperCase();
+			if (owner === from || owner.endsWith("/" + from)) {
+				record = entry;
 				break;
 			}
 		}
+
 		if (!record || typeof record["path"] !== "string") return 0;
 
 		var url = new URL(record["path"], globalThis.__opentsManifestBase).href;
@@ -142,7 +163,6 @@ EM_JS(int, Manifest_Http_Lookup, (char const * section, char const * name, char 
 		return 0;
 	}
 });
-
 
 EM_JS(int, Manifest_Http_Offline, (char const * name), {
 	try {
@@ -211,14 +231,15 @@ bool Ensure_Loaded(void)
 }
 
 
-bool Lookup(char const * section, char const * name, std::string & url, std::uint64_t & size)
+bool Lookup(char const * section, char const * name, std::string & url, std::uint64_t & size,
+	char const * archive = nullptr)
 {
 	if (!Ensure_Loaded()) return(false);
 
 	char buffer[MANIFEST_URL_MAX];
 	double reported_size = 0.0;
 
-	if (Manifest_Http_Lookup(section, name, buffer, sizeof(buffer), &reported_size) == 0) {
+	if (Manifest_Http_Lookup(section, name, archive, buffer, sizeof(buffer), &reported_size) == 0) {
 		return(false);
 	}
 
@@ -267,12 +288,33 @@ std::shared_ptr<BlockFileClass> Manifest_Find(char const * name, BlockEntryClass
 
 std::string Manifest_Find_Movie(char const * name)
 {
+	// A release ships its films and themes beside the archives rather than inside them, so
+	// the file layer cannot say which archive a name belongs to any more, and a name can be
+	// in more than one: SCORE.MP4 is a different film for each side. Asking the mounted
+	// archives in the order the file layer searches them answers with the one the engine
+	// would have read, and the plain lookup after it covers what no archive claims.
+	for (MixFileClass * archive = MixFileClass::First_Archive();
+			archive != nullptr && archive->Is_Valid(); archive = archive->Next()) {
+
+		std::string const url = Manifest_Find_File(name, archive->Filename);
+
+		if (!url.empty()) {
+			return(url);
+		}
+	}
+
+	return(Manifest_Find_File(name, nullptr));
+}
+
+
+std::string Manifest_Find_File(char const * name, char const * archive)
+{
 	if (name == nullptr || *name == '\0') return(std::string());
 
 	std::string url;
 	std::uint64_t size = 0;
 
-	if (!Lookup("files", name, url, size)) return(std::string());
+	if (!Lookup("files", name, url, size, archive)) return(std::string());
 
 	return(url);
 }

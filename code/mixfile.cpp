@@ -520,6 +520,12 @@ void MixFileClass::Free(void)
  * HISTORY:                                                                                    *
  *   10/17/1994 JLB : Created.                                                                 *
  *=============================================================================================*/
+MixFileClass * MixFileClass::First_Archive(void)
+{
+	return(List.First());
+}
+
+
 bool MixFileClass::Offset(char const * filename, void ** realptr, MixFileClass ** mixfile, int * offset, int * size)
 {
 	MixFileClass * ptr;

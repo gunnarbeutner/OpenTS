@@ -37,6 +37,11 @@ class MixFileClass : public Node<MixFileClass *>
 		bool Cache(Buffer const * buffer = NULL);
 		static bool Cache(char const *filename, Buffer const * buffer=NULL);
 		static bool Offset(char const *filename, void ** realptr = 0, MixFileClass ** mixfile = 0, int * offset = 0, int * size = 0);
+
+		// The first registered archive. Walking it with Next() until Is_Valid turns false
+		// gives the archives in the order Offset searches them, for a caller that has to
+		// resolve a name the same way without going through the file layer.
+		static MixFileClass * First_Archive(void);
 		static void const * Retrieve(char const *filename);
 
 		struct SubBlock {

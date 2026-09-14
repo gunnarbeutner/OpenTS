@@ -14,7 +14,9 @@
 #include "imagebackend.h"
 
 #include "bsurface.h"
+#include "_mixfile.h"
 #include "manifest.h"
+#include "mixfile.h"
 
 #include <emscripten/emscripten.h>
 
@@ -113,12 +115,27 @@ int const SCALE_MAX = 4;
 }	// namespace
 
 
+// The archive that answers the artwork answers its prepared copies too, since a
+// name such as SCORE.PCX is a different picture in each side's archive.
+static char const * Owning_Archive(char const * picture_filename)
+{
+	MixFileClass * mixfile = nullptr;
+
+	if (!MFCD::Offset(picture_filename, nullptr, &mixfile, nullptr, nullptr)) return(nullptr);
+	if (mixfile == nullptr) return(nullptr);
+
+	return(mixfile->Filename);
+}
+
+
 bool Image_Browser_Available(char const * picture_filename)
 {
 	if (picture_filename == nullptr || *picture_filename == '\0') return(false);
 
+	char const * const archive = Owning_Archive(picture_filename);
+
 	for (int scale = SCALE_MAX; scale >= 1; scale--) {
-		if (!Manifest_Find_Movie(Browser_Name(picture_filename, scale).c_str()).empty()) {
+		if (!Manifest_Find_File(Browser_Name(picture_filename, scale).c_str(), archive).empty()) {
 			return(true);
 		}
 	}
@@ -138,10 +155,11 @@ Surface * Image_Browser_Load(char const * picture_filename, int wanted, int & sc
 	if (wanted > SCALE_MAX) wanted = SCALE_MAX;
 	if (wanted < 1) wanted = 1;
 
+	char const * const archive = Owning_Archive(picture_filename);
 	std::string url;
 
 	for (int candidate = wanted; candidate >= 1; candidate--) {
-		url = Manifest_Find_Movie(Browser_Name(picture_filename, candidate).c_str());
+		url = Manifest_Find_File(Browser_Name(picture_filename, candidate).c_str(), archive);
 
 		if (!url.empty()) {
 			scale = candidate;
@@ -154,7 +172,7 @@ Surface * Image_Browser_Load(char const * picture_filename, int wanted, int & sc
 	// the page's size, which keeps more of the detail than magnifying the
 	// artwork the copy was made from.
 	for (int candidate = wanted + 1; url.empty() && candidate <= SCALE_MAX; candidate++) {
-		url = Manifest_Find_Movie(Browser_Name(picture_filename, candidate).c_str());
+		url = Manifest_Find_File(Browser_Name(picture_filename, candidate).c_str(), archive);
 
 		if (!url.empty()) {
 			scale = candidate;
