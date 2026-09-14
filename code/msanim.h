@@ -27,6 +27,20 @@ struct VQHandle;
 
 typedef DynamicVectorClass<MSAnim *> MS_ANIM_LIST;
 
+/// <summary>
+/// Returns the copy of a picture a release prepared at up to
+/// <paramref name="wanted"/> times the artwork's own size, or null when it
+/// carries none. <paramref name="scale"/> reports the multiple taken.
+/// </summary>
+Surface * Prepared_Picture_Load(char const * name, int wanted, int & scale);
+
+/// <summary>
+/// Loads a shell picture as a new surface the caller owns, preferring a copy
+/// the release prepared at up to <paramref name="wanted"/> times the artwork's
+/// own size and reporting through <paramref name="scale"/> what it took.
+/// </summary>
+Surface * Load_Shell_Picture(char const * name, int wanted, int & scale);
+
 // An anim commits its backdrop to AlternateSurface, which its siblings restore
 // from. The surface is looked up rather than kept, because a resolution change
 // rebuilds every surface while a menu is up.
