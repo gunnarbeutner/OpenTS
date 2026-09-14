@@ -832,6 +832,14 @@ match, so a page whose items are only partly prepared still lines up. A
 backdrop that is a movie, or a release with no prepared copies at all, leaves
 every coordinate as it was.
 
+A release may prepare lettering the same way. The outline face carries the name of the
+glyph sheet it was made from with a `.TTF` extension -- `DLGSYSI.TTF` beside the
+`DLGSYSI.PCX` the dialogs draw from -- and is resolved through the archive that answers
+the sheet, so a face a side or an addon carries its own copy of stays distinct.
+`code/fontbackend.cpp` fetches it whole and `UI_Load_Game_Fonts` installs it as the family
+the stylesheets ask for. A release that prepared none leaves the family served from the
+sheets themselves, magnified in whole steps, which is what every release holds today.
+
 The hit rectangle is the whole of what the INI names, which is wrong for a
 choice drawn as a disc: the corners of the game selection page's two
 rectangles are backdrop and nothing else. `GraphicMenuImageItem` reads the
