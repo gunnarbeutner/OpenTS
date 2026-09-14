@@ -14,6 +14,8 @@
 
 #include "uishell.h"
 
+#include "fontbackend.h"
+
 #include "_keyboar.h"
 #include "dbgprint.h"
 #include "keyboard.h"
@@ -204,6 +206,31 @@ static void Load_Fonts(void)
 /// text asking for it still draws.
 /// </summary>
 /// <remarks>Needs the game's mix files registered, so startup calls it after them.</remarks>
+// A release may prepare an outline face from the game's own lettering. It draws at any
+// size, where the glyph sheets are magnified in whole steps, so it is preferred where it
+// exists. The bytes stay alive as long as the toolkit may read them.
+static bool Load_Prepared_Face(char const * source, char const * family)
+{
+	static std::vector<std::vector<unsigned char>> _faces;
+
+	std::vector<unsigned char> bytes;
+	if (!Prepared_Face_Read(source, bytes)) {
+		return(false);
+	}
+
+	_faces.push_back(std::move(bytes));
+	std::vector<unsigned char> const & face = _faces.back();
+
+	if (!Rml::LoadFontFace(Rml::Span<Rml::byte const>(face.data(), face.size()), family,
+			Rml::Style::FontStyle::Normal, Rml::Style::FontWeight::Normal)) {
+		DebugString("UI: the prepared face for %s would not load\n", source);
+		return(false);
+	}
+
+	return(true);
+}
+
+
 void UI_Load_Game_Fonts(void)
 {
 	if (!_Initialized || _GameFontsLoaded) {
@@ -212,6 +239,12 @@ void UI_Load_Game_Fonts(void)
 
 	_GameFontsLoaded = true;
 	unsigned int const started = System_Milliseconds();
+
+	if (Load_Prepared_Face(UI_DIALOG_LETTERING, "opents-dialog")) {
+		DebugString("UI: the dialog face came from the release's prepared lettering\n");
+		DebugString("UI: the dialog face took %u ms\n", System_Milliseconds() - started);
+		return;
+	}
 
 	if (!UI_Font_Load_Dialog_Face()) {
 		// The family still has to exist, or text asking for it would draw nothing at all.

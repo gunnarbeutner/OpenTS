@@ -20,6 +20,10 @@ Rml::FontEngineInterface * UI_Font_Engine(void);
 
 // Needs the game's mix files registered. False leaves the family to whatever face RmlUi
 // loads under its name.
+// The lettering the dialog family is served from, named as the game holds it, so a
+// release can prepare an outline face from the same source.
+char const * const UI_DIALOG_LETTERING = "DLGSYSI.PCX";
+
 bool UI_Font_Load_Dialog_Face(void);
 
 // The context's density-independent pixel ratio, so a dialog face asked for in dp is drawn at
