@@ -54,13 +54,20 @@ EM_JS(void, Face_Element_Take, (void * destination), {
 
 
 // The lettering's own name with the face's extension: the archive that answers
-// one answers the other, so a per side or per addon copy stays distinct.
-std::string Face_Name(char const * source_name)
+// one answers the other, so a per side or per addon copy stays distinct. A face
+// read from a sheet pair is named for the stem the two sheets share, so the
+// letter telling coverage from colour is dropped when nothing answers with it.
+std::string Face_Name(char const * source_name, bool paired)
 {
 	std::string name(source_name);
 	std::size_t const dot = name.find_last_of('.');
+	std::string stem = (dot == std::string::npos) ? name : name.substr(0, dot);
 
-	return((dot == std::string::npos ? name : name.substr(0, dot)) + ".TTF");
+	if (paired && !stem.empty()) {
+		stem.pop_back();
+	}
+
+	return(stem + ".TTF");
 }
 
 
@@ -83,8 +90,13 @@ bool Prepared_Face_Read(char const * source_name, std::vector<unsigned char> & b
 
 	if (source_name == nullptr || *source_name == '\0') return(false);
 
-	std::string const url = Manifest_Find_File(Face_Name(source_name).c_str(),
-		Owning_Archive(source_name));
+	char const * const archive = Owning_Archive(source_name);
+
+	std::string url = Manifest_Find_File(Face_Name(source_name, false).c_str(), archive);
+
+	if (url.empty()) {
+		url = Manifest_Find_File(Face_Name(source_name, true).c_str(), archive);
+	}
 
 	if (url.empty()) return(false);
 
