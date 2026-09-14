@@ -56,6 +56,8 @@
 
 #include "list.h"
 
+#include "screenlayout.h"
+
 #include "_convert.h"
 #include "_surface.h"
 #include "convert.h"
@@ -360,7 +362,7 @@ int ListClass::Action(unsigned flags, KeyNumType & key)
 
 		} else {
 
-			int index = Get_Mouse_Y() - (Y+1);
+			int index = Shell_Mouse().Y - (Y+1);
 			index = index / LineHeight;
 			SelectedIndex = CurrentTopIndex + index;
 			SelectedIndex = std::min(SelectedIndex, List.Count()-1);

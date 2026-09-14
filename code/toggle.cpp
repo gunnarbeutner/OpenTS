@@ -37,6 +37,8 @@
 
 #include "toggle.h"
 
+#include "screenlayout.h"
+
 #include "_xmouse.h"
 
 /***********************************************************************************************
@@ -141,7 +143,8 @@ int ToggleClass::Action(unsigned flags, KeyNumType &key)
 	**	must never actually function like a real call, but rather only performs any necessary
 	**	graphic updating.
 	*/
-	bool overbutton = ((unsigned)(Get_Mouse_X() - X) < (unsigned)Width && (unsigned)(Get_Mouse_Y() - Y) < (unsigned)Height );
+	Point2D const pointer = Shell_Mouse();
+	bool overbutton = ((unsigned)(pointer.X - X) < (unsigned)Width && (unsigned)(pointer.Y - Y) < (unsigned)Height );
 	if (!flags) {
 		if (overbutton) {
 			if (!IsPressed) {

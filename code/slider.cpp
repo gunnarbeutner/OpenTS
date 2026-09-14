@@ -44,6 +44,8 @@
 
 #include "slider.h"
 
+#include "screenlayout.h"
+
 #include "_mixfile.h"
 #include "control.h"
 #include "dialog.h"
@@ -247,10 +249,10 @@ int SliderClass::Action(unsigned flags, KeyNumType &key)
 		int edge;		// Edge of slider.
 
 		if (IsHorizontal) {
-			mouse = Get_Mouse_X();
+			mouse = Shell_Mouse().X;
 			edge = X;
 		} else {
-			mouse = Get_Mouse_Y();
+			mouse = Shell_Mouse().Y;
 			edge = Y;
 		}
 		edge += 1;

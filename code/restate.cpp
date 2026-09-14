@@ -32,6 +32,7 @@
 #include "msfont.h"
 #include "rules.h"
 #include "scenario.h"
+#include "screenlayout.h"
 #include "sheettext.h"
 #include "srfcache.h"
 #include "surface.h"
@@ -224,6 +225,9 @@ struct RestateButtonStruct {
 	}
 };
 
+// The page is laid out in the 640 by 400 space its artwork was drawn in.
+static Point2D const RESTATE_DESIGN(640, 400);
+
 RestateButtonStruct _buttons[BUTTON_COUNT] = {
 	RestateButtonStruct(BUTTON_RESUME, TXT_RESUME_MISSION, Rect(0, 360, 150, 24)),
 	RestateButtonStruct(BUTTON_VIDEO, TXT_VIDEO, Rect(0, 360, 150, 24)),
@@ -302,6 +306,9 @@ bool RestateMission::Presentation(ScenarioClass * scen)
 {
 	bool result = false;
 	if (scen != NULL && AlternateSurface != NULL && HiddenSurface != NULL) {
+
+		Set_Shell_Size(RESTATE_DESIGN);
+
 		if (Init(scen) == true) {
 			Keyboard->Clear();
 			MouseCursor->Release_Mouse();
@@ -369,6 +376,9 @@ bool RestateMission::Presentation(ScenarioClass * scen)
 			Show_Mouse();
 			MouseCursor->Capture_Mouse();
 		}
+
+		Fill_Out_Shell();
+
 		return(result);
 	}
 	return(result);
@@ -396,8 +406,10 @@ bool RestateMission::Init(ScenarioClass * scen)
 	}
 
 	Scenario = scen;
-	CenterX = (HiddenSurface->Get_Width() - 640) / 2;
-	CenterY = (HiddenSurface->Get_Height() - 400) / 2;
+
+	Rect const design = Shell_Rect();
+	CenterX = design.X;
+	CenterY = design.Y;
 	file.Close();
 
 	if (strlen(Scenario->BriefingText)) {
@@ -494,11 +506,11 @@ bool RestateMission::Init(ScenarioClass * scen)
 	MyButton *video = Get_Button(BUTTON_VIDEO);
 
 	if (scen->BriefMovie == VQ_NONE) {
-		resume->X = CenterX + (640 - resume->Width) / 2;
+		resume->X = CenterX + (RESTATE_DESIGN.X - resume->Width) / 2;
 		resume->Y += CenterY;
 	} else {
 		int width = std::max(resume->Width, video->Width);
-		int xx = (2 * (320 - width) / 4);
+		int xx = (2 * (RESTATE_DESIGN.X / 2 - width) / 4);
 
 		resume->X = xx + CenterX;
 		resume->Y += CenterY - resume->Height / 2;

@@ -62,6 +62,13 @@ Point2D Screen_To_Sidebar(Point2D const & point);
 
 
 /// <summary>
+/// Returns the pointer in the space a claimed shell design space places its
+/// gadgets in, which is the frame's own space when nothing has claimed one.
+/// </summary>
+Point2D Shell_Mouse(void);
+
+
+/// <summary>
 /// Declares the artwork size the shell screen coming up lays itself out at;
 /// an empty size leaves the frame unmagnified.
 /// </summary>
