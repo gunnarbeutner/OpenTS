@@ -68,6 +68,7 @@
 #include "msgloop.h"
 #include "platform/wait.h"
 #include "scenario.h"
+#include "screenlayout.h"
 #include "session.h"
 #include "shapeset.h"
 #include "surface.h"
@@ -84,6 +85,9 @@
 
 #define NUMFAMENAMES				9
 #define MAX_FAMENAME_LENGTH	104
+
+// The screen is laid out in the 640 by 400 space its artwork was drawn in.
+static Point2D const SCORE_DESIGN(640, 400);
 
 void const * Beepy6;
 int ControlQ;	// cheat key to skip past score/mapsel screens
@@ -125,8 +129,11 @@ void ScoreClass::Presentation(void)
 	CCFileClass file;
 	struct Fame hallfame[NUMFAMENAMES];
 
-	XPos = (HiddenSurface->Get_Width() - 640) / 2;
-	YPos = (HiddenSurface->Get_Height() - 400) / 2;
+	Set_Shell_Size(SCORE_DESIGN);
+
+	Rect const design = Shell_Rect();
+	XPos = design.X;
+	YPos = design.Y;
 
 	Hide_Mouse();
 	Keyboard->Clear();
@@ -437,7 +444,7 @@ void ScoreClass::Presentation(void)
 		Input_Name(hallfame[index].name, XPos + HALLFAME_X - 4, YPos + HALLFAME_Y + (index * 16));
 	} else {
 		str = Fetch_String(TXT_CLICK_CONTINUE);
-		x = XPos + (640 - FullFont->String_Width(str)) / 2;
+		x = XPos + (SCORE_DESIGN.X - FullFont->String_Width(str)) / 2;
 		y = YPos - FullFont->Get_Height() / 2 + 357;
 		Alloc_Object(obj = new ScorePrintClass(str, x, y, FullFont, false));
 		Cycle_Wait_Click();
@@ -497,6 +504,8 @@ void ScoreClass::Presentation(void)
 	HiddenSurface->Fill(0);
 
 	Draw();
+
+	Fill_Out_Shell();
 
 	Theme.Queue_Song(THEME_NONE);
 }
@@ -1089,10 +1098,9 @@ void ScoreClass::Animate_Score_Objs(void)
 /// </summary>
 void ScoreClass::Draw(void)
 {
-	Rect rect1(XPos, YPos, 640, 400);
-	Rect rect2(XPos, YPos, 640, 400);
-
-	VisibleSurface->Blit_From(rect1, *HiddenSurface, rect2);
+	// The whole surface rather than the design rectangle, so that the black
+	// beside a picture the window's shape leaves room for is painted too.
+	Blit_Shell(*HiddenSurface, HiddenSurface->Get_Rect());
 }
 
 
