@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 
@@ -74,6 +75,10 @@ static std::unordered_map<unsigned int, UIGeometry> _Geometries;
 static unsigned int _NextGeometry = 1;
 
 static std::unordered_map<unsigned int, bgfx::TextureHandle> _Textures;
+
+// The game's own artwork was drawn a pixel at a time, so magnifying it is a matter of
+// larger pixels rather than of a smooth ramp between them.
+static std::unordered_set<unsigned int> _PointTextures;
 static unsigned int _NextTexture = 1;
 
 // Where the overlay draws, in physical window pixels. The view's transform makes this
@@ -199,10 +204,12 @@ void UIRenderInterface::RenderGeometry(Rml::CompiledGeometryHandle geometry, Rml
 	// An untextured mesh samples a white pixel, because the shader multiplies the texel by
 	// the vertex colour and has no untextured path.
 	bgfx::TextureHandle bound = _WhiteTexture;
+	bool point = false;
 	if (texture != 0) {
 		auto texturefound = _Textures.find((unsigned int)texture);
 		if (texturefound != _Textures.end()) {
 			bound = texturefound->second;
+			point = _PointTextures.count((unsigned int)texture) != 0;
 		}
 	}
 
@@ -254,7 +261,10 @@ void UIRenderInterface::RenderGeometry(Rml::CompiledGeometryHandle geometry, Rml
 
 	bgfx::setVertexBuffer(0, &buffer);
 	bgfx::setIndexBuffer(geo.Indices, 0, geo.IndexCount);
-	bgfx::setTexture(0, _TextureSampler, bound, BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP);
+	unsigned int const sampler = BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP
+		| (point ? (BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT | BGFX_SAMPLER_MIP_POINT) : 0);
+
+	bgfx::setTexture(0, _TextureSampler, bound, sampler);
 
 	// RmlUi hands over premultiplied vertex colours and premultiplied textures, so the
 	// source factor is one rather than the source alpha.
@@ -277,7 +287,7 @@ void UIRenderInterface::ReleaseGeometry(Rml::CompiledGeometryHandle geometry)
 }
 
 
-static Rml::TextureHandle Create_Texture(void const * rgba, int width, int height)
+static Rml::TextureHandle Create_Texture(void const * rgba, int width, int height, bool point = false)
 {
 	if (rgba == nullptr || width <= 0 || height <= 0) {
 		return(0);
@@ -292,6 +302,10 @@ static Rml::TextureHandle Create_Texture(void const * rgba, int width, int heigh
 
 	unsigned int handle = _NextTexture++;
 	_Textures[handle] = texture;
+	if (point) {
+		_PointTextures.insert(handle);
+	}
+
 	return((Rml::TextureHandle)handle);
 }
 
@@ -308,7 +322,7 @@ Rml::TextureHandle UIRenderInterface::LoadTexture(Rml::Vector2i & dimensions, Rm
 		if (UI_Texture_Load(source.c_str(), pixels, width, height)) {
 			dimensions.x = width;
 			dimensions.y = height;
-			return(Create_Texture(pixels.data(), width, height));
+			return(Create_Texture(pixels.data(), width, height, true));
 		}
 	}
 
@@ -379,6 +393,7 @@ void UIRenderInterface::ReleaseTexture(Rml::TextureHandle texture)
 
 	bgfx::destroy(found->second);
 	_Textures.erase(found);
+	_PointTextures.erase((unsigned int)texture);
 }
 
 
@@ -452,6 +467,7 @@ void UI_Render_Shutdown(void)
 		bgfx::destroy(entry.second);
 	}
 	_Textures.clear();
+	_PointTextures.clear();
 	_Pictures.clear();
 
 	if (bgfx::isValid(_WhiteTexture)) {
