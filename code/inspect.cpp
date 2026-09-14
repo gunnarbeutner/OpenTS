@@ -28,6 +28,7 @@
 #include "keyboard.h"
 #include "newmenu.h"
 #include "phase.h"
+#include "screenlayout.h"
 #include "tactical.h"
 #include "techno.h"
 #include "unit.h"
@@ -75,9 +76,13 @@ static void Describe_Gadgets(std::string & out)
 		if (!first) out += ',';
 		first = false;
 
+		// A screen that has claimed a design space places its gadgets in it;
+		// without a claim the mapping is the identity.
+		Rect const area = Shell_To_Screen(Rect(gadget->X, gadget->Y, gadget->Width, gadget->Height));
+
 		snprintf(buffer, sizeof(buffer),
 			"{\"id\":%u,\"rect\":[%d,%d,%d,%d],\"enabled\":%s,\"focus\":%s,\"text\":",
-			gadget->Get_ID(), gadget->X, gadget->Y, gadget->Width, gadget->Height,
+			gadget->Get_ID(), area.X, area.Y, area.Width, area.Height,
 			gadget->Is_Disabled() ? "false" : "true",
 			gadget->Has_Focus() ? "true" : "false");
 		out += buffer;

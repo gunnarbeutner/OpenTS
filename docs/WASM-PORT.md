@@ -585,6 +585,15 @@ menu reads its design space from the backdrop rather than assuming 640 by 400,
 picks an item on release rather than press, and puts itself away for a pending
 resize so `Display_Menu` rebuilds it against the new frame.
 
+The mission restatement claims the same space at the 640 by 400 its artwork was
+drawn in, so it fills the window instead of sitting unmagnified in the middle of
+it. Its buttons are placed in the design space, and `GadgetClass::Input` carries
+a pointer position back into that space before it tests a gadget, so a button is
+hit where it appears; without a claim that mapping is the identity and every
+other gadget screen is untouched. `Describe_Gadgets` in `code/inspect.cpp`
+reports the rectangles the same way round, so what the harness clicks is where
+the button is on screen.
+
 A page has no sockets and no serial line, so the menu offers a LAN game only
 where the deployment names a relay ([section 8](#8-networking)), shows
 Internet, modem and World Domination Tour games disabled, and drops the exit
