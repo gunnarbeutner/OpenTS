@@ -37,6 +37,13 @@ std::shared_ptr<BlockFileClass> Manifest_Find(char const * name, BlockEntryClass
 /// </summary>
 std::string Manifest_Find_Movie(char const * name);
 
+/// <summary>
+/// Resolves a name to the URL of the copy belonging to the archive named, for
+/// the names more than one archive carries. An empty string when the release
+/// holds no copy that archive can claim.
+/// </summary>
+std::string Manifest_Find_File(char const * name, char const * archive);
+
 // Whether a release marks a file as one to keep for offline play. A release that marks
 // nothing -- one built before the field existed -- answers true for everything, which
 // leaves the caller's own judgement in charge.

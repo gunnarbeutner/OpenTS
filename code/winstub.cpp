@@ -100,6 +100,13 @@ Point2D Load_Title_Screen(char const * name, Surface * surface, PaletteClass * p
 		Surface * picture = Prepared_Picture_Load(name, wanted, prepared);
 
 		if (picture != nullptr) {
+			// A prepared copy carries no colour table, but callers such as the score
+			// screen build their shape drawer from the one the picture shipped with.
+			if (palette != nullptr) {
+				CCFileClass source(name);
+				Read_PCX_Palette(source, *palette);
+			}
+
 			Point2D const own(picture->Get_Width() * laid_out / prepared,
 				picture->Get_Height() * laid_out / prepared);
 			Rect const dest = fill

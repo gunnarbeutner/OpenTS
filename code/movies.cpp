@@ -111,8 +111,8 @@ void Movie_Blit_To_Screen(void)
 
 namespace {
 
-// A manifest movie has no archive entry, so its manifest entry stands in for
-// the archive check.
+// A release ships its films beside the archives that named them, so the manifest
+// stands in for the archive check: the archives themselves no longer carry them.
 bool Movie_Available(char const * filename)
 {
 #if defined(OPENTS_MP4_MOVIES)

@@ -68,6 +68,38 @@ bool Read_PCX_Size(FileClass & file, int & width, int & height)
 }
 
 
+/// <summary>
+/// Reads a picture's colour table without decoding the picture, so a caller drawing a
+/// prepared copy of it can still hand the table to whatever shares the picture's colours.
+/// </summary>
+/// <returns>bool; Did the file carry a 256 colour table?</returns>
+bool Read_PCX_Palette(FileClass & file, PaletteClass & palette)
+{
+	PCX_HEADER header;
+
+	if (!file.Is_Available()) {
+		return(false);
+	}
+
+	if (!file.Open(FileClass::READ)) {
+		return(false);
+	}
+
+	int const read = file.Read(&header, sizeof(header));
+
+	if (read != sizeof(header) || header.id != 10 || header.color_planes != 1) {
+		file.Close();
+		return(false);
+	}
+
+	file.Seek(-(256 * (int)sizeof(RGB)), SEEK_END);
+	int const taken = file.Read(&palette, 256L * sizeof(RGB));
+	file.Close();
+
+	return(taken == 256 * (int)sizeof(RGB));
+}
+
+
 /***************************************************************************
  * READ_PCX_FILE -- read a pcx file into a Graphic Buffer                  *
  *                                                                         *
