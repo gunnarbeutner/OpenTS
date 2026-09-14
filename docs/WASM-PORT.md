@@ -594,6 +594,14 @@ other gadget screen is untouched. `Describe_Gadgets` in `code/inspect.cpp`
 reports the rectangles the same way round, so what the harness clicks is where
 the button is on screen.
 
+The score screen claims the space the same way and pushes its frame through
+`Blit_Shell` rather than copying the design rectangle straight across, so the
+tally is magnified while it counts itself up. It resamples only what changed
+since the last frame, which at 1920 by 1200 costs about a seventh of a 60 Hz
+frame and leaves the screen at the refresh rate. It is not an animation engine,
+so `Mode_Change_Is_Safe` refuses a resize while any design space is claimed
+rather than only while an engine is up.
+
 A page has no sockets and no serial line, so the menu offers a LAN game only
 where the deployment names a relay ([section 8](#8-networking)), shows
 Internet, modem and World Domination Tour games disabled, and drops the exit

@@ -31,6 +31,7 @@
 #include "misc.h"
 #include "movies.h"
 #include "msengine.h"
+#include "screenlayout.h"
 #include "surface.h"
 #include "ui/uishell.h"
 #include "videodirty.h"
@@ -214,8 +215,8 @@ static bool Mode_Change_Is_Safe(void)
 	}
 
 	// A shell screen lays its artwork out against the size it came up at and
-	// never redraws it.
-	if (MSEngine::Is_Screen_Up()) {
+	// never redraws it, and Rebuild_Frame cannot put one back either.
+	if (MSEngine::Is_Screen_Up() || Shell_Size_Is_Claimed()) {
 		return(false);
 	}
 
