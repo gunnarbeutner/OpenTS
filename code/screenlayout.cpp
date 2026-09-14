@@ -21,6 +21,7 @@
 #include "goptions.h"
 #include "sidebar.h"
 #include "surface.h"
+#include "wwmouse.h"
 #include "xsurface.h"
 
 #include "color.hh"
@@ -221,6 +222,12 @@ Point2D Screen_To_Shell(Point2D const & point)
 		design.X + (point.X - screen.X) * design.Width / screen.Width,
 		design.Y + (point.Y - screen.Y) * design.Height / screen.Height
 	));
+}
+
+
+Point2D Shell_Mouse(void)
+{
+	return(Screen_To_Shell(Point2D(Get_Mouse_X(), Get_Mouse_Y())));
 }
 
 

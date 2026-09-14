@@ -60,6 +60,7 @@
 #include "globals.h"
 #include "keyboard.h"
 #include "scheme.h"
+#include "screenlayout.h"
 
 /*
 **	This records the current gadget the the gadget system is "stuck on". Such a
@@ -529,6 +530,15 @@ KeyNumType GadgetClass::Input(void)
 	   mousex = Get_Mouse_X();
 	   mousey = Get_Mouse_Y();
 	}
+
+	/*
+	**	A screen that has claimed a shell design space places its gadgets in it,
+	**	so the position is carried back out of the frame before it is tested.
+	**	Without a claim the mapping is the identity.
+	*/
+	Point2D const point = Screen_To_Shell(Point2D(mousex, mousey));
+	mousex = point.X;
+	mousey = point.Y;
 
 	/*
 	**	Set the mouse button state flags. These will be passed to the individual
