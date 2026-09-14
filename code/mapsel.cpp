@@ -54,6 +54,7 @@
 #include "msgbox.h"
 #include "pcx.h"
 #include "scenario.h"
+#include "screenlayout.h"
 #include "stimer.h"
 #include "surface.h"
 #include "theme.h"
@@ -64,6 +65,10 @@
 
 /// The binary confirms this was in the cpp as the vtable is inside this module
 /// Moving it into a header would make the first thing that includes the header construct the vtable in that module
+
+// The screen is laid out in the 640 by 400 space its artwork was drawn in.
+static Point2D const MAPSEL_DESIGN(640, 400);
+
 
 class MapSelect : public MSEngine {
 	public:
@@ -217,7 +222,10 @@ bool MapSelect::Presentation(ScenarioClass * scenario)
 
 	Rect rect;
 
+	Set_Shell_Size(MAPSEL_DESIGN);
+
 	if (Init(scenario) == false) {
+		Fill_Out_Shell();
 		return(false);
 	}
 
@@ -324,6 +332,8 @@ bool MapSelect::Presentation(ScenarioClass * scenario)
 
 	Deinit();
 
+	Fill_Out_Shell();
+
 	return(true);
 }
 
@@ -403,8 +413,9 @@ bool MapSelect::Init(ScenarioClass * scenario)
 		return(false);
 	}
 
-	XOffset = ((HiddenSurface->Get_Width() - 640) / 2);
-	YOffset = ((HiddenSurface->Get_Height() - 400) / 2);
+	Rect const design = Shell_Rect();
+	XOffset = design.X;
+	YOffset = design.Y;
 
 	TextRect = *Choices.Get_Text_Rect();
 	TextRect.X += XOffset;
@@ -502,8 +513,12 @@ const char * MapSelect::Process_Input(MapStage * stage)
 				key = Keyboard->Get();
 				if (key == KN_LMOUSE) {
 
-					mouse_x = (Keyboard->MouseQX - XOffset);
-					mouse_y = (Keyboard->MouseQY - YOffset);
+					// The click map is the artwork's own picture, so a pointer
+					// position is carried back into the design space first.
+					Point2D const pressed = Screen_To_Shell(Point2D(Keyboard->MouseQX, Keyboard->MouseQY));
+
+					mouse_x = (pressed.X - XOffset);
+					mouse_y = (pressed.Y - YOffset);
 
 					if ((mouse_x >= 0) && (mouse_x < ClickMap->Get_Width())
 							&& (mouse_y >= 0) && (mouse_y < ClickMap->Get_Height())) {
@@ -515,8 +530,10 @@ const char * MapSelect::Process_Input(MapStage * stage)
 				}
 			} else {
 
-				mouse_x = (Get_Mouse_X() - XOffset);
-				mouse_y = (Get_Mouse_Y() - YOffset);
+				Point2D const over = Screen_To_Shell(Point2D(Get_Mouse_X(), Get_Mouse_Y()));
+
+				mouse_x = (over.X - XOffset);
+				mouse_y = (over.Y - YOffset);
 
 				if ((mouse_x != last_mouse_x) || (mouse_y != last_mouse_y)) {
 
