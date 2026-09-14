@@ -602,6 +602,14 @@ frame and leaves the screen at the refresh rate. It is not an animation engine,
 so `Mode_Change_Is_Safe` refuses a resize while any design space is claimed
 rather than only while an engine is up.
 
+The map selection screen claims the space too, and carries a pointer position
+back into it before reading the click map, which is the artwork's own picture
+and so is indexed in design pixels. Its backdrop movie already keeps the
+centred 640 by 400 rectangle the design space occupies, so the film is
+magnified with everything drawn over it. The screen repaints its target
+animation every frame, and the resampling costs about a tenth of a 60 Hz frame
+at 1280 by 800 without dropping one.
+
 A page has no sockets and no serial line, so the menu offers a LAN game only
 where the deployment names a relay ([section 8](#8-networking)), shows
 Internet, modem and World Domination Tour games disabled, and drops the exit
