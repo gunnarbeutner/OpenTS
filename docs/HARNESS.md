@@ -227,10 +227,12 @@ either. `wait ui:TARGET` waits for a [target](#targets) to be on screen and
 usable. `wait log:REGEX` and `wait js:EXPR` are there for everything these do
 not name.
 
-A mission with a briefing shows it inside `loading`, on a screen whose
-gadgets read `Resume Mission`, and stays there until it is clicked, so
-`wait any:game|ui:text:Resume Mission` followed by `try click text:Resume
-Mission` and `wait game` reaches the map whether or not the scenario has one.
+A mission with a briefing shows it inside `loading` as a modal shell screen,
+so the stack reads `loading/dialog`, and stays there until the player answers
+it. The shell's screens carry no gadgets, so a run reaches this one by key or
+by position: `wait any:game|dialog` followed by `key space` and `wait game`
+dismisses it. Space in the game opens the options screen, so a run that may
+not meet a briefing at all clicks the control instead of pressing a key.
 
 ## Game coordinates
 

@@ -7,13 +7,14 @@
 		 * plate wherever the frame fitted it, so the view sets every position, size and
 		 * type size in the window's own pixels; only what does not depend on that is here.
 		 *
-		 * The lettering is the dialogs' own glyph sheets, which the font engine magnifies
-		 * by whole steps, so the page keeps the game's letterforms at the size the window
-		 * asks for.
+		 * The briefing text was set in FULLFNT3, which is Arial at ten point drawn into a
+		 * bitmap, so the shipped Liberation Sans carries the same letterforms at whatever
+		 * size the window asks for. The buttons were lettered from the dialogs' own sheets
+		 * and keep that face.
 		 */
 		body
 		{
-			font-family: opents-dialog;
+			font-family: opents-sans;
 		}
 
 		#page
@@ -40,6 +41,7 @@
 			position: absolute;
 			min-width: 0;
 			margin: 0;
+			font-family: opents-dialog;
 			decorator: image(button:u:150x24);
 		}
 

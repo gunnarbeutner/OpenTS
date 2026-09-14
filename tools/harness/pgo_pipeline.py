@@ -131,12 +131,16 @@ def main():
         ], campaign_report_path, timeout=360, skip_intro=False)
 
         # A mission with a briefing holds its restatement screen up inside the load until it
-        # is dismissed, and the map behind it is what the profile is for.
+        # is dismissed, and the map behind it is what the profile is for. The screen is an
+        # RmlUi one and carries no gadget the harness can name, and it does not read the
+        # space bar the shell's own screens took, so its resume control is clicked where the
+        # default 1280 by 800 window puts it.
         print("capturing first mission (%s)..." % args.scenario, file=sys.stderr)
         mission_report = _run_harness(harness_py, args.bin, assets_dir, [
             "wait scenario 60",
-            "wait any:game|ui:text:Resume Mission 120",
-            "try click text:Resume Mission",
+            "wait dialog 120",
+            "sleep 6",
+            "click 640 744",
             "wait game 120",
             "sleep 25",
         ], mission_report_path, scenario=args.scenario, timeout=400)

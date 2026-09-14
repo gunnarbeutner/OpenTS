@@ -25,6 +25,7 @@
 #include "surface.h"
 #include "theme.h"
 #include "ui/uibriefing.h"
+#include "ui/uiscreens.h"
 
 
 /***********************************************************************************************
@@ -71,3 +72,19 @@ void Restate_Mission(ScenarioClass * scen)
 	ScenarioActive = save_started;
 	Keyboard->Clear();
 }
+
+
+// Registered through the driver rather than through the screen, so a run exercises the path
+// a caller takes. It is only meaningful over a scenario that has been read.
+static bool Open_Briefing(void)
+{
+	if (Scen == nullptr) {
+		return(false);
+	}
+
+	Restate_Mission(Scen);
+	return(true);
+}
+
+
+static UIScreenRegistration _Register("briefing", Open_Briefing);

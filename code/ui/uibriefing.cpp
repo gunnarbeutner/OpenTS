@@ -79,10 +79,11 @@ static int const BRIEFING_PAGE_WIDTH = 420;
 static int const BRIEFING_PAGE_HEIGHT = 280;
 static int const BRIEFING_LINE = 20;
 
-// The shipped face has the menu font's cap height at about three quarters of this, and the
-// dialogs' lettering at about four fifths.
-static int const BRIEFING_TYPE = 15;
-static int const BRIEFING_LABEL = 13;
+// FULLFNT3 is Arial at ten point drawn into a bitmap, and the shipped Liberation Sans sets a
+// briefing line to the same width at this size.
+static int const BRIEFING_TYPE = 16;
+// The buttons were lettered from the dialogs' sheets, whose own line is this.
+static int const BRIEFING_LABEL = 17;
 
 static int const BRIEFING_BUTTON_WIDTH = 150;
 static int const BRIEFING_BUTTON_HEIGHT = 24;

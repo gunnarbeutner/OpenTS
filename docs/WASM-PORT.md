@@ -585,14 +585,12 @@ menu reads its design space from the backdrop rather than assuming 640 by 400,
 picks an item on release rather than press, and puts itself away for a pending
 resize so `Display_Menu` rebuilds it against the new frame.
 
-The mission restatement claims the same space at the 640 by 400 its artwork was
-drawn in, so it fills the window instead of sitting unmagnified in the middle of
-it. Its buttons are placed in the design space, and `GadgetClass::Input` carries
-a pointer position back into that space before it tests a gadget, so a button is
-hit where it appears; without a claim that mapping is the identity and every
-other gadget screen is untouched. `Describe_Gadgets` in `code/inspect.cpp`
-reports the rectangles the same way round, so what the harness clicks is where
-the button is on screen.
+The mission restatement claims no design space at all. Its plate is filled out
+to the frame like the title page, and the shell screen over it
+([the UI design](UI_DESIGN.md#migration-plan)) is laid out against wherever that
+plate landed, so its lettering is rasterized at the window's own resolution
+rather than magnified out of 640 by 400. Only the plate and the button skins are
+magnified artwork.
 
 The score screen claims the space the same way and pushes its frame through
 `Blit_Shell` rather than copying the design rectangle straight across, so the
