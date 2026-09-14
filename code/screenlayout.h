@@ -75,6 +75,12 @@ Point2D Shell_Mouse(void);
 void Set_Shell_Size(Point2D const & size);
 
 /// <summary>
+/// Has a shell screen claimed a design space? A screen that has is laid out
+/// against the surfaces it came up on and cannot survive their replacement.
+/// </summary>
+bool Shell_Size_Is_Claimed(void);
+
+/// <summary>
 /// Magnifies what a shell screen drew in the design space out to fill the
 /// surfaces holding it and releases the design space. A screen that stays on
 /// the display after it stops drawing calls this so that dialogs and repaints

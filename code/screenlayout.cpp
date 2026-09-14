@@ -140,6 +140,12 @@ void Set_Shell_Size(Point2D const & size)
 }
 
 
+bool Shell_Size_Is_Claimed(void)
+{
+	return(_ShellSize.X > 0 && _ShellSize.Y > 0);
+}
+
+
 Rect Fit_Centered(Point2D const & size, Rect const & frame)
 {
 	if (size.X <= 0 || size.Y <= 0) {
