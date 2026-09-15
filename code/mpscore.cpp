@@ -32,6 +32,7 @@
 #include "msengine.h"
 #include "msfont.h"
 #include "scheme.h"
+#include "screenlayout.h"
 #include "session.h"
 #include "stats.h"
 #include "surface.h"
@@ -76,6 +77,13 @@ class MultiScore : public MSEngine
 	private:
 		int XPos;
 		int YPos;
+
+		/*
+		 * This is the multiple of the artwork's own size the screen is laid out at, taken
+		 * from the backdrop the release prepared. Every position and size the layout states
+		 * is in the artwork's own units and is multiplied by this.
+		 */
+		ShellScale Scale;
 		Surface * ScoreSurface;
 		MSFont * Font;
 		/// Unused
@@ -121,6 +129,7 @@ MultiScore::MultiScore(void) :
 	MSEngine(),
 	XPos(0),
 	YPos(0),
+	Scale(),
 	ScoreSurface(NULL),
 	Font(NULL),
 	UnusedFont(NULL)
@@ -210,6 +219,7 @@ bool MultiScore::Multi_Presentation(void)
 		Blit_All(HiddenSurface);
 
 		Deinit();
+		Fill_Out_Shell();
 		Keyboard->Clear();
 		MouseCursor->Show_Mouse();
 		MouseCursor->Capture_Mouse();
@@ -225,26 +235,41 @@ bool MultiScore::Multi_Presentation(void)
 /// registers the sound effect that the counters tick with.
 /// </summary>
 /// <returns>bool; Was the screen prepared successfully?</returns>
+static Point2D const MPSCORE_DESIGN(640, 400);
+
+
 bool MultiScore::Init(void)
 {
 	Deinit();
 
-	ScoreSurface = new DSurface(640, 400);
+	// The screen is laid out at the size the frame fits its artwork at, so nothing is
+	// composed at the artwork's size and magnified afterwards. Claiming that size rather
+	// than a multiple of the artwork leaves Blit_Shell an exact copy, and still tells a
+	// mode change to wait, since this screen never redraws itself.
+	{
+		Rect const plate = Fit_Centered(MPSCORE_DESIGN, HiddenSurface->Get_Rect());
+
+		Set_Shell_Size(Point2D(plate.Width, plate.Height));
+		Scale = ShellScale{plate.Width, MPSCORE_DESIGN.X};
+	}
+
+	ScoreSurface = new DSurface(MPSCORE_DESIGN.X * Scale, MPSCORE_DESIGN.Y * Scale);
 	if (ScoreSurface == NULL) {
 		DebugString("MultiScore: Failed to create surface!\n");
 		return(false);
 	}
 
-	XPos = ((HiddenSurface->Get_Width() - ScoreSurface->Get_Width()) / 2);
-	YPos = ((HiddenSurface->Get_Height() - ScoreSurface->Get_Height()) / 2);
+	Rect const design = Shell_Rect();
+	XPos = design.X;
+	YPos = design.Y;
 
 	AlternateSurface->Fill(TBLACK);
-	Load_Title_Screen("MPSCORE.PCX", AlternateSurface, &CCPalette);
+	Load_Title_Screen("MPSCORE.PCX", AlternateSurface, &CCPalette, true);
 	HiddenSurface->Fill(TBLACK);
 	HiddenSurface->Blit_From(*AlternateSurface, false, true);
 	ScoreSurface->Blit_From(ScoreSurface->Get_Rect(), *AlternateSurface, Rect(XPos, YPos, ScoreSurface->Get_Width(), ScoreSurface->Get_Height()), false, true);
 
-	Font = new MSFont(false);
+	Font = new MSFont(false, Scale);
 	if (Font == NULL) {
 		DebugString("MultiScore: Unable to create font!\n");
 		return(false);
@@ -301,14 +326,14 @@ bool MultiScore::User_Input(void)
 	bool running = true;
 
 	char const * text = Fetch_String(TXT_CLICK_CONTINUE);
-	int x = 320 - Font->Get_String_Width(text) / 2;
+	int x = 320 * Scale - Font->Get_String_Width(text) / 2;
 
-	MSWordAnim * anim = new MSWordAnim(text, XPos + x, YPos + 370, Font);
+	MSWordAnim * anim = new MSWordAnim(text, XPos + x, YPos + 370 * Scale, Font);
 	Add_Animation(anim);
 	Wait_For_Anim(anim);
 
-	Font->Draw_String(ScoreSurface,text, x, 370, 2);
-	Font->Draw_String(AlternateSurface,text, XPos + x, YPos + 370, 2);
+	Font->Draw_String(ScoreSurface,text, x, 370 * Scale, 2);
+	Font->Draw_String(AlternateSurface,text, XPos + x, YPos + 370 * Scale, 2);
 
 	Keyboard->Clear();
 
@@ -604,131 +629,131 @@ void MultiScore::Print_Headings(void)
 		snprintf(buffer, sizeof(buffer), Fetch_String(TXT_GAME), Session.GamesPlayed);
 	}
 
-	MSPrintAnim *gameAnim = new MSPrintAnim(buffer, XPos + 15, YPos + 15, Font, RECT_NONE, 0, 4, true, false);
+	MSPrintAnim *gameAnim = new MSPrintAnim(buffer, XPos + 15 * Scale, YPos + 15 * Scale, Font, RECT_NONE, 0, 4, true, false);
 	Add_Animation(gameAnim);
 	Wait_For_Anim(gameAnim);
-	Font->Draw_String(AlternateSurface,buffer, XPos + 15, YPos + 15, 2);
+	Font->Draw_String(AlternateSurface,buffer, XPos + 15 * Scale, YPos + 15 * Scale, 2);
 
-	Rect rect(XPos + 15, YPos + 15, Font->Get_Font_Width() * strlen(buffer), Font->Get_Font_Height());
+	Rect rect(XPos + 15 * Scale, YPos + 15 * Scale, Font->Get_Font_Width() * strlen(buffer), Font->Get_Font_Height());
 	HiddenSurface->Blit_From(rect, *AlternateSurface, rect);
-	Font->Draw_String(ScoreSurface,buffer, 15, 15, 2);
+	Font->Draw_String(ScoreSurface,buffer, 15 * Scale, 15 * Scale, 2);
 
 	/// Display elapsed time
 	Format_Time(buffer, Scen->ElapsedTimer / 60);
-	int timeXPos = 625 - Font->Get_String_Width(buffer);
+	int timeXPos = 625 * Scale - Font->Get_String_Width(buffer);
 
-	MSPrintAnim *timeAnim = new MSPrintAnim(buffer, timeXPos + XPos, YPos + 15, Font, RECT_NONE, 0, 4, true, false);
+	MSPrintAnim *timeAnim = new MSPrintAnim(buffer, timeXPos + XPos, YPos + 15 * Scale, Font, RECT_NONE, 0, 4, true, false);
 	Add_Animation(timeAnim);
 	Wait_For_Anim(timeAnim);
-	Font->Draw_String(AlternateSurface,buffer, timeXPos + XPos, YPos + 15, 2);
+	Font->Draw_String(AlternateSurface,buffer, timeXPos + XPos, YPos + 15 * Scale, 2);
 
 	int w = Font->Get_Font_Width() * strlen(buffer);
-	rect.Set(XPos - w + 625, YPos + 15, w, Font->Get_Font_Height());
+	rect.Set(XPos - w + 625 * Scale, YPos + 15 * Scale, w, Font->Get_Font_Height());
 	HiddenSurface->Blit_From(rect, *AlternateSurface, rect);
-	Font->Draw_String(ScoreSurface,buffer, 625, 15, 2);
+	Font->Draw_String(ScoreSurface,buffer, 625 * Scale, 15 * Scale, 2);
 
 	/// Draw section for names
-	rect.Set(XPos + 15, YPos + 40, 100, 315);
+	rect.Set(XPos + 15 * Scale, YPos + 40 * Scale, 100 * Scale, 315 * Scale);
 	AlternateSurface->Fill_Rect_Trans(rect, RGBClass(Font->Get_Red(), Font->Get_Green(), Font->Get_Blue()), 25);
 	HiddenSurface->Blit_From(rect, *AlternateSurface, rect);
 
 	const char *namesLabel = Fetch_String(TXT_NAMES);
-	int namesLabelXPos = (100 - Font->Get_String_Width(namesLabel)) / 2;
-	Font->Draw_String(ScoreSurface,namesLabel, namesLabelXPos + 15, 45, 2);
+	int namesLabelXPos = (100 * Scale - Font->Get_String_Width(namesLabel)) / 2;
+	Font->Draw_String(ScoreSurface,namesLabel, namesLabelXPos + 15 * Scale, 45 * Scale, 2);
 
-	ScoreSurface->Draw_Line(Point2D(20, 45 + Font->Get_Font_Height()), Point2D(110, 45 + Font->Get_Font_Height()), Font->Get_Color());
-	HiddenSurface->Draw_Line(Point2D(XPos + 20, YPos + 45 + Font->Get_Font_Height()), Point2D(XPos + 110, YPos + 45 + Font->Get_Font_Height()), Font->Get_Color());
+	ScoreSurface->Draw_Line(Point2D(20 * Scale, 45 * Scale + Font->Get_Font_Height()), Point2D(110 * Scale, 45 * Scale + Font->Get_Font_Height()), Font->Get_Color());
+	HiddenSurface->Draw_Line(Point2D(XPos + 20 * Scale, YPos + 45 * Scale + Font->Get_Font_Height()), Point2D(XPos + 110 * Scale, YPos + 45 * Scale + Font->Get_Font_Height()), Font->Get_Color());
 	Blit_Rect(HiddenSurface, rect);
 
-	MSWordAnim *namesAnim = new MSWordAnim(TXT_NAMES, namesLabelXPos + XPos + 15, YPos + 45, Font, RECT_NONE, 0, 4, true, false);
+	MSWordAnim *namesAnim = new MSWordAnim(TXT_NAMES, namesLabelXPos + XPos + 15 * Scale, YPos + 45 * Scale, Font, RECT_NONE, 0, 4, true, false);
 	Add_Animation(namesAnim);
 	Wait_For_Anim(namesAnim);
 	Wait_Delay(7);
-	AlternateSurface->Blit_From(rect, *ScoreSurface, Rect(15, 40, 100, 315));
+	AlternateSurface->Blit_From(rect, *ScoreSurface, Rect(15 * Scale, 40 * Scale, 100 * Scale, 315 * Scale));
 	HiddenSurface->Blit_From(rect, *AlternateSurface, rect);
 	Blit_Rect(HiddenSurface, rect);
 
 	/// Draw section for losses
-	rect.Set(XPos + 147, YPos + 40, 110, 315);
+	rect.Set(XPos + 147 * Scale, YPos + 40 * Scale, 110 * Scale, 315 * Scale);
 	AlternateSurface->Fill_Rect_Trans(rect, RGBClass(Font->Get_Red(), Font->Get_Green(), Font->Get_Blue()), 25);
 	HiddenSurface->Blit_From(rect, *AlternateSurface, rect);
 
 	const char *lossesLabel = Fetch_String(TXT_LOSSES);
-	int lossesLabelXPos = (110 - Font->Get_String_Width(lossesLabel)) / 2;
-	Font->Draw_String(ScoreSurface,lossesLabel, lossesLabelXPos + 147, 45, 2);
+	int lossesLabelXPos = (110 * Scale - Font->Get_String_Width(lossesLabel)) / 2;
+	Font->Draw_String(ScoreSurface,lossesLabel, lossesLabelXPos + 147 * Scale, 45 * Scale, 2);
 
-	ScoreSurface->Draw_Line(Point2D(152, 45 + Font->Get_Font_Height()), Point2D(252, 45 + Font->Get_Font_Height()), Font->Get_Color());
-	HiddenSurface->Draw_Line(Point2D(XPos + 152, YPos + 45 + Font->Get_Font_Height()), Point2D(XPos + 252, YPos + 45 + Font->Get_Font_Height()), Font->Get_Color());
+	ScoreSurface->Draw_Line(Point2D(152 * Scale, 45 * Scale + Font->Get_Font_Height()), Point2D(252 * Scale, 45 * Scale + Font->Get_Font_Height()), Font->Get_Color());
+	HiddenSurface->Draw_Line(Point2D(XPos + 152 * Scale, YPos + 45 * Scale + Font->Get_Font_Height()), Point2D(XPos + 252 * Scale, YPos + 45 * Scale + Font->Get_Font_Height()), Font->Get_Color());
 	Blit_Rect(HiddenSurface, rect);
 
-	MSWordAnim *lossesAnim = new MSWordAnim(TXT_LOSSES, lossesLabelXPos + XPos + 147, YPos + 45, Font, RECT_NONE, 0, 4, true, false);
+	MSWordAnim *lossesAnim = new MSWordAnim(TXT_LOSSES, lossesLabelXPos + XPos + 147 * Scale, YPos + 45 * Scale, Font, RECT_NONE, 0, 4, true, false);
 	Add_Animation(lossesAnim);
 	Wait_For_Anim(lossesAnim);
 	Wait_Delay(7);
-	AlternateSurface->Blit_From(rect, *ScoreSurface, Rect(147, 40, 110, 315));
+	AlternateSurface->Blit_From(rect, *ScoreSurface, Rect(147 * Scale, 40 * Scale, 110 * Scale, 315 * Scale));
 	HiddenSurface->Blit_From(rect, *AlternateSurface, rect);
 	Blit_Rect(HiddenSurface, rect);
 
 	/// Draw section for kills
-	rect.Set(XPos + 269, YPos + 40, 110, 315);
+	rect.Set(XPos + 269 * Scale, YPos + 40 * Scale, 110 * Scale, 315 * Scale);
 	AlternateSurface->Fill_Rect_Trans(rect, RGBClass(Font->Get_Red(), Font->Get_Green(), Font->Get_Blue()), 25);
 	HiddenSurface->Blit_From(rect, *AlternateSurface, rect);
 
 	const char *killsLabel = Fetch_String(TXT_KILLS);
-	int killsLabelXPos = (110 - Font->Get_String_Width(killsLabel)) / 2;
-	Font->Draw_String(ScoreSurface,killsLabel, killsLabelXPos + 269, 45, 2);
+	int killsLabelXPos = (110 * Scale - Font->Get_String_Width(killsLabel)) / 2;
+	Font->Draw_String(ScoreSurface,killsLabel, killsLabelXPos + 269 * Scale, 45 * Scale, 2);
 
-	ScoreSurface->Draw_Line(Point2D(274, 45 + Font->Get_Font_Height()), Point2D(374, 45 + Font->Get_Font_Height()), Font->Get_Color());
-	HiddenSurface->Draw_Line(Point2D(XPos + 274, YPos + 45 + Font->Get_Font_Height()), Point2D(XPos + 374, YPos + 45 + Font->Get_Font_Height()), Font->Get_Color());
+	ScoreSurface->Draw_Line(Point2D(274 * Scale, 45 * Scale + Font->Get_Font_Height()), Point2D(374 * Scale, 45 * Scale + Font->Get_Font_Height()), Font->Get_Color());
+	HiddenSurface->Draw_Line(Point2D(XPos + 274 * Scale, YPos + 45 * Scale + Font->Get_Font_Height()), Point2D(XPos + 374 * Scale, YPos + 45 * Scale + Font->Get_Font_Height()), Font->Get_Color());
 	Blit_Rect(HiddenSurface, rect);
 
-	MSWordAnim *killsAnim = new MSWordAnim(TXT_KILLS, killsLabelXPos + XPos + 269, YPos + 45, Font, RECT_NONE, 0, 4, true, false);
+	MSWordAnim *killsAnim = new MSWordAnim(TXT_KILLS, killsLabelXPos + XPos + 269 * Scale, YPos + 45 * Scale, Font, RECT_NONE, 0, 4, true, false);
 	Add_Animation(killsAnim);
 	Wait_For_Anim(killsAnim);
 	Wait_Delay(7);
-	AlternateSurface->Blit_From(rect, *ScoreSurface, Rect(269, 40, 110, 315));
+	AlternateSurface->Blit_From(rect, *ScoreSurface, Rect(269 * Scale, 40 * Scale, 110 * Scale, 315 * Scale));
 	HiddenSurface->Blit_From(rect, *AlternateSurface, rect);
 	Blit_Rect(HiddenSurface, rect);
 
 	/// Draw section for economy
-	rect.Set(XPos + 391, YPos + 40, 110, 315);
+	rect.Set(XPos + 391 * Scale, YPos + 40 * Scale, 110 * Scale, 315 * Scale);
 	AlternateSurface->Fill_Rect_Trans(rect, RGBClass(Font->Get_Red(), Font->Get_Green(), Font->Get_Blue()), 25);
 	HiddenSurface->Blit_From(rect, *AlternateSurface, rect);
 
 	const char *economyLabel = Fetch_String(TXT_ECONOMY);
-	int economyLabelXPos = (110 - Font->Get_String_Width(economyLabel)) / 2;
-	Font->Draw_String(ScoreSurface,economyLabel, economyLabelXPos + 391, 45, 2);
+	int economyLabelXPos = (110 * Scale - Font->Get_String_Width(economyLabel)) / 2;
+	Font->Draw_String(ScoreSurface,economyLabel, economyLabelXPos + 391 * Scale, 45 * Scale, 2);
 
-	ScoreSurface->Draw_Line(Point2D(396, 45 + Font->Get_Font_Height()), Point2D(496, 45 + Font->Get_Font_Height()), Font->Get_Color());
-	HiddenSurface->Draw_Line(Point2D(XPos + 396, YPos + 45 + Font->Get_Font_Height()), Point2D(XPos + 496, YPos + 45 + Font->Get_Font_Height()), Font->Get_Color());
+	ScoreSurface->Draw_Line(Point2D(396 * Scale, 45 * Scale + Font->Get_Font_Height()), Point2D(496 * Scale, 45 * Scale + Font->Get_Font_Height()), Font->Get_Color());
+	HiddenSurface->Draw_Line(Point2D(XPos + 396 * Scale, YPos + 45 * Scale + Font->Get_Font_Height()), Point2D(XPos + 496 * Scale, YPos + 45 * Scale + Font->Get_Font_Height()), Font->Get_Color());
 	Blit_Rect(HiddenSurface, rect);
 
-	MSWordAnim *economyAnim = new MSWordAnim(TXT_ECONOMY, economyLabelXPos + XPos + 391, YPos + 45, Font, RECT_NONE, 0, 4, true, false);
+	MSWordAnim *economyAnim = new MSWordAnim(TXT_ECONOMY, economyLabelXPos + XPos + 391 * Scale, YPos + 45 * Scale, Font, RECT_NONE, 0, 4, true, false);
 	Add_Animation(economyAnim);
 	Wait_For_Anim(economyAnim);
 	Wait_Delay(7);
-	AlternateSurface->Blit_From(rect, *ScoreSurface, Rect(391, 40, 110, 315));
+	AlternateSurface->Blit_From(rect, *ScoreSurface, Rect(391 * Scale, 40 * Scale, 110 * Scale, 315 * Scale));
 	HiddenSurface->Blit_From(rect, *AlternateSurface, rect);
 	Blit_Rect(HiddenSurface, rect);
 
 	/// Draw section for scores
-	rect.Set(XPos + 530, YPos + 40, 90, 315);
+	rect.Set(XPos + 530 * Scale, YPos + 40 * Scale, 90 * Scale, 315 * Scale);
 	AlternateSurface->Fill_Rect_Trans(rect, RGBClass(Font->Get_Red(), Font->Get_Green(), Font->Get_Blue()), 25);
 	HiddenSurface->Blit_From(rect, *AlternateSurface, rect);
 
 	const char *scoresLabel = Fetch_String(TXT_SCORE);
-	int scoresLabelXPos = (90 - Font->Get_String_Width(scoresLabel)) / 2;
-	Font->Draw_String(ScoreSurface,scoresLabel, scoresLabelXPos + 530, 45, 2);
+	int scoresLabelXPos = (90 * Scale - Font->Get_String_Width(scoresLabel)) / 2;
+	Font->Draw_String(ScoreSurface,scoresLabel, scoresLabelXPos + 530 * Scale, 45 * Scale, 2);
 
-	ScoreSurface->Draw_Line(Point2D(535, 45 + Font->Get_Font_Height()), Point2D(615, 45 + Font->Get_Font_Height()), Font->Get_Color());
-	HiddenSurface->Draw_Line(Point2D(XPos + 535, YPos + 45 + Font->Get_Font_Height()), Point2D(XPos + 615, YPos + 45 + Font->Get_Font_Height()), Font->Get_Color());
+	ScoreSurface->Draw_Line(Point2D(535 * Scale, 45 * Scale + Font->Get_Font_Height()), Point2D(615 * Scale, 45 * Scale + Font->Get_Font_Height()), Font->Get_Color());
+	HiddenSurface->Draw_Line(Point2D(XPos + 535 * Scale, YPos + 45 * Scale + Font->Get_Font_Height()), Point2D(XPos + 615 * Scale, YPos + 45 * Scale + Font->Get_Font_Height()), Font->Get_Color());
 	Blit_Rect(HiddenSurface, rect);
 
-	MSWordAnim *scoresAnim = new MSWordAnim(TXT_SCORE, scoresLabelXPos + XPos + 530, YPos + 45, Font, RECT_NONE, 0, 4, true, false);
+	MSWordAnim *scoresAnim = new MSWordAnim(TXT_SCORE, scoresLabelXPos + XPos + 530 * Scale, YPos + 45 * Scale, Font, RECT_NONE, 0, 4, true, false);
 	Add_Animation(scoresAnim);
 	Wait_For_Anim(scoresAnim);
 	Wait_Delay(7);
-	AlternateSurface->Blit_From(rect, *ScoreSurface, Rect(530, 40, 90, 315));
+	AlternateSurface->Blit_From(rect, *ScoreSurface, Rect(530 * Scale, 40 * Scale, 90 * Scale, 315 * Scale));
 	HiddenSurface->Blit_From(rect, *AlternateSurface, rect);
 	Blit_Rect(HiddenSurface, rect);
 	Wait_Delay(30);
@@ -742,18 +767,18 @@ void MultiScore::Print_Headings(void)
 /// </summary>
 void MultiScore::Print_Player_Names(void)
 {
-	int yPos = 80;
+	int yPos = 80 * Scale;
 
 	for (int i = 0; i < Session.NumScores; i++) {
 
 		RGBClass color = ColorSchemes[Scores[i]->Scheme]->HSV;
-		Rect rect(XPos + 15, YPos + yPos - 5, -605, 30);
+		Rect rect(XPos + 15 * Scale, YPos + yPos - 5 * Scale, -605 * Scale, 30 * Scale);
 		AlternateSurface->Fill_Rect_Trans(rect, color, 25);
 		HiddenSurface->Blit_From(rect, *AlternateSurface, rect);
 		Blit_Rect(HiddenSurface, rect);
 
-		Font->Draw_String(ScoreSurface,Scores[i]->Name, 20, yPos, 2);
-		MSWordAnim * anim = new MSWordAnim(Scores[i]->Name, XPos + 20, YPos + yPos, Font);
+		Font->Draw_String(ScoreSurface,Scores[i]->Name, 20 * Scale, yPos, 2);
+		MSWordAnim * anim = new MSWordAnim(Scores[i]->Name, XPos + 20 * Scale, YPos + yPos, Font);
 		Add_Animation(anim);
 		Wait_For_Anim(anim);
 
@@ -767,7 +792,7 @@ void MultiScore::Print_Player_Names(void)
 		HiddenSurface->Blit_From(rect, *AlternateSurface, rect);
 		Blit_Rect(HiddenSurface, rect);
 
-		yPos += 35;
+		yPos += 35 * Scale;
 	}
 
 	Wait_Delay(30);
@@ -787,7 +812,7 @@ void MultiScore::Draw_Losses(void)
 		scores[i] = Scores[i]->Lost[0];
 	}
 
-	Draw_Bars(scores, Session.NumScores, XPos + 152, YPos + 80, 100);
+	Draw_Bars(scores, Session.NumScores, XPos + 152 * Scale, YPos + 80 * Scale, 100 * Scale);
 	Wait_Delay(45);
 }
 
@@ -805,7 +830,7 @@ void MultiScore::Draw_Kills(void)
 		scores[i] = Scores[i]->Kills[0];
 	}
 
-	Draw_Bars(scores, Session.NumScores, XPos + 274, YPos + 80, 100);
+	Draw_Bars(scores, Session.NumScores, XPos + 274 * Scale, YPos + 80 * Scale, 100 * Scale);
 	Wait_Delay(45);
 }
 
@@ -823,7 +848,7 @@ void MultiScore::Draw_Economy(void)
 		scores[i] = Scores[i]->Built[0];
 	}
 
-	Draw_Bars(scores, Session.NumScores, XPos + 396, YPos + 80, 100);
+	Draw_Bars(scores, Session.NumScores, XPos + 396 * Scale, YPos + 80 * Scale, 100 * Scale);
 	Wait_Delay(45);
 }
 
@@ -852,7 +877,7 @@ void MultiScore::Print_Scores(void)
 	/// Animate the scores incrementally
 	if (maxScore > 0) {
 		for (int percentage = 1; percentage <= 100; percentage++) {
-			int yPos = YPos + 80;
+			int yPos = YPos + 80 * Scale;
 
 			for (i = 0; i < Session.NumScores; i++) {
 
@@ -864,7 +889,7 @@ void MultiScore::Print_Scores(void)
 					Add_Update_Rect(updateRects[i]);
 				}
 
-				int xPos = XPos + 575;
+				int xPos = XPos + 575 * Scale;
 
 				/// Calculate the current score based on the percentage
 				int currentScore = (percentage * score) / 100;
@@ -872,7 +897,7 @@ void MultiScore::Print_Scores(void)
 				Add_Update_Rect(updateRects[i]);
 
 				/// Move to the next player's score position
-				yPos += 35;
+				yPos += 35 * Scale;
 			}
 
 			/// Play the "Graph" sound effect and wait briefly
@@ -882,15 +907,15 @@ void MultiScore::Print_Scores(void)
 	}
 
 	/// Draw the final scores
-	int yPos = YPos + 80;
+	int yPos = YPos + 80 * Scale;
 	for (i = 0; i < Session.NumScores; i++) {
 		/// The score and maximum arguments really are the other way round here. Print_Score
 		/// only uses 'maximum' to clamp, so the smaller of 100 and the player's score is
 		/// printed either way.
 		int score = Scores[i]->Score[0];
-		Print_Score(AlternateSurface, 100, score, XPos + 575, yPos);
-		Print_Score(ScoreSurface, 100, score, 575, yPos - YPos);
-		yPos += 35;
+		Print_Score(AlternateSurface, 100 * Scale, score, XPos + 575 * Scale, yPos);
+		Print_Score(ScoreSurface, 100 * Scale, score, 575 * Scale, yPos - YPos);
+		yPos += 35 * Scale;
 	}
 }
 
@@ -940,7 +965,7 @@ void MultiScore::Draw_Bars(int * scores, int numScores, int x, int y, int width)
 	/// Scale scores if the maximum score is less than 20
 	if (maxScore < 20) {
 		for (i = 0; i < numScores; i++) {
-			adjustedScores[i] = scores[i] * 5;
+			adjustedScores[i] = scores[i] * 5 * Scale;
 		}
 	}
 
@@ -959,17 +984,17 @@ void MultiScore::Draw_Bars(int * scores, int numScores, int x, int y, int width)
 		RGBClass color = ColorSchemes[Scores[i]->Scheme]->HSV;
 
 		/// Draw the bar background
-		Rect barRect(x - XPos, yPos, adjustedScores[i], 20);
+		Rect barRect(x - XPos, yPos, adjustedScores[i], 20 * Scale);
 		ScoreSurface->Fill_Rect_Trans(barRect, color, 50);
 
 		int colorInt = RGB_To_Pixel(color);
 
 		/// Draw the bar outline
-		barRect.Set(x - XPos, yPos, width, 20);
+		barRect.Set(x - XPos, yPos, width, 20 * Scale);
 		ScoreSurface->Draw_Rect(barRect, colorInt);
 
 		/// Draw the bar on the alternate and hidden surfaces
-		barRect.Set(x, yPos + YPos, width, 20);
+		barRect.Set(x, yPos + YPos, width, 20 * Scale);
 		AlternateSurface->Draw_Rect(barRect, colorInt);
 		HiddenSurface->Draw_Rect(barRect, colorInt);
 
@@ -977,7 +1002,7 @@ void MultiScore::Draw_Bars(int * scores, int numScores, int x, int y, int width)
 		Add_Update_Rect(barRect);
 
 		/// Move to the next bar position
-		yPos += 35;
+		yPos += 35 * Scale;
 	}
 
 	/// Temporary buffer to store rectangles for updating
@@ -998,8 +1023,8 @@ void MultiScore::Draw_Bars(int * scores, int numScores, int x, int y, int width)
 			}
 
 			if (percentage <= adjustedScores[i]) {
-				dr.Set(x, yPos, percentage, 20);
-				sr.Set(x - XPos, yPos - YPos, percentage, 20);
+				dr.Set(x, yPos, percentage, 20 * Scale);
+				sr.Set(x - XPos, yPos - YPos, percentage, 20 * Scale);
 				HiddenSurface->Blit_From(dr, *ScoreSurface, sr);
 				AlternateSurface->Blit_From(dr, *ScoreSurface, sr);
 				Add_Update_Rect(dr);
@@ -1012,7 +1037,7 @@ void MultiScore::Draw_Bars(int * scores, int numScores, int x, int y, int width)
 			}
 
 			/// Move to the next bar position
-			yPos += 35;
+			yPos += 35 * Scale;
 		}
 
 		/// Play the "Graph" sound effect and wait briefly
@@ -1033,8 +1058,8 @@ void MultiScore::Draw_Bars(int * scores, int numScores, int x, int y, int width)
 	int srcYPos = y - YPos;
 	for (i = 0; i < numScores; i++) {
 		/// Draw the final bar
-		dr.Set(x, y, adjustedScores[i], 20);
-		sr.Set(x - XPos, srcYPos, adjustedScores[i], 20);
+		dr.Set(x, y, adjustedScores[i], 20 * Scale);
+		sr.Set(x - XPos, srcYPos, adjustedScores[i], 20 * Scale);
 		AlternateSurface->Blit_From(dr, *ScoreSurface, sr);
 
 		/// Draw the final score text
@@ -1043,8 +1068,8 @@ void MultiScore::Draw_Bars(int * scores, int numScores, int x, int y, int width)
 		Add_Update_Rect(Print_Score(HiddenSurface, scores[i], scores[i], x + width / 2, y));
 
 		/// Move to the next bar position
-		y += 35;
-		srcYPos += 35;
+		y += 35 * Scale;
+		srcYPos += 35 * Scale;
 	}
 }
 
