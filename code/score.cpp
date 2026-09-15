@@ -72,6 +72,7 @@
 #include "scenario.h"
 #include "screenlayout.h"
 #include "session.h"
+#include "ui/uiscreens.h"
 #include "shapemagnify.h"
 #include "shapeset.h"
 #include "surface.h"
@@ -120,6 +121,22 @@ struct Fame {
  * HISTORY:                                                                                    *
  *   05/02/1994     : Created.                                                                 *
  *=============================================================================================*/
+// Registered through the entry point rather than through the screen, so a run exercises the
+// path a caller takes. It is only meaningful once a scenario has been read.
+static bool Open_Score_Screen(void)
+{
+	if (Scen == nullptr) {
+		return(false);
+	}
+
+	ScoreClass().Presentation();
+	return(true);
+}
+
+
+static UIScreenRegistration _Register("score", Open_Score_Screen);
+
+
 /// <summary>
 /// Loads one of the score screen's box arts, enlarged to the multiple the screen is laid out
 /// at. The caller owns the result and releases it with Free_Score_Shape at the same scale.
