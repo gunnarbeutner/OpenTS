@@ -33,6 +33,7 @@
 #pragma once
 
 #include "rect.h"
+#include "screenlayout.h"
 #include "stimer.h"
 #include "timer.h"
 #include "vector.h"
@@ -131,6 +132,14 @@ class ScoreClass {
 		 */
 		int XPos;
 		int YPos;
+
+		/*
+		 * This is how far the artwork's own units are carried to reach the window's. The
+		 * screen is laid out at whatever size the frame fits its plate at, not at a whole
+		 * multiple of it, so this is a ratio; what the fonts report is already in the
+		 * window's units, because their glyphs are enlarged by the same ratio.
+		 */
+		ShellScale Scale;
 
 		/*
 		 * This points to the off screen surface holding the score screen's backdrop. It
@@ -290,6 +299,19 @@ class ScoreFontClass
 		bool IsShapeAllocated;
 
 		/*
+		 * If the glyph shapes were enlarged for a screen drawing at a multiple of the
+		 * artwork's own size, then this flag will be true and the font owns the enlarged
+		 * copy, whatever the shapes were loaded from.
+		 */
+		bool IsShapeMagnified;
+
+		/*
+		 * This is the ratio the glyphs were enlarged by, which the space character needs
+		 * because it has no glyph to measure.
+		 */
+		ShellScale Scale;
+
+		/*
 		 * This is the palette converter the glyphs are drawn through. It is handed down
 		 * from the score screen, which owns it.
 		 */
@@ -305,6 +327,7 @@ class ScoreFontClass
 		virtual void Print_Char(Surface *surf, char32_t code, int x, int y, int v, bool play_sound);
 		void Print_Char(Surface *, char, int, int, int, bool) = delete;
 
+		void Magnify_Glyphs(char const * name, ShellScale const & scale);
 		void Load_Sounds(void);
 		int Get_Width(void) { return(Width); }
 		int Get_Height(void) { return(Height); }
@@ -317,7 +340,7 @@ class ScoreFontClass
 class ScoreFullFontClass : public ScoreFontClass
 {
 	public:
-		ScoreFullFontClass(ConvertClass * drawer);
+		ScoreFullFontClass(ConvertClass * drawer, ShellScale const & scale = ShellScale());
 		virtual ~ScoreFullFontClass(void) override {}
 };
 
@@ -325,7 +348,7 @@ class ScoreFullFontClass : public ScoreFontClass
 class ScoreBigFontClass : public ScoreFontClass
 {
 	public:
-		ScoreBigFontClass(ConvertClass * drawer);
+		ScoreBigFontClass(ConvertClass * drawer, ShellScale const & scale = ShellScale());
 		virtual ~ScoreBigFontClass(void) override {}
 };
 
