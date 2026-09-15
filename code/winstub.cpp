@@ -85,18 +85,23 @@ unsigned int Build_Number(void)
 /// filled picture keeps its shape and leaves black beside it.</remarks>
 Point2D Load_Title_Screen(char const * name, Surface * surface, PaletteClass * palette, bool fill)
 {
-	// A release may carry this picture prepared at a multiple of the artwork's
-	// own size. What is worth taking is set by the space it is drawn into: the
-	// whole surface when filling, the design rectangle when centred.
-	{
-		Rect const space = fill ? surface->Get_Rect() : Shell_Rect();
-		int const wanted = (space.Width > SHELL_DESIGN_WIDTH) ? space.Width / SHELL_DESIGN_WIDTH : 1;
+	Rect const space = fill ? surface->Get_Rect() : Shell_Rect();
 
+	// What is worth fetching is set by the space the picture is drawn into. What it is
+	// drawn at is set by the space's own scale, which is one for a screen that claimed no
+	// design space and leaves every such caller with the artwork at its own size.
+	int const wanted = (space.Width > SHELL_DESIGN_WIDTH) ? space.Width / SHELL_DESIGN_WIDTH : 1;
+	int const laid_out = (!fill && Shell_Size_Is_Claimed() && space.Width > SHELL_DESIGN_WIDTH)
+		? space.Width / SHELL_DESIGN_WIDTH : 1;
+
+	// A release may carry this picture prepared at a multiple of the artwork's own size.
+	{
 		int prepared = 1;
 		Surface * picture = Prepared_Picture_Load(name, wanted, prepared);
 
 		if (picture != nullptr) {
-			Point2D const own(picture->Get_Width() / prepared, picture->Get_Height() / prepared);
+			Point2D const own(picture->Get_Width() * laid_out / prepared,
+				picture->Get_Height() * laid_out / prepared);
 			Rect const dest = fill
 				? Fit_Centered(Point2D(picture->Get_Width(), picture->Get_Height()), surface->Get_Rect())
 				: Rect(space.X + (space.Width - own.X) / 2, space.Y + (space.Height - own.Y) / 2, own.X, own.Y);
@@ -115,14 +120,15 @@ Point2D Load_Title_Screen(char const * name, Surface * surface, PaletteClass * p
 		return(Point2D(0, 0));
 	}
 
-	Point2D const size(load_buffer->Get_Width(), load_buffer->Get_Height());
+	Point2D const native(load_buffer->Get_Width(), load_buffer->Get_Height());
+	Point2D const size(native.X * laid_out, native.Y * laid_out);
 	Rect const dest = fill
-		? Fit_Centered(size, surface->Get_Rect())
-		: Rect((surface->Get_Width() - size.X) / 2, (surface->Get_Height() - size.Y) / 2, size.X, size.Y);
+		? Fit_Centered(native, surface->Get_Rect())
+		: Rect(space.X + (space.Width - size.X) / 2, space.Y + (space.Height - size.Y) / 2, size.X, size.Y);
 
 	if (palette && load_buffer->Bytes_Per_Pixel() == 1) {
 		ConvertClass *drawer = new ConvertClass(*palette, *palette, *surface);
-		if (dest.Width == size.X && dest.Height == size.Y) {
+		if (dest.Width == native.X && dest.Height == native.Y) {
 			Blit_Block(*surface, *drawer, *load_buffer, load_buffer->Get_Rect(), dest.TopLeft, surface->Get_Rect());
 		} else {
 			/*
@@ -130,7 +136,7 @@ Point2D Load_Title_Screen(char const * name, Surface * surface, PaletteClass * p
 			 * conversion runs once at the picture's size and the surface blit
 			 * magnifies the result.
 			 */
-			BSurface converted(size.X, size.Y, surface->Bytes_Per_Pixel());
+			BSurface converted(native.X, native.Y, surface->Bytes_Per_Pixel());
 			converted.Fill(TBLACK);
 			Blit_Block(converted, *drawer, *load_buffer, load_buffer->Get_Rect(), Point2D(0, 0), converted.Get_Rect());
 			surface->Blit_From(dest, converted, converted.Get_Rect());

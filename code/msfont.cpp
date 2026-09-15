@@ -19,6 +19,7 @@
 #include "data.h"
 #include "dbgprint.h"
 #include "draw.h"
+#include "shapemagnify.h"
 #include "audio/audioengine.h"
 #include "dsurface.h"
 #include "globals.h"
@@ -58,12 +59,12 @@ int MSFont::Glyph_Frame(char32_t code) const
 /// suit the side being played or with the neutral palette.
 /// </summary>
 /// <param name="use_side_palette">Should the font take its colors from the side palette?</param>
-MSFont::MSFont(bool use_side_palette) :
+MSFont::MSFont(bool use_side_palette, ShellScale const & scale) :
 	Red(0),
 	Green(0),
 	Blue(0)
 {
-	Init("FULLFNT3.SHP", use_side_palette ? "SIDEFNT3.PAL" : "FULLFNT3.PAL");
+	Init("FULLFNT3.SHP", use_side_palette ? "SIDEFNT3.PAL" : "FULLFNT3.PAL", scale);
 	InstanceCount++;
 }
 
@@ -129,13 +130,16 @@ MSFont::~MSFont(void)
 		}
 
 		if (FontFile != NULL) {
-			if (AllocLoaded == true) {
+			if (Magnified == true) {
+				delete [] (char *)FontFile;
+			} else if (AllocLoaded == true) {
 				delete FontFile;
 			}
 		}
 
 		FontFile = NULL;
 		AllocLoaded = false;
+		Magnified = false;
 	}
 }
 
@@ -150,15 +154,21 @@ MSFont::~MSFont(void)
 /// <param name="palette_name">The name of the palette to color the glyphs with.</param>
 /// <returns>bool; Was the font made ready for use?</returns>
 /// <remarks>The global CCPalette is overwritten with this font's palette.</remarks>
-bool MSFont::Init(char const * file_name, char const * palette_name)
+bool MSFont::Init(char const * file_name, char const * palette_name, ShellScale const & scale)
 {
 	CCFileClass file;
 
 	AllocLoaded = false;
+	Magnified = false;
+
+	int size = 0;
 	FontFile = (ShapeSet *)MFCD::Retrieve(file_name);
 
-	if (FontFile == NULL) {
+	if (FontFile != NULL) {
+		MFCD::Offset(file_name, NULL, NULL, NULL, &size);
+	} else {
 		file.Set_Name(file_name);
+		size = file.Size();
 		FontFile = (ShapeSet *)Load_Alloc_Data(file);
 		AllocLoaded = true;
 		DebugString("MSFont: AllocLoaded FULLFNT3.SHP\n");
@@ -166,6 +176,18 @@ bool MSFont::Init(char const * file_name, char const * palette_name)
 
 	if (FontFile == NULL) {
 		return(false);
+	}
+
+	// Every width this font reports is measured off the glyph shapes, so enlarging them is
+	// what makes the lettering keep its size against a screen laid out larger.
+	ShapeSet * magnified = Magnify_Shape(FontFile, size, scale.Numerator, scale.Denominator);
+	if (magnified != NULL) {
+		if (AllocLoaded) {
+			delete FontFile;
+		}
+		FontFile = magnified;
+		AllocLoaded = false;
+		Magnified = true;
 	}
 
 	file.Set_Name(palette_name);

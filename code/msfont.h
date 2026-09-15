@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "screenlayout.h"
+
 class Surface;
 class ConvertClass;
 class ShapeSet;
@@ -18,7 +20,7 @@ typedef TRect<int> Rect;
 class MSFont
 {
 	public:
-		MSFont(bool use_side_palette = true);
+		MSFont(bool use_side_palette = true, ShellScale const & scale = ShellScale());
 		MSFont(char const * file_name);
 		MSFont(char const * file_name, char const * palette_name);
 		virtual ~MSFont(void);
@@ -31,7 +33,7 @@ class MSFont
 		unsigned char Get_Blue(void) {return(Blue);}
 		int Get_Color(void) {return(Color);}
 
-		bool Init(char const * file_name, char const * palette_name);
+		bool Init(char const * file_name, char const * palette_name, ShellScale const & scale = ShellScale());
 
 		void Get_String_Rect(char const * string, Rect & rect);
 
@@ -91,4 +93,10 @@ class MSFont
 		 * the font, so only those are freed when the last font is destroyed.
 		 */
 		bool AllocLoaded;
+
+		/*
+		 * If the glyphs were enlarged for a screen drawing at a multiple of the artwork's
+		 * own size, then this flag will be true and the font owns the enlarged copy.
+		 */
+		bool Magnified;
 };

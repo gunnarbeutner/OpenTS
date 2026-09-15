@@ -95,6 +95,37 @@ void Fill_Out_Shell(void);
 /// Returns the design rectangle centered in the surfaces the shell draws
 /// into, or the whole surface when no screen has claimed a design space.
 /// </summary>
+/// <summary>
+/// A magnification that need not be a whole number, so a screen can be laid out at the size
+/// its frame fits the artwork at. Multiplying a measurement in the artwork's units by one of
+/// these carries it to the window's.
+/// </summary>
+struct ShellScale
+{
+	int Numerator = 1;
+	int Denominator = 1;
+
+	int Apply(int value) const
+	{
+		return((int)(((long long)value * Numerator) / Denominator));
+	}
+
+	/// <summary>
+	/// Carries a measurement in the window's units back to the artwork's, which is what a
+	/// pointer position needs before it is looked up in artwork the screen never magnified.
+	/// </summary>
+	int Unapply(int value) const
+	{
+		if (Numerator <= 0) return(value);
+		return((int)(((long long)value * Denominator) / Numerator));
+	}
+};
+
+
+inline int operator*(int value, ShellScale const & scale) { return(scale.Apply(value)); }
+inline int & operator*=(int & value, ShellScale const & scale) { value = scale.Apply(value); return(value); }
+
+
 Rect Shell_Rect(void);
 
 /// <summary>
