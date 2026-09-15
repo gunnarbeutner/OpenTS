@@ -93,17 +93,15 @@ EM_JS(void, Image_Element_Take, (void * destination, int stride), {
 
 
 // The multiple a copy was prepared at is part of its name, so one lookup
-// answers both which copy exists and what it is. A copy at the artwork's own
-// size carries no multiple.
+// answers both which copy exists and what it is. Every multiple is spelled the
+// same way, the artwork's own size included.
 std::string Browser_Name(char const * picture_filename, int scale)
 {
 	std::string name(picture_filename);
 	std::size_t const dot = name.find_last_of('.');
 	std::string const stem = (dot == std::string::npos) ? name : name.substr(0, dot);
 
-	if (scale <= 1) {
-		return(stem + ".WEBP");
-	}
+	if (scale < 1) scale = 1;
 
 	return(stem + "." + std::to_string(scale) + "X.WEBP");
 }
@@ -144,13 +142,13 @@ bool Image_Browser_Available(char const * picture_filename)
 }
 
 
-// A picture resolves through the manifest's "files" section like a movie does,
-// to a URL the browser fetches and caches itself.
-Surface * Image_Browser_Load(char const * picture_filename, int wanted, int & scale)
+// The copy a page should take, as a URL and the multiple it was prepared at.
+// Empty when the release prepared none.
+static std::string Prepared_Url(char const * picture_filename, int wanted, int & scale)
 {
 	scale = 1;
 
-	if (picture_filename == nullptr || *picture_filename == '\0') return(nullptr);
+	if (picture_filename == nullptr || *picture_filename == '\0') return(std::string());
 
 	if (wanted > SCALE_MAX) wanted = SCALE_MAX;
 	if (wanted < 1) wanted = 1;
@@ -179,7 +177,29 @@ Surface * Image_Browser_Load(char const * picture_filename, int wanted, int & sc
 		}
 	}
 
-	if (url.empty()) return(nullptr);
+	return(url);
+}
+
+
+int Image_Browser_Scale(char const * picture_filename, int wanted)
+{
+	int scale = 1;
+	Prepared_Url(picture_filename, wanted, scale);
+
+	return(scale);
+}
+
+
+// A picture resolves through the manifest's "files" section like a movie does,
+// to a URL the browser fetches and caches itself.
+Surface * Image_Browser_Load(char const * picture_filename, int wanted, int & scale)
+{
+	std::string const url = Prepared_Url(picture_filename, wanted, scale);
+
+	if (url.empty()) {
+		scale = 1;
+		return(nullptr);
+	}
 
 	int size[2] = {0, 0};
 	if (!Image_Element_Decode(url.c_str(), size) || size[0] <= 0 || size[1] <= 0) {

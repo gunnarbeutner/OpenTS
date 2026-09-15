@@ -20,6 +20,13 @@ class Surface;
 bool Image_Browser_Available(char const * picture_filename);
 
 /// <summary>
+/// The multiple a prepared copy of this picture would be taken at, without fetching or
+/// decoding it, so a screen can claim its design space before it draws. One when the
+/// release prepared none.
+/// </summary>
+int Image_Browser_Scale(char const * picture_filename, int wanted);
+
+/// <summary>
 /// Decodes the release's WebP copy of a picture into a new 16 bit surface the
 /// caller owns, or returns null when the release carries none the page can
 /// use. The largest copy prepared at no more than <paramref name="wanted"/>
