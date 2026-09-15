@@ -1609,15 +1609,24 @@ Surface * Prepared_Picture_Load(char const * name, int wanted, int & scale)
 
 
 /// <summary>
-/// The multiple a release prepared this picture at, up to <paramref name="wanted"/>, without
-/// reading the picture. One when the release prepared none, which is what a screen laid out
-/// in the artwork's own units wants anyway.
+/// The multiple a screen may lay itself out at for this picture, which is what the release
+/// prepared but never more than <paramref name="wanted"/>. A picture is worth taking at a
+/// larger multiple than the page asks for, since drawing it down keeps more of it than
+/// magnifying a smaller copy; a design space is not, because one larger than the surface it
+/// is drawn into is clipped rather than fitted. One when the release prepared none.
 /// </summary>
 int Prepared_Picture_Scale(char const * name, int wanted)
 {
+	if (wanted < 1) {
+		wanted = 1;
+	}
+
+#if defined(__EMSCRIPTEN__)
+	return(std::min(Image_Browser_Scale(name, wanted), wanted));
+#else
 	(void)name;
-	(void)wanted;
 	return(1);
+#endif
 }
 
 
