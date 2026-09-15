@@ -48,6 +48,7 @@
 #include "houstype.h"
 #include "keyboard.h"
 #include "msanim.h"
+#include "ui/uiscreens.h"
 #include "mschoice.h"
 #include "msengine.h"
 #include "msfont.h"
@@ -155,6 +156,30 @@ const char * Map_Selection(ScenarioClass * scen)
 /// <param name="scenario">The scenario to advance. It is updated with the map named.</param>
 /// <param name="map_name">Name of the scenario to advance to.</param>
 /// <returns>Returns with the map name if the advance succeeded, otherwise NULL.</returns>
+// Registered through the entry point rather than through the screen, so a run exercises the
+// path a caller takes. It is only meaningful over a scenario whose stage the campaign holds.
+static bool Open_Map_Selection(void)
+{
+	if (Scen == nullptr) {
+		return(false);
+	}
+
+	// The campaign reaches this screen between missions, with no scenario drawing under
+	// it. Restate_Mission suspends the flag for the same reason, and a run that left it
+	// set would have the map rendering into the same surfaces the screen is using.
+	bool const started = ScenarioActive;
+	ScenarioActive = false;
+
+	Map_Selection(Scen);
+
+	ScenarioActive = started;
+	return(true);
+}
+
+
+static UIScreenRegistration _Register("map-selection", Open_Map_Selection);
+
+
 const char * Map_Select_Advance(ScenarioClass * scenario, const char * map_name)
 {
 	if (MapSelect().Advance_Progression(scenario, map_name) == false) {
