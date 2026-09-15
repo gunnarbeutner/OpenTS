@@ -36,6 +36,7 @@
 #include "session.h"
 #include "stats.h"
 #include "surface.h"
+#include "ui/uiscreens.h"
 #include "winstub.h"
 
 #include "color.hh"
@@ -118,6 +119,27 @@ void Multi_Score_Presentation(void)
 	MultiScore().Multi_Presentation();
 	Keyboard->Clear();
 }
+
+
+// Registered through the entry point rather than through the screen, so a run exercises the
+// path a caller takes. The table is empty outside a finished multiplayer game; what a run of
+// it shows is the screen's own geometry.
+static bool Open_Multi_Score(void)
+{
+	// The session reaches this screen once the game has ended, with no scenario drawing
+	// under it. A run that left the flag set would have the map rendering into the same
+	// surfaces the screen is using.
+	bool const started = ScenarioActive;
+	ScenarioActive = false;
+
+	Multi_Score_Presentation();
+
+	ScenarioActive = started;
+	return(true);
+}
+
+
+static UIScreenRegistration _Register("multi-score", Open_Multi_Score);
 
 
 /// <summary>
