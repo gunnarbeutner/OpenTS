@@ -19,6 +19,7 @@
 #include "data.h"
 #include "dbgprint.h"
 #include "draw.h"
+#include "shapemagnify.h"
 #include "audio/audioengine.h"
 #include "dsurface.h"
 #include "globals.h"
@@ -33,6 +34,11 @@
 #include "utf8.h"
 
 #include <algorithm>
+
+
+// The size every backdrop film was authored at.
+static int const MOVIE_WIDTH = 640;
+static int const MOVIE_HEIGHT = 400;
 
 
 ShapeFlags_Type FadeStages[4] = { ShapeFlags_Type(SHAPE_WIN_REL | SHAPE_TRANSLUCENT75),
@@ -103,21 +109,39 @@ MSAnim::~MSAnim(void)
 /// <param name="rate">The delay in game frames between animation frames.</param>
 /// <param name="loop">Should the animation start over when it runs off the end?</param>
 /// <param name="flags">The shape drawing flags to render with.</param>
-MSShapeAnim::MSShapeAnim(char const * name, int x, int y, ConvertClass * drawer, int rate, bool loop, ShapeFlags_Type flags) :
+MSShapeAnim::MSShapeAnim(char const * name, int x, int y, ConvertClass * drawer, int rate, bool loop, ShapeFlags_Type flags, ShellScale const & scale) :
 	MSAnim(x, y),
 	Drawer(drawer),
 	Loop(loop),
 	Rate(rate),
 	CurFrame(0),
 	ShapeFlags(flags),
-	AllocLoaded(false)
+	AllocLoaded(false),
+	Magnified(false)
 {
+	int size = 0;
+
 	Shape = (ShapeSet *)MFCD::Retrieve(name);
-	if (Shape == NULL) {
+	if (Shape != NULL) {
+		MFCD::Offset(name, NULL, NULL, NULL, &size);
+	} else {
 		CCFileClass file(name);
+		size = file.Size();
 		Shape = (ShapeSet *)Load_Alloc_Data(file);
 		AllocLoaded = true;
 		DebugString("MSShapeAnim: AllocLoaded %s\n", name);
+	}
+
+	// The enlarged copy is what every rectangle and draw position is then measured
+	// against, so the anim reads the same whatever size the screen is laid out at.
+	ShapeSet * magnified = Magnify_Shape(Shape, size, scale.Numerator, scale.Denominator);
+	if (magnified != NULL) {
+		if (AllocLoaded) {
+			delete Shape;
+		}
+		Shape = magnified;
+		AllocLoaded = false;
+		Magnified = true;
 	}
 
 	StartFrame = 0;
@@ -132,7 +156,13 @@ MSShapeAnim::MSShapeAnim(char const * name, int x, int y, ConvertClass * drawer,
 /// </summary>
 MSShapeAnim::~MSShapeAnim(void)
 {
-	if (Shape != NULL && AllocLoaded == true) {
+	if (Shape == NULL) {
+		return;
+	}
+
+	if (Magnified == true) {
+		delete [] (char *)Shape;
+	} else if (AllocLoaded == true) {
 		delete Shape;
 	}
 }
@@ -297,8 +327,8 @@ Rect MSShapeAnim::Get_Rect(void) const
 /// <param name="rate">The delay in game frames between animation frames.</param>
 /// <param name="flags">The shape drawing flags to render with.</param>
 /// <param name="vector">The list of sibling anims to repair over this one.</param>
-MSFadeAnim::MSFadeAnim(char const * name, int x, int y, ConvertClass * drawer, int rate, ShapeFlags_Type flags, MS_ANIM_LIST * vector) :
-	MSShapeAnim(name, x, y, drawer, rate, false, flags),
+MSFadeAnim::MSFadeAnim(char const * name, int x, int y, ConvertClass * drawer, int rate, ShapeFlags_Type flags, MS_ANIM_LIST * vector, ShellScale const & scale) :
+	MSShapeAnim(name, x, y, drawer, rate, false, flags, scale),
 	Anims(vector)
 {
 	//nothing
@@ -428,8 +458,8 @@ void MSFadeAnim::Redraw(Surface * surface, Rect const * rect)
 /// <param name="vector">The list of sibling anims to repair over this one.</param>
 /// <param name="persistent">Should the anim stay alive once the fade is done?</param>
 /// <param name="frame">The shape frame to fade into place.</param>
-MSOverlayAnim::MSOverlayAnim(char const * name, int x, int y, ConvertClass * drawer, int rate, MS_ANIM_LIST * vector, bool persistent, unsigned frame) :
-	MSFadeAnim(name, x, y, drawer, rate, SHAPE_NORMAL, vector),
+MSOverlayAnim::MSOverlayAnim(char const * name, int x, int y, ConvertClass * drawer, int rate, MS_ANIM_LIST * vector, bool persistent, unsigned frame, ShellScale const & scale) :
+	MSFadeAnim(name, x, y, drawer, rate, SHAPE_NORMAL, vector, scale),
 	Persistent(persistent),
 	Frame(frame)
 {
@@ -591,31 +621,51 @@ bool MSOverlayAnim::Has_Finished(void) const
 /// <param name="surface">The surface the movie is played onto.</param>
 /// <param name="vector">The list of sibling anims to repair over the movie.</param>
 /// <param name="persistent">Should the anim stay alive after the movie has ended?</param>
-MSVQAnim::MSVQAnim(char const * name, Surface * surface, MS_ANIM_LIST * vector, bool persistent) :
+MSVQAnim::MSVQAnim(char const * name, Surface * surface, MS_ANIM_LIST * vector, bool persistent, Surface * background, Rect const * destination) :
 	MSAnim(0, 0, false),
 	Anims(vector),
 	Movie(NULL),
-	Background(NULL),
+	Background(background),
+	Film(NULL),
+	Destination(0, 0, 0, 0),
 	Persistent(persistent),
 	Done(false)
 {
 	if (name != NULL && surface != NULL) {
-		Movie = Movie_Create(name, surface, Rect(0, 0, 0, 0), Rect(0, 0, 0, 0), 255, false);
-		if (Movie != NULL) {
-			// A menu backdrop keeps this size whatever the movie stretching
-			// option says, because the menu items and the still picture are
-			// laid out against it unscaled.
-			Movie->InitialRect = Rect((surface->Get_Width() - 640) / 2, (surface->Get_Height() - 400) / 2, 640, 400);
-			Movie->StretchRect = Rect((HiddenSurface->Get_Width() - 640) / 2, (HiddenSurface->Get_Height() - 400) / 2, 640, 400);
+		bool const magnify = destination != NULL
+			&& (destination->Width != MOVIE_WIDTH || destination->Height != MOVIE_HEIGHT);
+
+		if (magnify) {
+			Film = new BSurface(MOVIE_WIDTH, MOVIE_HEIGHT, surface->Bytes_Per_Pixel());
+			Film->Fill(0);
 		}
-		char pcx_name[64];
-		UTF8::Copy(pcx_name, name);
-		char *tok = strtok(pcx_name, ".");
-		if (tok != NULL) {
-			strcat(tok, ".PCX");
-			CCFileClass file(pcx_name);
-			if (file.Is_Available()) {
-				Background = Read_PCX_File(file);
+
+		// A menu backdrop keeps the film's own size whatever the movie stretching
+		// option says, because the menu items and the still picture are laid out
+		// against it unscaled.
+		Destination = (Film != NULL) ? *destination
+			: Rect((surface->Get_Width() - MOVIE_WIDTH) / 2, (surface->Get_Height() - MOVIE_HEIGHT) / 2, MOVIE_WIDTH, MOVIE_HEIGHT);
+
+		Movie = Movie_Create(name, (Film != NULL) ? Film : surface, Rect(0, 0, 0, 0), Rect(0, 0, 0, 0), 255, false);
+		if (Movie != NULL) {
+			// The movie's own rectangles place the frame within the surface it decodes
+			// into, which is Film when there is one; where the backdrop then lands is
+			// Destination's business.
+			Movie->InitialRect = (Film != NULL) ? Film->Get_Rect() : Destination;
+			Movie->StretchRect = (Film != NULL) ? Film->Get_Rect()
+				: Rect((HiddenSurface->Get_Width() - MOVIE_WIDTH) / 2, (HiddenSurface->Get_Height() - MOVIE_HEIGHT) / 2, MOVIE_WIDTH, MOVIE_HEIGHT);
+		}
+
+		if (Background == NULL) {
+			char pcx_name[64];
+			UTF8::Copy(pcx_name, name);
+			char *tok = strtok(pcx_name, ".");
+			if (tok != NULL) {
+				strcat(tok, ".PCX");
+				CCFileClass file(pcx_name);
+				if (file.Is_Available()) {
+					Background = Read_PCX_File(file);
+				}
 			}
 		}
 	}
@@ -630,6 +680,10 @@ MSVQAnim::~MSVQAnim(void)
 {
 	if (Background != NULL) {
 		delete Background;
+	}
+
+	if (Film != NULL) {
+		delete Film;
 	}
 
 	if (Movie != NULL) {
@@ -654,27 +708,31 @@ bool MSVQAnim::Advance(Surface * surface, Rect & rect)
 		if (!Done) {
 			bool advanced = Movie_Advance_Frame(Movie, is_done);
 			if (advanced == true) {
+				if (Film != NULL) {
+					AlternateSurface->Blit_From(Destination, *Film, Film->Get_Rect(), false, true, SURFACE_FILTER_SHARP);
+				}
+
 				Redraw(surface);
-				rect = Movie->StretchRect;
+				rect = Destination;
 
 				int my_id = Anims->ID(this);
 				for (int i = 0; i < Anims->Count(); i++) {
 					if (i != my_id) {
-						(*Anims)[i]->Redraw(surface, &Movie->StretchRect);
+						(*Anims)[i]->Redraw(surface, &Destination);
 					}
 				}
 			}
 
 			if (is_done == true) {
 				if (Background != NULL) {
-					AlternateSurface->Blit_From(Movie->InitialRect, *Background, Background->Get_Rect());
+					AlternateSurface->Blit_From(Destination, *Background, Background->Get_Rect(), false, true, SURFACE_FILTER_SHARP);
 					Redraw(surface);
-					rect = Movie->StretchRect;
+					rect = Destination;
 
 					int my_id = Anims->ID(this);
 					for (int i = 0; i < Anims->Count(); i++) {
 						if (i != my_id) {
-							(*Anims)[i]->Redraw(surface, &Movie->StretchRect);
+							(*Anims)[i]->Redraw(surface, &Destination);
 						}
 					}
 				}
@@ -717,8 +775,8 @@ bool MSVQAnim::Advance(Surface * surface, Rect & rect)
 void MSVQAnim::Redraw(Surface * surface, const Rect * rect)
 {
 	if (Movie != NULL && !Done) {
-		if (rect == NULL || Intersect(*rect, Movie->StretchRect).Is_Valid()) {
-			surface->Blit_From(Movie->InitialRect, *AlternateSurface, Movie->StretchRect);
+		if (rect == NULL || Intersect(*rect, Destination).Is_Valid()) {
+			surface->Blit_From(Destination, *AlternateSurface, Destination);
 		}
 	}
 }
@@ -732,7 +790,7 @@ void MSVQAnim::Redraw(Surface * surface, const Rect * rect)
 void MSVQAnim::Restore(const Rect & rect)
 {
 	if (Done && Movie != NULL && Background != NULL) {
-		AlternateSurface->Blit_From(Movie->InitialRect, *Background, Background->Get_Rect());
+		AlternateSurface->Blit_From(Destination, *Background, Background->Get_Rect(), false, true, SURFACE_FILTER_SHARP);
 	}
 }
 
@@ -745,7 +803,7 @@ void MSVQAnim::Restore(const Rect & rect)
 Rect MSVQAnim::Get_Rect(void) const
 {
 	static Rect _rect_none(0,0,0,0);
-	return(Movie != NULL ? Movie->StretchRect : _rect_none);
+	return(Movie != NULL ? Destination : _rect_none);
 }
 
 
@@ -1542,6 +1600,19 @@ Surface * Prepared_Picture_Load(char const * name, int wanted, int & scale)
 	(void)name;
 	(void)wanted;
 	return(nullptr);
+}
+
+
+/// <summary>
+/// The multiple a release prepared this picture at, up to <paramref name="wanted"/>, without
+/// reading the picture. One when the release prepared none, which is what a screen laid out
+/// in the artwork's own units wants anyway.
+/// </summary>
+int Prepared_Picture_Scale(char const * name, int wanted)
+{
+	(void)name;
+	(void)wanted;
+	return(1);
 }
 
 

@@ -60,6 +60,7 @@
 #include "theme.h"
 #include "timer.h"
 
+#include <algorithm>
 #include <cassert>
 
 
@@ -90,6 +91,19 @@ class MapSelect : public MSEngine {
 	private:
 		int XOffset;
 		int YOffset;
+
+		/*
+		 * This is the multiple of the artwork's own size the screen is laid out at. It is
+		 * whatever the release prepared the stage's backdrop at, so every position read from
+		 * the control file is multiplied by it and every pointer position divided back down.
+		 */
+		ShellScale Scale;
+
+		/*
+		 * This is the stage's backdrop, taken before the design space is claimed because its
+		 * size is what decides that. The movie anim takes it over.
+		 */
+		Surface * Backdrop;
 
 		MapChoice Choices;
 
@@ -246,7 +260,12 @@ bool MapSelect::Presentation(ScenarioClass * scenario)
 		HiddenSurface->Fill(0);
 		VisibleSurface->Blit_From(*HiddenSurface);
 
-		MSAnim * anim = new MSVQAnim(map_stage->Get_Map_VQ_Name(), AlternateSurface, &Anims);
+		Rect const design = Shell_Rect();
+		MSAnim * anim = new MSVQAnim(map_stage->Get_Map_VQ_Name(), AlternateSurface, &Anims, false, Backdrop, &design);
+
+		// The movie anim owns the backdrop from here.
+		Backdrop = NULL;
+
 		Add_Animation(anim);
 
 		int i;
@@ -256,8 +275,8 @@ bool MapSelect::Presentation(ScenarioClass * scenario)
 
 				if (choice_anim != NULL) {
 					Add_Animation(new MSShapeAnim(choice_anim->Get_Filename(),
-						choice_anim->Get_X_Pos() + XOffset, choice_anim->Get_Y_Pos() + YOffset,
-						AnimDrawer, choice_anim->Get_Rate()));
+						choice_anim->Get_X_Pos() * Scale + XOffset, choice_anim->Get_Y_Pos() * Scale + YOffset,
+						AnimDrawer, choice_anim->Get_Rate(), true, SHAPE_NORMAL, Scale));
 				}
 			}
 		}
@@ -266,8 +285,8 @@ bool MapSelect::Presentation(ScenarioClass * scenario)
 			MSTextEntry * text = map_stage->Get_Text_Entry(i);
 
 			if (text != NULL) {
-				MSPrintAnim::Word_Wrap(text->Get_String(), Font, 640);
-				Add_Animation(new MSPrintAnim(text->Get_String(), XOffset + text->Get_X_Pos(), YOffset + text->Get_Y_Pos(), Font, TextRect, text->Get_Start_Time()));
+				MSPrintAnim::Word_Wrap(text->Get_String(), Font, MAPSEL_DESIGN.X * Scale);
+				Add_Animation(new MSPrintAnim(text->Get_String(), XOffset + text->Get_X_Pos() * Scale, YOffset + text->Get_Y_Pos() * Scale, Font, TextRect, text->Get_Start_Time()));
 			}
 		}
 
@@ -275,7 +294,7 @@ bool MapSelect::Presentation(ScenarioClass * scenario)
 		Wait_Delay(TIMER_SECOND);
 
 		for (i = 0; i < map_stage->Overlay_Count(); i++) {
-			anim = new MSOverlayAnim(map_stage->Get_Overlay_Name(i), XOffset, YOffset, OverlayDrawer, 5, &Anims);
+			anim = new MSOverlayAnim(map_stage->Get_Overlay_Name(i), XOffset, YOffset, OverlayDrawer, 5, &Anims, false, 0, Scale);
 
 			Play_Sound("Overlay");
 			Add_Animation(anim);
@@ -286,11 +305,11 @@ bool MapSelect::Presentation(ScenarioClass * scenario)
 		for (i = 0; i < map_stage->Target_Count(); i++) {
 			Point2D target = map_stage->Get_Target(i);
 
-			target.X += XOffset;
-			target.Y += YOffset;
+			target.X = target.X * Scale + XOffset;
+			target.Y = target.Y * Scale + YOffset;
 
-			anim = new MSFadeAnim("TARGET1.SHP", target.X, target.Y, AnimDrawer, 3, SHAPE_CENTER, &Anims);
-			MSShapeAnim * shape_anim = new MSShapeAnim("TARGET2.SHP", target.X, target.Y, AnimDrawer, 5, true, (ShapeFlags_Type)(SHAPE_CENTER));
+			anim = new MSFadeAnim("TARGET1.SHP", target.X, target.Y, AnimDrawer, 3, SHAPE_CENTER, &Anims, Scale);
+			MSShapeAnim * shape_anim = new MSShapeAnim("TARGET2.SHP", target.X, target.Y, AnimDrawer, 5, true, (ShapeFlags_Type)(SHAPE_CENTER), Scale);
 
 			shape_anim->Set_Stop_Frame(32);
 
@@ -347,6 +366,8 @@ bool MapSelect::Presentation(ScenarioClass * scenario)
 /// <returns>bool; Was the map selection screen successfully prepared?</returns>
 bool MapSelect::Init(ScenarioClass * scenario)
 {
+	Scale = ShellScale();
+	Backdrop = NULL;
 	AnimDrawer = NULL;
 	OverlayDrawer = NULL;
 	Font = NULL;
@@ -405,7 +426,40 @@ bool MapSelect::Init(ScenarioClass * scenario)
 		return(false);
 	}
 
-	Font = new MSFont();
+	// The backdrop decides the design space, so it is taken before the space is claimed.
+	// What is worth asking for is bounded by the surface the screen draws into, since a
+	// design space larger than that would only be clipped back to it.
+	{
+		int wanted = 1;
+
+		if (HiddenSurface != NULL) {
+			wanted = std::min(HiddenSurface->Get_Width() / MAPSEL_DESIGN.X,
+				HiddenSurface->Get_Height() / MAPSEL_DESIGN.Y);
+		}
+
+		if (wanted < 1) {
+			wanted = 1;
+		}
+
+		// The backdrop is taken at the best copy the release prepared, whatever multiple
+		// that is, because what it is drawn at is the frame rather than a multiple of the
+		// artwork. A copy larger than the frame is drawn down, which keeps more of it than
+		// magnifying a smaller one.
+		int prepared = 1;
+		Backdrop = Load_Shell_Picture(map_stage->Get_Map_VQ_Name(), wanted, prepared);
+	}
+
+	// The screen is laid out at the size the frame fits its artwork at. Claiming that size
+	// rather than a multiple of the artwork leaves Blit_Shell an exact copy, and still tells
+	// a mode change to wait, since neither the film nor the anims redraw themselves.
+	{
+		Rect const plate = Fit_Centered(MAPSEL_DESIGN, HiddenSurface->Get_Rect());
+
+		Set_Shell_Size(Point2D(plate.Width, plate.Height));
+		Scale = ShellScale{plate.Width, MAPSEL_DESIGN.X};
+	}
+
+	Font = new MSFont(true, Scale);
 
 	if (Font == NULL) {
 		DebugString("MapSelect: Unable to create font!\n");
@@ -418,8 +472,10 @@ bool MapSelect::Init(ScenarioClass * scenario)
 	YOffset = design.Y;
 
 	TextRect = *Choices.Get_Text_Rect();
-	TextRect.X += XOffset;
-	TextRect.Y += YOffset;
+	TextRect.X = TextRect.X * Scale + XOffset;
+	TextRect.Y = TextRect.Y * Scale + YOffset;
+	TextRect.Width *= Scale;
+	TextRect.Height *= Scale;
 
 	int i = 0;
 
@@ -452,6 +508,11 @@ void MapSelect::Deinit(void)
 	if (Font != NULL) {
 		delete Font;
 		Font = NULL;
+	}
+
+	if (Backdrop != NULL) {
+		delete Backdrop;
+		Backdrop = NULL;
 	}
 
 	if (OverlayDrawer != NULL) {
@@ -517,8 +578,8 @@ const char * MapSelect::Process_Input(MapStage * stage)
 					// position is carried back into the design space first.
 					Point2D const pressed = Screen_To_Shell(Point2D(Keyboard->MouseQX, Keyboard->MouseQY));
 
-					mouse_x = (pressed.X - XOffset);
-					mouse_y = (pressed.Y - YOffset);
+					mouse_x = Scale.Unapply(pressed.X - XOffset);
+					mouse_y = Scale.Unapply(pressed.Y - YOffset);
 
 					if ((mouse_x >= 0) && (mouse_x < ClickMap->Get_Width())
 							&& (mouse_y >= 0) && (mouse_y < ClickMap->Get_Height())) {
@@ -532,8 +593,8 @@ const char * MapSelect::Process_Input(MapStage * stage)
 
 				Point2D const over = Screen_To_Shell(Point2D(Get_Mouse_X(), Get_Mouse_Y()));
 
-				mouse_x = (over.X - XOffset);
-				mouse_y = (over.Y - YOffset);
+				mouse_x = Scale.Unapply(over.X - XOffset);
+				mouse_y = Scale.Unapply(over.Y - YOffset);
 
 				if ((mouse_x != last_mouse_x) || (mouse_y != last_mouse_y)) {
 

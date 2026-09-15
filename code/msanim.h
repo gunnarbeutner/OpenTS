@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "screenlayout.h"
+
 #include "rect.h"
 #include "stimer.h"
 #include "timer.h"
@@ -40,6 +42,7 @@ Surface * Prepared_Picture_Load(char const * name, int wanted, int & scale);
 /// own size and reporting through <paramref name="scale"/> what it took.
 /// </summary>
 Surface * Load_Shell_Picture(char const * name, int wanted, int & scale);
+int Prepared_Picture_Scale(char const * name, int wanted);
 
 // An anim commits its backdrop to AlternateSurface, which its siblings restore
 // from. The surface is looked up rather than kept, because a resolution change
@@ -102,7 +105,7 @@ class MSAnim
 class MSShapeAnim : public MSAnim
 {
 	public:
-		MSShapeAnim(char const * name, int x, int y, ConvertClass * drawer, int rate, bool loop=true, ShapeFlags_Type flags=SHAPE_NORMAL);
+		MSShapeAnim(char const * name, int x, int y, ConvertClass * drawer, int rate, bool loop=true, ShapeFlags_Type flags=SHAPE_NORMAL, ShellScale const & scale=ShellScale());
 		virtual ~MSShapeAnim(void) override;
 
 		virtual bool Advance(Surface * surface, Rect & rect) override;
@@ -166,13 +169,19 @@ class MSShapeAnim : public MSAnim
 		 * from the mix file catalog is left alone; only one loaded here is freed again.
 		 */
 		bool AllocLoaded;
+
+		/*
+		 * If the shape was enlarged for a screen drawing at a multiple of the artwork's own
+		 * size, then this flag will be true and the anim owns the enlarged copy.
+		 */
+		bool Magnified;
 };
 
 
 class MSFadeAnim : public MSShapeAnim
 {
 	public:
-		MSFadeAnim(char const * name, int x, int y, ConvertClass * drawer, int rate, ShapeFlags_Type flags, MS_ANIM_LIST * vector);
+		MSFadeAnim(char const * name, int x, int y, ConvertClass * drawer, int rate, ShapeFlags_Type flags, MS_ANIM_LIST * vector, ShellScale const & scale=ShellScale());
 		virtual ~MSFadeAnim(void) override {}
 
 		virtual bool Advance(Surface * surface, Rect & rect) override;
@@ -190,7 +199,7 @@ class MSFadeAnim : public MSShapeAnim
 class MSOverlayAnim : public MSFadeAnim
 {
 	public:
-		MSOverlayAnim(char const * name, int x, int y, ConvertClass * drawer, int rate, MS_ANIM_LIST * vector, bool persistent=false, unsigned frame=0);
+		MSOverlayAnim(char const * name, int x, int y, ConvertClass * drawer, int rate, MS_ANIM_LIST * vector, bool persistent=false, unsigned frame=0, ShellScale const & scale=ShellScale());
 		virtual ~MSOverlayAnim(void) override;
 
 		virtual bool Advance(Surface * surface, Rect & rect) override;
@@ -219,7 +228,7 @@ class MSOverlayAnim : public MSFadeAnim
 class MSVQAnim : public MSAnim
 {
 	public:
-		MSVQAnim(char const * name, Surface * surface, MS_ANIM_LIST * vector, bool persistent=false);
+		MSVQAnim(char const * name, Surface * surface, MS_ANIM_LIST * vector, bool persistent=false, Surface * background=NULL, Rect const * destination=NULL);
 		virtual ~MSVQAnim(void) override;
 
 		virtual bool Advance(Surface * surface, Rect & rect) override;
@@ -246,6 +255,19 @@ class MSVQAnim : public MSAnim
 		 * takes the movie's place when it ends, so the screen is not left blank.
 		 */
 		Surface * Background;
+
+		/*
+		 * This is the surface the movie decodes into when the screen is laid out larger than
+		 * the film, which is magnified into place as each frame arrives. Null when the film
+		 * is already the size the screen wants it.
+		 */
+		Surface * Film;
+
+		/*
+		 * This is where the backdrop lives on the alternate and hidden surfaces, which is
+		 * not where the movie decodes when it decodes into Film of its own.
+		 */
+		Rect Destination;
 
 		/*
 		 * If the anim is to stay on the list after the movie has ended, then this flag will
