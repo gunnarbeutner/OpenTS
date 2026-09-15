@@ -88,6 +88,7 @@ steps, given in order with --do (or one to a line with --script):
 
   profile start [us]      begin a sampling CPU profile, at this interval
   profile stop <path>     end it and write a .cpuprofile
+  resize <WIDTHxHEIGHT>   change the page's window, as a user dragging its corner does
   shot <path>             a PNG screenshot
   state [path]            OpenTS_State and every module counter, as JSON
   log [path]              everything the page and the engine printed
@@ -657,6 +658,19 @@ class Runner:
             if len(words) < 2:
                 raise HarnessError("profile stop needs a path to write")
             return page.profile_stop(self.path(words[1]))
+
+        if name == "resize":
+            if len(words) != 1 or "x" not in words[0]:
+                raise HarnessError("resize takes one WIDTHxHEIGHT")
+            width, height = (int(part) for part in words[0].split("x"))
+            before = self.frames_now()
+            # The same override the run was started with, so a step changes the window
+            # the way the run's own --window did and the page sees an ordinary resize.
+            page.call("Emulation.setDeviceMetricsOverride", {
+                "width": width, "height": height,
+                "deviceScaleFactor": options.scale, "mobile": False,
+            })
+            return self.settled(before, {"window": [width, height]})
 
         if name == "shot":
             return page.screenshot(self.path(words[0]))

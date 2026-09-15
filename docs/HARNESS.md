@@ -120,6 +120,7 @@ The steps:
 | `hold`, `step [N]`, `release` | [Frame stepping](#frame-stepping): park the engine at its next frame wait, let it through N waits, let it run. |
 | `profile start [interval]` | Starts Chrome's sampling CPU profiler, at this many microseconds between samples (100 by default). |
 | `profile stop <path>` | Stops it and writes a `.cpuprofile`, which Chrome's own performance panel opens. Reports the samples taken and the span covered. |
+| `resize <WIDTHxHEIGHT>` | Changes the page's window, the way dragging its corner does. The engine follows the canvas, so this is how a run covers what a screen does when its frame changes under it. |
 | `shot <path>` | A PNG screenshot. |
 | `state [path]` | `OpenTS_State` and every counter the module exports, as JSON. |
 | `log [path]` | Everything the page and the engine printed. |
