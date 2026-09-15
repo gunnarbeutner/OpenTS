@@ -816,7 +816,7 @@ drawing surfaces waits until no movie handle is live.
 A release may carry a WebP copy of a shell picture prepared at a multiple of
 the artwork's own size, for the pages the graphic menu draws. The multiple is
 part of the name the manifest carries -- `TSTBACK.2X.WEBP` beside the
-`TSTBACK.PCX` on the discs, `TSTBACK.WEBP` for a copy at the artwork's own
+`TSTBACK.PCX` on the discs, `TSTBACK.1X.WEBP` for a copy at the artwork's own
 size -- so a page learns what a copy is without opening the picture it
 replaces. `code/imagebackend.cpp` resolves the name the way a film resolves,
 fetches it, and decodes it through the browser's own decoder, which is the
