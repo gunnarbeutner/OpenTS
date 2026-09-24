@@ -62,6 +62,7 @@
 #include "mainopt.h"
 #include "misc.h"
 #include "movie.h"
+#include "msanim.h"
 #include "opents_version.h"
 #include "pcx.h"
 #include "queue.h"
@@ -573,6 +574,28 @@ void Create_Main_Window ( HINSTANCE instance , int command_show , int width , in
 /// <param name="palette">The palette to load the picture's colors into.</param>
 void Load_Title_Screen(char const * name, Surface * surface, PaletteClass * palette)
 {
+	// A release may carry this picture prepared at a multiple of the artwork's
+	// own size. What is worth taking is set by the space it is drawn into: the
+	// whole surface when filling, the design rectangle when centred.
+	{
+		Rect const space = fill ? surface->Get_Rect() : Shell_Rect();
+		int const wanted = (space.Width > SHELL_DESIGN_WIDTH) ? space.Width / SHELL_DESIGN_WIDTH : 1;
+
+		int prepared = 1;
+		Surface * picture = Prepared_Picture_Load(name, wanted, prepared);
+
+		if (picture != nullptr) {
+			Point2D const own(picture->Get_Width() / prepared, picture->Get_Height() / prepared);
+			Rect const dest = fill
+				? Fit_Centered(Point2D(picture->Get_Width(), picture->Get_Height()), surface->Get_Rect())
+				: Rect(space.X + (space.Width - own.X) / 2, space.Y + (space.Height - own.Y) / 2, own.X, own.Y);
+
+			surface->Blit_From(dest, *picture, picture->Get_Rect(), false, true, SURFACE_FILTER_SHARP);
+			delete picture;
+			return(own);
+		}
+	}
+
 	Surface *load_buffer;
 	CCFileClass file(name);
 	load_buffer = Read_PCX_File (file, palette);

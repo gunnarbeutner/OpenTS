@@ -1535,10 +1535,22 @@ static int Fit_Span(int span, int scale, int design, int prepared)
 /// <paramref name="wanted"/> times the artwork's own size. Reports what the
 /// copy taken was prepared at, which is one for the artwork itself.
 /// </summary>
-static Surface * Load_Shell_Picture(char const * name, int wanted, int & scale)
+Surface * Prepared_Picture_Load(char const * name, int wanted, int & scale)
 {
 	scale = 1;
+
+	(void)name;
 	(void)wanted;
+	return(nullptr);
+}
+
+
+Surface * Load_Shell_Picture(char const * name, int wanted, int & scale)
+{
+	Surface * prepared = Prepared_Picture_Load(name, wanted, scale);
+	if (prepared != nullptr) {
+		return(prepared);
+	}
 
 	char buffer[64];
 	UTF8::Copy(buffer, name);

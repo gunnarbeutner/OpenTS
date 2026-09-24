@@ -17,6 +17,9 @@ class Surface;
 // Beyond this the sidebar takes more of the screen than the world.
 int const UI_SCALE_MAX = 4;
 
+// The width of the space the shell's pages are drawn in.
+int const SHELL_DESIGN_WIDTH = 640;
+
 /// <summary>
 /// How a screen of a given size is divided between the world and the
 /// interface; every surface a scenario is drawn into is sized from it.

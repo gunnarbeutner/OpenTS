@@ -31,10 +31,6 @@ GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name);
 GraphicMenuItem * GM_Create_Item_From_INI(const char * name, INIClass const & ini, MSEngine & engine, MSAnim const * backdrop, Point2D & image_size, int scale, int design);
 
 
-// The pages are laid out in the 640 pixel wide space their artwork was drawn in.
-int const SHELL_DESIGN_WIDTH = 640;
-
-
 /// <summary>
 /// Creates a graphic menu described by an INI file.
 /// Use this routine to build one of the shell menu pages. The file is fetched through
