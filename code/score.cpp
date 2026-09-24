@@ -65,11 +65,13 @@
 #include "misc.h"
 #include "mixfile.h"
 #include "movie.h"
+#include "msanim.h"
 #include "msgloop.h"
 #include "platform/wait.h"
 #include "scenario.h"
 #include "screenlayout.h"
 #include "session.h"
+#include "shapemagnify.h"
 #include "shapeset.h"
 #include "surface.h"
 #include "theme.h"
@@ -117,6 +119,45 @@ struct Fame {
  * HISTORY:                                                                                    *
  *   05/02/1994     : Created.                                                                 *
  *=============================================================================================*/
+/// <summary>
+/// Loads one of the score screen's box arts, enlarged to the multiple the screen is laid out
+/// at. The caller owns the result and releases it with Free_Score_Shape at the same scale.
+/// </summary>
+static ShapeSet * Load_Score_Shape(ShellScale const & scale, char const * name)
+{
+	CCFileClass file(name);
+
+	if (!file.Is_Available()) return(NULL);
+
+	file.Open();
+	int const size = file.Size();
+	ShapeSet * loaded = (ShapeSet *)Load_Alloc_Data(file);
+	file.Close();
+
+	if (loaded == NULL || scale.Numerator <= scale.Denominator) return(loaded);
+
+	// The scale decides which allocator frees this, so a shape that cannot be enlarged is
+	// released here rather than handed back under the wrong one. Only a shape the file
+	// itself cannot supply reaches that.
+	ShapeSet * magnified = Magnify_Shape(loaded, size, scale.Numerator, scale.Denominator);
+	delete loaded;
+
+	return(magnified);
+}
+
+
+static void Free_Score_Shape(ShapeSet * shape, ShellScale const & scale)
+{
+	if (shape == NULL) return;
+
+	if (scale.Numerator > scale.Denominator) {
+		delete [] (char *)shape;
+	} else {
+		delete shape;
+	}
+}
+
+
 void ScoreClass::Presentation(void)
 {
 	int i;
@@ -129,11 +170,20 @@ void ScoreClass::Presentation(void)
 	CCFileClass file;
 	struct Fame hallfame[NUMFAMENAMES];
 
-	Set_Shell_Size(SCORE_DESIGN);
+	// The plate is fitted to the frame and drawn at whatever size that is, so nothing is
+	// composed at the artwork's size and magnified afterwards; every position below is
+	// carried to the frame by the same ratio. The space claimed is the size it landed at
+	// rather than a multiple of the artwork, which leaves Blit_Shell an exact copy and
+	// still tells a mode change to wait, since this screen never redraws itself.
+	Rect const plate = Fit_Centered(SCORE_DESIGN, HiddenSurface->Get_Rect());
+
+	Set_Shell_Size(Point2D(plate.Width, plate.Height));
 
 	Rect const design = Shell_Rect();
+
 	XPos = design.X;
 	YPos = design.Y;
+	Scale = ShellScale{design.Width, SCORE_DESIGN.X};
 
 	Hide_Mouse();
 	Keyboard->Clear();
@@ -164,47 +214,26 @@ void ScoreClass::Presentation(void)
 	SurfacePtr = new DSurface(HiddenSurface->Get_Width(), HiddenSurface->Get_Height());
 
 	SurfacePtr->Fill(0);
-	Load_Title_Screen("SCORE.PCX", SurfacePtr, &CCPalette);
+	Load_Title_Screen("SCORE.PCX", SurfacePtr, &CCPalette, true);
 
 	/*
 	**	Background's up, so now load various shapes and animations
 	*/
 
-	file.Open("BEST01.SHP");
-	ShapeSet *best01shape = (ShapeSet *)Load_Alloc_Data(file);
-	file.Close();
-
-	file.Open("BEST02.SHP");
-	ShapeSet *best02shape = (ShapeSet *)Load_Alloc_Data(file);
-	file.Close();
+	ShapeSet *best01shape = Load_Score_Shape(Scale, "BEST01.SHP");
+	ShapeSet *best02shape = Load_Score_Shape(Scale, "BEST02.SHP");
 
 	Call_Back();
 
-	file.Open("LOGO01.SHP");
-	ShapeSet *logo01shape = (ShapeSet *)Load_Alloc_Data(file);
-	file.Close();
-
-	file.Open("EFIC01.SHP");
-	ShapeSet *efic01shape = (ShapeSet *)Load_Alloc_Data(file);
-	file.Close();
-
-	file.Open("TIME01.SHP");
-	ShapeSet *time01shape = (ShapeSet *)Load_Alloc_Data(file);
-	file.Close();
-
-	file.Open("CASU01.SHP");
-	ShapeSet *casu01shape = (ShapeSet *)Load_Alloc_Data(file);
-	file.Close();
+	ShapeSet *logo01shape = Load_Score_Shape(Scale, "LOGO01.SHP");
+	ShapeSet *efic01shape = Load_Score_Shape(Scale, "EFIC01.SHP");
+	ShapeSet *time01shape = Load_Score_Shape(Scale, "TIME01.SHP");
+	ShapeSet *casu01shape = Load_Score_Shape(Scale, "CASU01.SHP");
 
 	Call_Back();
 
-	file.Open("CASU02.SHP");
-	ShapeSet *casu02shape = (ShapeSet *)Load_Alloc_Data(file);
-	file.Close();
-
-	file.Open("CURR01.SHP");
-	ShapeSet *curr01shape = (ShapeSet *)Load_Alloc_Data(file);
-	file.Close();
+	ShapeSet *casu02shape = Load_Score_Shape(Scale, "CASU02.SHP");
+	ShapeSet *curr01shape = Load_Score_Shape(Scale, "CURR01.SHP");
 
 	ScoreSnds = {
 		new SfxEntry("Wipe", "WIPE.AUD"),
@@ -216,8 +245,8 @@ void ScoreClass::Presentation(void)
 		new SfxEntry("Back", "SCOLD8.AUD")
 	};
 
-	FullFont = new ScoreFullFontClass(drawer);
-	BigFont = new ScoreBigFontClass(drawer);
+	FullFont = new ScoreFullFontClass(drawer, Scale);
+	BigFont = new ScoreBigFontClass(drawer, Scale);
 
 	Call_Back();
 
@@ -227,14 +256,17 @@ void ScoreClass::Presentation(void)
 
 	DoSound("Wipe", 256);
 
-	Play_Movie("SCORE", THEME_NONE, false, false, true);
+	// The plate that follows is fitted to the frame the same way a stretched movie is, so
+	// the film is stretched too and the still it hands over to lands exactly where the
+	// film's last frame was. Left unstretched they meet at different sizes.
+	Play_Movie("SCORE", THEME_NONE, false, true, true);
 
 	HiddenSurface->Blit_From(*SurfacePtr);
 	AlternateSurface->Blit_From(*SurfacePtr);
 
 	Drawer = new ConvertClass(CCPalette, CCPalette, *VisibleSurface);
 
-	Alloc_Object(new ScoreTimeClass(XPos + 7, YPos + 6, logo01shape, 60, 3, Drawer));
+	Alloc_Object(new ScoreTimeClass(XPos + 7 * Scale, YPos + 6 * Scale, logo01shape, 60, 3, Drawer));
 
 	DoSound("Efficiency", 128);
 
@@ -242,17 +274,17 @@ void ScoreClass::Presentation(void)
 	 * Animate the efficiency emblem (box art), then restore the area behind it.
 	 */
 	for (i = 0; i < 10; i++) {
-		Draw_Shape(*HiddenSurface, *Drawer, efic01shape, i, Point2D(XPos + 480, YPos + 23), HiddenSurface->Get_Rect(), SHAPE_WIN_REL);
+		Draw_Shape(*HiddenSurface, *Drawer, efic01shape, i, Point2D(XPos + 480 * Scale, YPos + 23 * Scale), HiddenSurface->Get_Rect(), SHAPE_WIN_REL);
 		Call_Back_Delay(4);
 	}
-	Rect rect(XPos + 480, YPos + 23, 160, 120);
+	Rect rect(XPos + 480 * Scale, YPos + 23 * Scale, 160 * Scale, 120 * Scale);
 	SurfacePtr->Blit_From(rect, *HiddenSurface, rect);
 	AlternateSurface->Blit_From(rect, *HiddenSurface, rect);
 
 	str = Fetch_String(TXT_MISSION_EFFICIENCY);
 	FullFont->String_Width(str);
-	x = XPos - FullFont->String_Width(str) / 2 + 552;
-	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 13, FullFont, false));
+	x = XPos - FullFont->String_Width(str) / 2 + 552 * Scale;
+	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 13 * Scale, FullFont, false));
 
 	Wait_For_Print(obj);
 	Keyboard->Clear();
@@ -263,7 +295,7 @@ void ScoreClass::Presentation(void)
 	total = Do_Calc(PlayerPtr);
 	char Dest[56];
 	snprintf(Dest, sizeof(Dest), "%3d%%", total);
-	Alloc_Object(obj = new ScorePrintClass(Dest, XPos + 520, YPos + 60, BigFont, false));
+	Alloc_Object(obj = new ScorePrintClass(Dest, XPos + 520 * Scale, YPos + 60 * Scale, BigFont, false));
 
 	Wait_For_Print(obj);
 
@@ -271,21 +303,21 @@ void ScoreClass::Presentation(void)
 	 * Animate the currency box art, then restore the area behind it.
 	 */
 	for (i = 0; i < 10; i++) {
-		Draw_Shape(*HiddenSurface, *Drawer, curr01shape, i, Point2D(XPos + 481, YPos + 148), HiddenSurface->Get_Rect(), SHAPE_WIN_REL);
+		Draw_Shape(*HiddenSurface, *Drawer, curr01shape, i, Point2D(XPos + 481 * Scale, YPos + 148 * Scale), HiddenSurface->Get_Rect(), SHAPE_WIN_REL);
 		Call_Back_Delay(4);
 	}
-	rect.Set(XPos + 481, YPos + 148, 144, 86);
+	rect.Set(XPos + 481 * Scale, YPos + 148 * Scale, 144 * Scale, 86 * Scale);
 	SurfacePtr->Blit_From(rect, *HiddenSurface, rect);
 	AlternateSurface->Blit_From(rect, *HiddenSurface, rect);
 
 	str = Fetch_String(TXT_CURRENCY);
 	FullFont->String_Width(str);
-	x = XPos - FullFont->String_Width(str) / 2 + 560;
-	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 193, FullFont, false));
+	x = XPos - FullFont->String_Width(str) / 2 + 560 * Scale;
+	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 193 * Scale, FullFont, false));
 
 	Wait_For_Print(obj);
 
-	rect.Set(XPos + 481, YPos + 148, 150, 120);
+	rect.Set(XPos + 481 * Scale, YPos + 148 * Scale, 150 * Scale, 120 * Scale);
 	SurfacePtr->Blit_From(rect, *HiddenSurface, rect);
 	AlternateSurface->Blit_From(rect, *HiddenSurface, rect);
 
@@ -295,17 +327,17 @@ void ScoreClass::Presentation(void)
 	 * Animate the mission-time box art, then restore the area behind it.
 	 */
 	for (i = 0; i < 10; i++) {
-		Draw_Shape(*HiddenSurface, *Drawer, time01shape, i, Point2D(XPos + 444, YPos + 273), HiddenSurface->Get_Rect(), SHAPE_WIN_REL);
+		Draw_Shape(*HiddenSurface, *Drawer, time01shape, i, Point2D(XPos + 444 * Scale, YPos + 273 * Scale), HiddenSurface->Get_Rect(), SHAPE_WIN_REL);
 		Call_Back_Delay(4);
 	}
-	rect.Set(XPos + 444, YPos + 273, 196, 118);
+	rect.Set(XPos + 444 * Scale, YPos + 273 * Scale, 196 * Scale, 118 * Scale);
 	SurfacePtr->Blit_From(rect, *HiddenSurface, rect);
 	AlternateSurface->Blit_From(rect, *HiddenSurface, rect);
 
 	str = Fetch_String(TXT_MISSION_TIME_LAPSE);
 	FullFont->String_Width(str);
-	x = XPos - FullFont->String_Width(str) / 2 + 542;
-	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 366, FullFont, false));
+	x = XPos - FullFont->String_Width(str) / 2 + 542 * Scale;
+	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 366 * Scale, FullFont, false));
 
 	Wait_For_Print(obj);
 
@@ -317,11 +349,11 @@ void ScoreClass::Presentation(void)
 	 * Animate the casualties box art (two emblems), then restore the area behind it.
 	 */
 	for (i = 0; i < 10; i++) {
-		Draw_Shape(*HiddenSurface, *Drawer, casu01shape, i, Point2D(XPos + 186, YPos + 54), HiddenSurface->Get_Rect(), SHAPE_WIN_REL);
-		Draw_Shape(*HiddenSurface, *Drawer, casu02shape, i, Point2D(XPos + 186, YPos + 254), HiddenSurface->Get_Rect(), SHAPE_WIN_REL);
+		Draw_Shape(*HiddenSurface, *Drawer, casu01shape, i, Point2D(XPos + 186 * Scale, YPos + 54 * Scale), HiddenSurface->Get_Rect(), SHAPE_WIN_REL);
+		Draw_Shape(*HiddenSurface, *Drawer, casu02shape, i, Point2D(XPos + 186 * Scale, YPos + 254 * Scale), HiddenSurface->Get_Rect(), SHAPE_WIN_REL);
 		Call_Back_Delay(4);
 	}
-	rect.Set(XPos + 186, YPos + 54, 262, 326);
+	rect.Set(XPos + 186 * Scale, YPos + 54 * Scale, 262 * Scale, 326 * Scale);
 	SurfacePtr->Blit_From(rect, *HiddenSurface, rect);
 	AlternateSurface->Blit_From(rect, *HiddenSurface, rect);
 
@@ -330,8 +362,8 @@ void ScoreClass::Presentation(void)
 	*/
 	str = Fetch_String(TXT_CASUALTIES);
 	FullFont->String_Width(str);
-	x = XPos - FullFont->String_Width(str) / 2 + 316;
-	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 300, FullFont, false));
+	x = XPos - FullFont->String_Width(str) / 2 + 316 * Scale;
+	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 300 * Scale, FullFont, false));
 
 	Wait_For_Print(obj);
 
@@ -339,18 +371,18 @@ void ScoreClass::Presentation(void)
 	** Print out stats on buildings destroyed
 	*/
 	str = Fetch_String(TXT_STRUCTURES);
-	x = XPos + 194;
-	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 247, FullFont, false));
-	x = XPos + 328;
-	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 247, FullFont, false));
+	x = XPos + 194 * Scale;
+	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 247 * Scale, FullFont, false));
+	x = XPos + 328 * Scale;
+	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 247 * Scale, FullFont, false));
 
 	Wait_For_Print(obj);
 
 	str = Fetch_String(TXT_UNITS);
-	x = XPos - FullFont->String_Width(str) / 2 + 290;
-	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 247, FullFont, false));
-	x = XPos - FullFont->String_Width(str) / 2 + 422;
-	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 247, FullFont, false));
+	x = XPos - FullFont->String_Width(str) / 2 + 290 * Scale;
+	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 247 * Scale, FullFont, false));
+	x = XPos - FullFont->String_Width(str) / 2 + 422 * Scale;
+	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 247 * Scale, FullFont, false));
 
 	Wait_For_Print(obj);
 
@@ -369,22 +401,22 @@ void ScoreClass::Presentation(void)
 	 * Animate the best-scores box art (two emblems), then restore the area behind it.
 	 */
 	for (i = 0; i < 10; i++) {
-		Draw_Shape(*HiddenSurface, *Drawer, best01shape, i, Point2D(XPos, YPos + 188), HiddenSurface->Get_Rect(), SHAPE_WIN_REL);
-		Draw_Shape(*HiddenSurface, *Drawer, best02shape, i, Point2D(XPos, YPos + 388), HiddenSurface->Get_Rect(), SHAPE_WIN_REL);
+		Draw_Shape(*HiddenSurface, *Drawer, best01shape, i, Point2D(XPos, YPos + 188 * Scale), HiddenSurface->Get_Rect(), SHAPE_WIN_REL);
+		Draw_Shape(*HiddenSurface, *Drawer, best02shape, i, Point2D(XPos, YPos + 388 * Scale), HiddenSurface->Get_Rect(), SHAPE_WIN_REL);
 		Call_Back_Delay(4);
 	}
 
 	/*
 	** Hall of fame display and processing
 	*/
-	rect.Set(XPos, YPos + 188, 182, 212);
+	rect.Set(XPos, YPos + 188 * Scale, 182 * Scale, 212 * Scale);
 	SurfacePtr->Blit_From(rect, *HiddenSurface, rect);
 	AlternateSurface->Blit_From(rect, *HiddenSurface, rect);
 
 	str = Fetch_String(TXT_BEST_SCORES);
 	FullFont->String_Width(str);
-	x = XPos - FullFont->String_Width(str) / 2 + 84;
-	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 217, FullFont, false));
+	x = XPos - FullFont->String_Width(str) / 2 + 84 * Scale;
+	Alloc_Object(obj = new ScorePrintClass(str, x, YPos + 217 * Scale, FullFont, false));
 
 	memset(hallfame, 0, sizeof(hallfame));
 	file.Close();
@@ -417,13 +449,13 @@ void ScoreClass::Presentation(void)
 	*/
 	char maststr[NUMFAMENAMES*32];
 	for (i = 0; i < NUMFAMENAMES; i++) {
-		Alloc_Object(obj = new ScorePrintClass(hallfame[i].name, XPos + HALLFAME_X - 4, YPos + HALLFAME_Y + (i*16), FullFont, false));
+		Alloc_Object(obj = new ScorePrintClass(hallfame[i].name, XPos + (HALLFAME_X - 4) * Scale, YPos + (HALLFAME_Y + i * 16) * Scale, FullFont, false));
 		if (hallfame[i].score) {
 			sprintf(maststr + i*32, "%d%%", hallfame[i].score);
-			Alloc_Object(obj = new ScorePrintClass(maststr + i*32, XPos + HALLFAME_X + 98, YPos + HALLFAME_Y + (i*16), FullFont, false));
+			Alloc_Object(obj = new ScorePrintClass(maststr + i*32, XPos + (HALLFAME_X + 98) * Scale, YPos + (HALLFAME_Y + i * 16) * Scale, FullFont, false));
 			char *levelstr = maststr + i*32 + 16;
 			sprintf(levelstr, "%02d", hallfame[i].level);
-			Alloc_Object(obj = new ScorePrintClass(levelstr, XPos + HALLFAME_X + 140, YPos + HALLFAME_Y + (i*16), FullFont, false));
+			Alloc_Object(obj = new ScorePrintClass(levelstr, XPos + (HALLFAME_X + 140) * Scale, YPos + (HALLFAME_Y + i * 16) * Scale, FullFont, false));
 			Wait_For_Print(obj);
 		}
 		Call_Back_Delay(1);
@@ -441,11 +473,11 @@ void ScoreClass::Presentation(void)
 	Show_Mouse();
 
 	if (index < NUMFAMENAMES) {
-		Input_Name(hallfame[index].name, XPos + HALLFAME_X - 4, YPos + HALLFAME_Y + (index * 16));
+		Input_Name(hallfame[index].name, XPos + (HALLFAME_X - 4) * Scale, YPos + (HALLFAME_Y + index * 16) * Scale);
 	} else {
 		str = Fetch_String(TXT_CLICK_CONTINUE);
-		x = XPos + (SCORE_DESIGN.X - FullFont->String_Width(str)) / 2;
-		y = YPos - FullFont->Get_Height() / 2 + 357;
+		x = XPos + (SCORE_DESIGN.X * Scale - FullFont->String_Width(str)) / 2;
+		y = YPos - FullFont->Get_Height() / 2 + 357 * Scale;
 		Alloc_Object(obj = new ScorePrintClass(str, x, y, FullFont, false));
 		Cycle_Wait_Click();
 	}
@@ -478,6 +510,15 @@ void ScoreClass::Presentation(void)
 		}
 	}
 	ScoreObjs.Clear();
+
+	Free_Score_Shape(best01shape, Scale);
+	Free_Score_Shape(best02shape, Scale);
+	Free_Score_Shape(logo01shape, Scale);
+	Free_Score_Shape(efic01shape, Scale);
+	Free_Score_Shape(time01shape, Scale);
+	Free_Score_Shape(casu01shape, Scale);
+	Free_Score_Shape(casu02shape, Scale);
+	Free_Score_Shape(curr01shape, Scale);
 
 	if (Drawer != NULL) {
 		delete Drawer;
@@ -688,8 +729,8 @@ void ScoreClass::Do_Graph(int gkilled, int nkilled, int xpos)
 
 	int maxval;
 
-	xpos = XPos + xpos;
-	int ypos = YPos + 244;
+	xpos = XPos + xpos * Scale;
+	int ypos = YPos + 244 * Scale;
 
 	int gdikilled = gkilled, nodkilled=nkilled;
 
@@ -706,25 +747,32 @@ void ScoreClass::Do_Graph(int gkilled, int nkilled, int xpos)
 	maxval = std::max(gdikilled, nodkilled);
 	if (!maxval) maxval=1;
 
+	// Every extent below is drawn at the screen's scale, and the counters step with it, so
+	// the graph fills in the same number of passes whatever size it is drawn at and the
+	// figure counting up beside it is unchanged.
+	int const step = 2 * Scale;
+	gdikilled *= Scale;
+	nodkilled *= Scale;
+
 	Rect trect;
 
-	trect.Set(xpos, ypos - gdikilled, 4, gdikilled);
+	trect.Set(xpos, ypos - gdikilled, 4 * Scale, gdikilled);
 	SurfacePtr->Fill_Rect_Trans(trect, RGBClass(253, 181, 28), 25);
-	trect.Set(xpos + 4, ypos - gdikilled, 7, gdikilled);
+	trect.Set(xpos + 4 * Scale, ypos - gdikilled, 7 * Scale, gdikilled);
 	SurfacePtr->Fill_Rect_Trans(trect, RGBClass(253, 181, 28), 50);
-	trect.Set(xpos + 11, ypos - gdikilled, 4, gdikilled);
+	trect.Set(xpos + 11 * Scale, ypos - gdikilled, 4 * Scale, gdikilled);
 	SurfacePtr->Fill_Rect_Trans(trect, RGBClass(253, 181, 28), 25);
 
-	trect.Set(xpos + 132, ypos - nodkilled, 4, nodkilled);
+	trect.Set(xpos + 132 * Scale, ypos - nodkilled, 4 * Scale, nodkilled);
 	SurfacePtr->Fill_Rect_Trans(trect, RGBClass(250, 28, 28), 25);
-	trect.Set(xpos + 132 + 4, ypos - nodkilled, 7, nodkilled);
+	trect.Set(xpos + (132 + 4) * Scale, ypos - nodkilled, 7 * Scale, nodkilled);
 	SurfacePtr->Fill_Rect_Trans(trect, RGBClass(250, 28, 28), 50);
-	trect.Set(xpos + 132 + 11, ypos - nodkilled, 4, nodkilled);
+	trect.Set(xpos + (132 + 11) * Scale, ypos - nodkilled, 4 * Scale, nodkilled);
 	SurfacePtr->Fill_Rect_Trans(trect, RGBClass(250, 28, 28), 25);
 
 
-	int gdicount = 1;
-	int nodcount = 1;
+	int gdicount = 1 * Scale;
+	int nodcount = 1 * Scale;
 	int nodrun = nkilled;
 	int gdirun = gkilled;
 	int nodadd = 2 * nkilled;
@@ -737,7 +785,7 @@ void ScoreClass::Do_Graph(int gkilled, int nkilled, int xpos)
 		}
 
 		if (gdicount <= gdikilled) {
-			trect.Set(xpos, i, 15, gdicount);
+			trect.Set(xpos, i, 15 * Scale, gdicount);
 			HiddenSurface->Blit_From(trect, *SurfacePtr, trect);
 			rect1 = Count_Up_Print(HiddenSurface, (char *)"%d", gdirun / maxval, gkilled, xpos, i);
 		} else {
@@ -749,20 +797,20 @@ void ScoreClass::Do_Graph(int gkilled, int nkilled, int xpos)
 		}
 
 		if (nodcount <= nodkilled) {
-			trect.Set(xpos + 132, i, 15, nodcount);
+			trect.Set(xpos + 132 * Scale, i, 15 * Scale, nodcount);
 			HiddenSurface->Blit_From(trect, *SurfacePtr, trect);
-			rect2 = Count_Up_Print(HiddenSurface, (char *)"%d", nodrun / maxval, nkilled, xpos + 132, i);
+			rect2 = Count_Up_Print(HiddenSurface, (char *)"%d", nodrun / maxval, nkilled, xpos + 132 * Scale, i);
 		} else {
-			rect2 = Count_Up_Print(HiddenSurface, (char *)"%d", nkilled, nkilled, xpos + 132, ypos - nodkilled);
+			rect2 = Count_Up_Print(HiddenSurface, (char *)"%d", nkilled, nkilled, xpos + 132 * Scale, ypos - nodkilled);
 		}
 
 		DoSound("BarGraph", 96);
 		Call_Back_Delay(1);
 
-		gdicount += 2;
-		nodcount += 2;
+		gdicount += step;
+		nodcount += step;
 		gdirun += gdiadd;
-		i -= 2;
+		i -= step;
 		nodrun += nodadd;
 	}
 
@@ -773,7 +821,7 @@ void ScoreClass::Do_Graph(int gkilled, int nkilled, int xpos)
 	if (rect1.Is_Valid()) {
 		HiddenSurface->Blit_From(rect1, *AlternateSurface, rect1);
 	}
-	trect.Set(xpos, ypos - gdikilled, 15, gdikilled);
+	trect.Set(xpos, ypos - gdikilled, 15 * Scale, gdikilled);
 	AlternateSurface->Blit_From(trect, *SurfacePtr, trect);
 	Count_Up_Print(HiddenSurface, (char *)"%d", gkilled, gkilled, xpos, ypos - gdikilled);
 	Count_Up_Print(AlternateSurface, (char *)"%d", gkilled, gkilled, xpos, ypos - gdikilled);
@@ -781,10 +829,10 @@ void ScoreClass::Do_Graph(int gkilled, int nkilled, int xpos)
 	if (rect2.Is_Valid()) {
 		HiddenSurface->Blit_From(rect2, *AlternateSurface, rect2);
 	}
-	trect.Set(xpos + 132, ypos - nodkilled, 15, nodkilled);
+	trect.Set(xpos + 132 * Scale, ypos - nodkilled, 15 * Scale, nodkilled);
 	AlternateSurface->Blit_From(trect, *SurfacePtr, trect);
-	Count_Up_Print(HiddenSurface, (char *)"%d", nkilled, nkilled, xpos + 132, ypos - nodkilled);
-	Count_Up_Print(AlternateSurface, (char *)"%d", nkilled, nkilled, xpos + 132, ypos - nodkilled);
+	Count_Up_Print(HiddenSurface, (char *)"%d", nkilled, nkilled, xpos + 132 * Scale, ypos - nodkilled);
+	Count_Up_Print(AlternateSurface, (char *)"%d", nkilled, nkilled, xpos + 132 * Scale, ypos - nodkilled);
 
 	Call_Back_Delay(20);
 }
@@ -803,7 +851,7 @@ void ScoreClass::Show_Credits(void)
 
 	int x = 590 - (12 * strlen(str));
 
-	ScoreAnimClass *obj = new ScorePrintClass(str, XPos + x, YPos + 214, FullFont, false);
+	ScoreAnimClass *obj = new ScorePrintClass(str, XPos + x * Scale, YPos + 214 * Scale, FullFont, false);
 	Alloc_Object(obj);
 
 	/*
@@ -842,9 +890,9 @@ void ScoreClass::Print_Minutes(int time)
 
 	snprintf(str, sizeof(str), "%02ld:%02ld:%02ld", hours, minutes, seconds);
 
-	int x = XPos - (BigFont->String_Width(str) / 2) + 542;
+	int x = XPos - (BigFont->String_Width(str) / 2) + 542 * Scale;
 
-	ScoreAnimClass *obj = new ScorePrintClass(str, x, YPos + 322, BigFont, false);
+	ScoreAnimClass *obj = new ScorePrintClass(str, x, YPos + 322 * Scale, BigFont, false);
 	Alloc_Object(obj);
 
 	Wait_For_Print(obj);
@@ -998,20 +1046,20 @@ void ScoreClass::Animate_Cursor(int pos, int ypos)
 
 	Rect rect;
 
-	ypos += 14;	// move cursor to bottom of letter
+	ypos += 14 * Scale;	// move cursor to bottom of letter
 
 	// If they moved the cursor, erase old one and force state=0, to make green draw right away
 	if (pos != _lastpos) {
-		rect.Set(_lastpos, ypos, HALLFAME_X, 1);
+		rect.Set(_lastpos, ypos, HALLFAME_X * Scale, 1 * Scale);
 		HiddenSurface->Blit_From(rect, *AlternateSurface, rect);
 		_lastpos = pos;
 		//_state = 0;
 	}
 
 	if (_state) {
-		HiddenSurface->Draw_Line(Point2D(pos, ypos), Point2D(pos + HALLFAME_X - 1, ypos), Color);
+		HiddenSurface->Draw_Line(Point2D(pos, ypos), Point2D(pos + HALLFAME_X * Scale - 1, ypos), Color);
 	} else {
-		rect.Set(pos, ypos, HALLFAME_X, 1);
+		rect.Set(pos, ypos, HALLFAME_X * Scale, 1 * Scale);
 		HiddenSurface->Blit_From(rect, *SurfacePtr, rect);
 	}
 
@@ -1173,6 +1221,9 @@ struct ScoreTextSoundStruct {
 ScoreFontClass::ScoreFontClass(void) :
 	Width(0),
 	Height(0),
+	IsShapeAllocated(false),
+	IsShapeMagnified(false),
+	Scale(),
 	ShapePtr(NULL),
 	Drawer(NULL)
 {
@@ -1192,6 +1243,9 @@ ScoreFontClass::ScoreFontClass(void) :
 ScoreFontClass::ScoreFontClass(int w, int h, void const * data, ConvertClass * drawer) :
 	Width(w),
 	Height(h),
+	IsShapeAllocated(false),
+	IsShapeMagnified(false),
+	Scale(),
 	ShapePtr((ShapeSet const *)data),
 	Drawer(drawer)
 {
@@ -1207,11 +1261,15 @@ ScoreFontClass::ScoreFontClass(int w, int h, void const * data, ConvertClass * d
 /// </summary>
 ScoreFontClass::~ScoreFontClass(void)
 {
-	if (ShapePtr != NULL && IsShapeAllocated == true) {
+	if (ShapePtr != NULL && IsShapeMagnified == true) {
+		delete [] (char *)ShapePtr;
+		ShapePtr = NULL;
+	} else if (ShapePtr != NULL && IsShapeAllocated == true) {
 		delete (char *)ShapePtr;
 		ShapePtr = NULL;
-		IsShapeAllocated = false;
 	}
+	IsShapeAllocated = false;
+	IsShapeMagnified = false;
 
 	score_font_count--;
 	if (score_font_count == 0) {
@@ -1300,10 +1358,42 @@ int ScoreFontClass::Glyph_Frame(char32_t code) const
 /// The font is proportional, so every glyph must be measured rather than assumed.
 /// </summary>
 /// <returns>Returns with the width in pixels that the character occupies.</returns>
+/// <summary>
+/// Replaces the glyph shapes with a copy enlarged by <paramref name="scale"/>, so the font
+/// measures and prints in the screen's units rather than the artwork's. The shapes keep
+/// their original form when the scale is one or the copy cannot be made.
+/// </summary>
+/// <param name="name">The shape file the glyphs came from, for its size on disc.</param>
+void ScoreFontClass::Magnify_Glyphs(char const * name, ShellScale const & scale)
+{
+	if (ShapePtr == NULL || scale.Numerator <= scale.Denominator) return;
+
+	int size = 0;
+	if (!MFCD::Offset(name, NULL, NULL, NULL, &size) || size <= 0) {
+		CCFileClass file(name);
+		size = file.Size();
+	}
+
+	ShapeSet * magnified = Magnify_Shape(ShapePtr, size, scale.Numerator, scale.Denominator);
+	if (magnified == NULL) return;
+
+	if (IsShapeAllocated) {
+		delete (char *)ShapePtr;
+	}
+
+	ShapePtr = magnified;
+	IsShapeAllocated = false;
+	IsShapeMagnified = true;
+	Scale = scale;
+	Width *= scale;
+	Height *= scale;
+}
+
+
 int ScoreFontClass::Char_Width(char32_t code)
 {
 	if (code == 32) {
-		return(8);
+		return(8 * Scale);
 	}
 
 	int frame = Glyph_Frame(code);
@@ -1360,10 +1450,12 @@ void ScoreFontClass::Print_String(Surface *surf, const char * string, int x, int
 /// there. This is the font the score screen prints its labels and tallies with.
 /// </summary>
 /// <param name="drawer">The palette converter to draw the glyphs with.</param>
-ScoreFullFontClass::ScoreFullFontClass(ConvertClass * drawer) :
+ScoreFullFontClass::ScoreFullFontClass(ConvertClass * drawer, ShellScale const & scale) :
 	ScoreFontClass()
 {
 	IsShapeAllocated = false;
+	IsShapeMagnified = false;
+	Scale = ShellScale();
 	ShapePtr = (const ShapeSet *)MFCD::Retrieve("FULLFNT3.SHP");
 	if (ShapePtr == NULL) {
 		CCFileClass file("FULLFNT3.SHP");
@@ -1375,6 +1467,7 @@ ScoreFullFontClass::ScoreFullFontClass(ConvertClass * drawer) :
 	Width = 11;
 	Drawer = drawer;
 	Height = 21;
+	Magnify_Glyphs("FULLFNT3.SHP", scale);
 }
 
 
@@ -1384,10 +1477,12 @@ ScoreFullFontClass::ScoreFullFontClass(ConvertClass * drawer) :
 /// there. This is the font the score screen prints its headline figures with.
 /// </summary>
 /// <param name="drawer">The palette converter to draw the glyphs with.</param>
-ScoreBigFontClass::ScoreBigFontClass(ConvertClass * drawer) :
+ScoreBigFontClass::ScoreBigFontClass(ConvertClass * drawer, ShellScale const & scale) :
 	ScoreFontClass()
 {
 	IsShapeAllocated = false;
+	IsShapeMagnified = false;
+	Scale = ShellScale();
 	ShapePtr = (const ShapeSet *)MFCD::Retrieve("BIGFONT.SHP");
 	if (ShapePtr == NULL) {
 		CCFileClass file("BIGFONT.SHP");
@@ -1399,6 +1494,7 @@ ScoreBigFontClass::ScoreBigFontClass(ConvertClass * drawer) :
 	Width = 20;
 	Drawer = drawer;
 	Height = 35;
+	Magnify_Glyphs("BIGFONT.SHP", scale);
 }
 
 
