@@ -118,7 +118,6 @@ class LoadOptionsClass
 		void Gather_Files (void);                                   // reads the saves into Files, newest first
 		int Initial_Row (void) const;                               // the row the list opens on
 		int Num_From_Ext (char *fname);                             // translates filename to file #
-		static int __cdecl Compare(const void *p1, const void *p2); // for qsort()
 
 		bool Dialog(void);
 
@@ -166,6 +165,8 @@ class LoadOptionsClass
 			STATE_OK		= DIALOG_OK,		// OK pressed (confirmed action)
 			STATE_CLOSE		= DIALOG_CANCEL	/// Closed via ESC / system event
 		} State;
+
+		DynamicVectorClass<FileEntryClass *> Files;
 };
 
 

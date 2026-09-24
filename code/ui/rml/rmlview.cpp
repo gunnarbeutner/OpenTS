@@ -8,6 +8,7 @@
  ******************************************************************************/
 
 #include "ui/rml/rmlview.h"
+#include "crtcompat.h"
 
 #include "ui/uishell.h"
 

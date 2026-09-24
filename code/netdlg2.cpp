@@ -43,6 +43,7 @@
 #include "scenario.h"
 #include "sendfile.h"
 #include "platform/registry.h"
+#include "platform/wait.h"
 #include "srfcache.h"
 #include "stimer.h"
 #include "timer.h"
@@ -396,16 +397,12 @@ bool Net2Can_Start(void)
 bool Net2_Service_Lobby(void)
 {
 	Ipx.Service();
-	Sleep(0);
+	Platform_Sleep(0);
 	Call_Back();
 	Ipx.Service();
 	Title_Screen_Restore();
 
-	MSG msg;
-	while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
-		TranslateMessage(&msg);
-		DispatchMessageW(&msg);
-	}
+	Windows_Message_Handler();
 
 	Call_Back();
 	if (_netresponse != UI_NET_NONE) {
@@ -719,7 +716,7 @@ int Net2SetHouseAndColor(char *who, int house, int color)
 
 	if (offset != -1) {
 		if (Session.Players[offset]->Player.House != house) {
-			retval = TRUE;
+			retval = true;
 		}
 
 		Session.Players[offset]->Player.House = house;
@@ -747,7 +744,6 @@ int Net2SetHouseAndColor(char *who, int house, int color)
 static void Get_Serial_From_Registry(char * serial, char const * reg_key)
 {
 	if (reg_key && strlen(reg_key) != 0) {
-		HKEY rKey;
 		char keyname[256];
 		UTF8::Copy(keyname, reg_key);
 		Platform_Read_Machine_Registry(keyname, "Serial", serial, ENCRYPTION_STRING_LENGTH);

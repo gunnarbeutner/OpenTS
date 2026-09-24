@@ -166,6 +166,7 @@
 #include "savemgr.h"
 #include "savever.h"
 #include "scenario.h"
+#include "sheettext.h"
 #include "scheme.h"
 #include "script.h"
 #include "session.h"
@@ -198,7 +199,6 @@
 #include "vqoption.h"
 #include "wave.h"
 #include "waypoint.h"
-#include "winfix.h"
 #include "winstub.h"
 #include "wsproto.h"
 #include "wspudp.h"
@@ -209,7 +209,6 @@
 
 #include <algorithm>
 #include <ctime>
-#include <dos.h>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -258,9 +257,11 @@ static bool Init_Rules(void);
 static void Init_Commands(void);
 static CampaignType Choose_Campaign(void);
 static void Init_Threads(void);
-void Version_Dialog(void);
+void Version_Dialog(void)
+{
+	UI_Version_Dialog();
+}
 
-INT_PTR CALLBACK Rules_Choice_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 
 void Init_Random(void);
 
@@ -562,66 +563,9 @@ int Init_Game(int , char * [])
 	DebugString("Init Commands\n");
 	Init_Commands();
 
-	// The briefing and the credits draw with the owner-draw art, colors and blend masks.
-	OwnerDraw::Prepare_Resources();
+	Sheet_Text_Prepare();
 
 	DebugString("Game Init Completed.\n");
-
-	return(0);
-}
-
-
-/// <summary>
-/// Handles the messages for the rules file choice dialog.
-/// This routine lists the name of every rules file that was found, and ends the dialog
-/// with the index of the one that the player settled upon.
-/// </summary>
-/// <remarks>The dialog must be created with the vector of rules files as its parameter.</remarks>
-static INT_PTR CALLBACK Rules_Choice_Dialog_Proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
-{
-	char buffer[128];
-
-	switch (message) {
-		case WM_INITDIALOG: {
-			Center_Window_Within_Window(window);
-
-			DynamicVectorClass<CCINIClass*> * rules;
-			rules = (DynamicVectorClass<CCINIClass*> *)lparam;
-
-			HWND list = GetDlgItem(window, IDC_RULES_LIST);
-
-			for (int index = 0; index < rules->Count(); index++) {
-				(*rules)[index]->Get_String("General", "Name", "", buffer, sizeof(buffer));
-				ListBox_AddString(list, buffer);
-			}
-			ListBox_SetCurSel(list, 0);
-		}
-		break;
-
-		case WM_HELP:
-			On_WM_HELP(lparam);
-			break;
-
-		case WM_CONTEXTMENU:
-			On_WM_CONTEXTMENU(wparam);
-			break;
-
-		case WM_MOVING:
-			return(On_WM_MOVING(window, wparam, lparam));
-
-		case WM_COMMAND:
-			switch (LOWORD(wparam)) {
-				case IDCANCEL:
-				case IDC_RULES_OK:
-					if (HIWORD(wparam) == BN_CLICKED) {
-						HWND list = GetDlgItem(window, IDC_RULES_LIST);
-						EndDialog(window, ListBox_GetCurSel(list));
-						DestroyWindow(window);
-					}
-					break;
-			}
-			break;
-	}
 
 	return(0);
 }
@@ -871,19 +815,7 @@ static bool Init_Rules(void)
 		}
 	}
 
-	if (Rules.Count() == 1) {
-		RuleINI = Rules[0];
-	} else {
-		MouseCursor->Release_Mouse();
-		int rules_choice = DialogBoxParam(ProgramInstance, MAKEINTRESOURCE(IDD_RULES_CHOICE), MainWindow, Rules_Choice_Dialog_Proc, (LPARAM)&Rules);
-		MouseCursor->Capture_Mouse();
-
-		if (rules_choice == -1) {
-			rules_choice = 0;
-		}
-
-		RuleINI = Rules[rules_choice];
-	}
+	RuleINI = Rules[0];
 
 	Rule->Color_Schemes(*RuleINI);
 	Rule->Do_Movies(ArtINI);
@@ -2935,16 +2867,6 @@ bool Cheat_Key_Process(char chr)
 }
 
 
-/// <summary>
-/// Shows the version information and returns once the player closes it.
-/// </summary>
-/// <returns>Returns with the selection a key made, or SEL_NONE.</returns>
-static int Main_Menu_Keys(std::function<void(bool)> const & show)
-{
-	UI_Version_Dialog();
-}
-
-
 static int MainMenuKeyResult = SEL_NONE;
 
 
@@ -3019,11 +2941,9 @@ int Main_Menu(unsigned int timeout)
 		retval = (MainMenuKeyResult != SEL_NONE) ? MainMenuKeyResult : SEL_EXIT;
 	}
 
-	SYSTEMTIME stamp;
-	GetSystemTime(&stamp);
-	CryptRandom.Seed_Byte(stamp.wMilliseconds);
+	CryptRandom.Seed_Byte((unsigned char)System_Milliseconds());
 
-	SetFocus(MainWindow);
+	Host_Focus_Window();
 	return(retval);
 }
 

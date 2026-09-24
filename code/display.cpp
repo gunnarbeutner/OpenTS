@@ -118,6 +118,7 @@
 #include "effects.h"
 #include "foot.h"
 #include "globals.h"
+#include "hostwindow.h"
 #include "goptions.h"
 #include "incdec.h"
 #include "infatype.h"

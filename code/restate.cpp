@@ -30,7 +30,6 @@
 #include "msanim.h"
 #include "msengine.h"
 #include "msfont.h"
-#include "ownrdraw.h"
 #include "rules.h"
 #include "scenario.h"
 #include "screenlayout.h"
@@ -165,7 +164,7 @@ class MyButton : public TextButtonClass {
 				rect.X += 2;
 				rect.Y += 4;
 			}
-			OD_Draw_Text_Remap(*HiddenSurface, text, rect, "dlgsys", ODColorText, 5, 0);
+			Sheet_Draw_Text(*HiddenSurface, text, rect, "dlgsys", SHEET_TEXT_GREEN, SHEET_TEXT_CENTER | SHEET_TEXT_MIDDLE);
 		}
 
 

@@ -33,6 +33,7 @@
 #include "scenario.h"
 #include "session.h"
 #include "spawner.h"
+#include "platform/wait.h"
 #include "stimer.h"
 #include "ui/screens/waitbox/uiwaitbox.h"
 #include "ui/uienginehost.h"
@@ -604,7 +605,7 @@ void SaveManagerClass::Process_Pending_Load_Game(void)
 		}
 		UI_Service_Game();
 		UIShell.Tick();
-		Sleep(10);
+		Platform_Sleep(10);
 	}
 
 	box.Hide();

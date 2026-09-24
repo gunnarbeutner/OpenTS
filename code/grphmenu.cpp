@@ -26,6 +26,7 @@
 #include "surface.h"
 #include "theme.h"
 #include "ui/uishell.h"
+#include "wwmouse.h"
 
 GraphicMenu * _Graphic_Menu(INIClass const & ini, const char * name);
 GraphicMenuItem * GM_Create_Item_From_INI(const char * name, INIClass const & ini, MSEngine & engine, MSAnim const * backdrop, Point2D & image_size, int scale, int design);
