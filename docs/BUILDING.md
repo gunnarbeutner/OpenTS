@@ -201,15 +201,12 @@ ctest --test-dir build-macos
 
 `tests/` builds under both toolchains. None of the harnesses reads game data.
 
-| Target | Tests registered |
-| --- | --- |
-| MSVC | 48: the fifteen below and 33 more from the directories listed under `if(MSVC)` in `tests/CMakeLists.txt` |
-| macOS | 15 |
-
-The fifteen that build everywhere are `blocksource`, `lcwstream`, `sosparity`,
-`unvqdelta`, `movieformat-vqa`, `movieformat-mp4`, `lzoblock`, `zbufring`,
-`priorityqueue`, `platformfile`, `save`, `uifontdialog`, `platformprocess`,
-`utf8contract` and `keyname`.
+Run `ctest -N` in a configured build directory to list its registered tests.
+The shared suite includes `blocksource`, `lcwstream`, `sosparity`, `unvqdelta`,
+`lzoblock`, `zbufring`, `priorityqueue`, `platformfile`, `save`, `png`,
+`houseset`, `uilogic`, `movieformat-vqa`, `movieformat-mp4`,
+`platformprocess`, `utf8contract`, `keyname`, and `shapemagnify`.
+`uishell` exercises Windows messages and runs only on Windows.
 
 `platformprocess` builds `code/dbgprint.cpp` with the process and diagnostics
 files in `code/platform/`, and checks where the executable is found, the log
