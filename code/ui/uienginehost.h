@@ -13,13 +13,14 @@
 #include "ui/uiscreen.h"
 
 #include <string>
+#include <cstdint>
 
 class UIViewClass;
 
 
 UIShellHostClass & UI_Engine_Host(void);
 
-std::string UI_Color_Text(COLORREF color);
+std::string UI_Color_Text(std::uint32_t color);
 
 bool UI_Service_Game(void);
 

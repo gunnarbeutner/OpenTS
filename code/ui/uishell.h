@@ -14,6 +14,7 @@
 #include "win.h"
 
 #include <array>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -32,6 +33,33 @@ class UIViewClass;
 class UIShellHostClass;
 
 using UIServiceCallback = std::function<bool(void)>;
+
+enum UIHostEventType
+{
+	UI_HOST_MOVE,
+	UI_HOST_BUTTON_DOWN,
+	UI_HOST_BUTTON_UP,
+	UI_HOST_WHEEL,
+	UI_HOST_KEY_DOWN,
+	UI_HOST_KEY_UP,
+	UI_HOST_TEXT,
+	UI_HOST_FOCUS,
+	UI_HOST_CAPTURE_LOST
+};
+
+struct UIHostEvent
+{
+	UIHostEventType Type;
+	int X = 0;
+	int Y = 0;
+	int Button = 0;
+	unsigned int Key = 0;
+	float Wheel = 0.0f;
+	bool Horizontal = false;
+	bool Repeat = false;
+	char32_t Text = 0;
+	bool Focused = false;
+};
 
 
 class UIShellClass
@@ -62,7 +90,10 @@ class UIShellClass
 		void Tick(void);
 		void Render_Overlay(void);
 
+		bool Handle_Host_Event(UIHostEvent const & event);
+#if defined(_WIN32)
 		bool Handle_Window_Message(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
+#endif
 		bool Handle_Set_Cursor(void);
 
 		Rml::Context * Rml_Context(void) const { return(Context); }
@@ -89,7 +120,7 @@ class UIShellClass
 		bool Text_Input_Focused(void) const;
 		void Apply_Dimensions(void);
 		void Drop_Cached_Files(void);
-		UIPointerPosition Pointer_Position(LPARAM clientlparam) const;
+		UIPointerPosition Pointer_Position(int clientx, int clienty) const;
 		std::array<bool, UIInputStateClass::BUTTON_COUNT> Physical_Buttons(void) const;
 		int Key_Modifiers(void) const;
 		void Quarantine_Held_Input(void);
@@ -103,12 +134,14 @@ class UIShellClass
 		bool Prepare_View(UIViewClass & view);
 		void Uncover(UIViewClass * covered);
 		void Drain_Deferred(void);
-		bool Handle_Mouse_Move(LPARAM clientlparam);
-		bool Handle_Button_Down(int button, LPARAM clientlparam);
-		bool Handle_Button_Up(int button, LPARAM clientlparam);
-		bool Handle_Wheel(WPARAM wparam, LPARAM screenlparam, bool horizontal);
-		bool Handle_Key(UINT message, WPARAM wparam, LPARAM lparam);
+		bool Handle_Mouse_Move(int clientx, int clienty);
+		bool Handle_Button_Down(int button, int clientx, int clienty);
+		bool Handle_Button_Up(int button, int clientx, int clienty);
+		bool Handle_Wheel(float delta, int clientx, int clienty, bool horizontal);
+		bool Handle_Key(unsigned int virtualkey, bool down, bool repeat);
+#if defined(_WIN32)
 		bool Handle_Char(WPARAM wparam);
+#endif
 		bool Feed_Text_Unit(wchar_t unit);
 		bool Feed_Text_Byte(unsigned char byte);
 		bool Handle_Text(char32_t code);

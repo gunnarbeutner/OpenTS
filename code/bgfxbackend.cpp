@@ -14,6 +14,7 @@
 
 #include "dbgprint.h"
 #include "except.h"
+#include "platform/diagnostics.h"
 
 #include "bgfxviews.hh"
 
@@ -25,7 +26,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <fs_ocornut_imgui.bin.h>
+#if defined(_WIN32)
 #include <malloc.h>
+#endif
 #include <vs_ocornut_imgui.bin.h>
 
 
@@ -102,7 +105,7 @@ class BackendCallback : public bgfx::CallbackI
 		{
 			char message[1024];
 			vsnprintf(message, sizeof(message), format, argList);
-			OutputDebugString(message);
+			Debug_Output_Write(message);
 		}
 
 		virtual void profilerBegin(const char *, uint32_t, const char *, uint16_t) override {}
@@ -120,6 +123,7 @@ class BackendCallback : public bgfx::CallbackI
 static BackendCallback _Callback;
 
 
+#if defined(_WIN32)
 // bgfx contains cache-line-aligned render records but requests their backing arrays with
 // the allocator's default alignment. The Win32 CRT only guarantees eight-byte alignment,
 // which is insufficient when clang-cl copies those records with aligned SSE instructions.
@@ -142,6 +146,7 @@ class BackendAllocator : public bx::AllocatorI
 };
 
 static BackendAllocator _Allocator;
+#endif
 
 
 /// <summary>
@@ -301,7 +306,9 @@ bool Backend_Init(NativeWindow const & window, int drawablewidth, int drawablehe
 	init.resolution.height = (uint32_t)drawableheight;
 	init.resolution.reset = _ResetFlags;
 	init.callback = &_Callback;
+#if defined(_WIN32)
 	init.allocator = &_Allocator;
+#endif
 
 	switch (renderer) {
 		case BACKEND_RENDERER_D3D11:

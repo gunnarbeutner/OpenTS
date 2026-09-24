@@ -152,7 +152,7 @@ void UINetLobbyEngineServiceClass::Read(UINetLobbyState & state)
 	for (NetChatLineType const & line : Net2_Chat_Log()) {
 		UINetChatLine copy;
 		copy.Text = line.Text;
-		copy.Color = (line.Color == -1) ? UI_NET_PLAIN : UI_Color_Text((COLORREF)line.Color);
+		copy.Color = (line.Color == -1) ? UI_NET_PLAIN : UI_Color_Text((std::uint32_t)line.Color);
 		state.Chat.push_back(copy);
 	}
 

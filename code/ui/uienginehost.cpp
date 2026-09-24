@@ -20,9 +20,11 @@
 #include "dbgprint.h"
 #include "globals.h"
 #include "goptions.h"
+#include "hostwindow.h"
 #include "keyboard.h"
 #include "mainloop.h"
 #include "mixfile.h"
+#include "mstimer.h"
 #include "movies.h"
 #include "msgloop.h"
 #include "rules.h"
@@ -35,14 +37,15 @@
 #include <cstdio>
 
 
-std::string UI_Color_Text(COLORREF color)
+std::string UI_Color_Text(std::uint32_t color)
 {
 	char text[16];
-	std::snprintf(text, sizeof(text), "#%02x%02x%02x", (unsigned)GetRValue(color), (unsigned)GetGValue(color), (unsigned)GetBValue(color));
+	std::snprintf(text, sizeof(text), "#%02x%02x%02x", (unsigned)(color & 0xFF), (unsigned)((color >> 8) & 0xFF), (unsigned)((color >> 16) & 0xFF));
 	return(std::string(text));
 }
 
 
+#if defined(_WIN32)
 static HCURSOR Window_Cursor(void)
 {
 	HCURSOR cursor = (HCURSOR)GetClassLongPtr(MainWindow, GCLP_HCURSOR);
@@ -276,7 +279,71 @@ class UIEngineHostClass : public UIShellHostClass
 		{
 			DebugString("%s", text);
 		}
+	};
+#else
+class UIEngineHostClass : public UIShellHostClass
+{
+	public:
+		UIFrameRect Frame(void) const override
+		{
+			VideoScaleInfo const & scale = Video_Get_Scale_Info();
+			return({ scale.DestX, scale.DestY, scale.DestWidth, scale.DestHeight, scale.ScaleX, scale.ScaleY });
+		}
+
+		void Mark_Overlay_Dirty(void) override { Video_Mark_Overlay_Dirty(); }
+		void Present_If_Dirty(void) override { Video_Present_If_Dirty(); }
+		void Present_Now(void) override { Video_Present_Now(); }
+		bool Movie_Playing(void) const override { return(Movie_Is_Playing()); }
+
+		void Play_Sample(char const * name, float volume) override
+		{
+			if (Options.SoundVolume > 0.0) {
+				AudioEngine.Play_Sample(MixFileClass::Retrieve(name), AUDIO_GROUP_SFX, volume, 255);
+			}
+		}
+
+		void Play_Click(void) override { Sound_Effect(Rule->GenericClick); }
+		bool Animate_Screens(void) const override { return(true); }
+
+		int Art_Magnification(void) const override
+		{
+			if (Options.ScaleMode != VIDEO_SCALE_PIXELART) {
+				return(1);
+			}
+			UIFrameRect frame = Frame();
+			float ratio = frame.ScaleX < frame.ScaleY ? frame.ScaleX : frame.ScaleY;
+			int factor = (int)ratio;
+			return((float)factor < ratio - 0.001f ? factor + 1 : factor);
+		}
+
+		bool Bitmap_System_Font(void) const override { return(Options.BitmapSystemFont); }
+		bool Developer_Keys_Armed(void) const override { return(Debug_Flag); }
+		void Clear_Keyboard_Queue(void) override { Keyboard->Clear(); }
+		void Focus_Main_Window(void) override { Host_Focus_Window(); }
+
+		bool Take_Capture(void) override
+		{
+			if (Host_Pointer_Is_Captured()) {
+				return(false);
+			}
+			Host_Capture_Pointer();
+			return(true);
+		}
+
+		void Release_Capture(void) override { Host_Release_Pointer(); }
+		bool Screen_To_Client(int & x, int & y) const override { return(true); }
+		bool Key_Down(int key) const override { return(Host_Key_Is_Down((unsigned short)key)); }
+		bool Key_Toggled(int key) const override { return(false); }
+		std::string System_Font_Path(char const * face) const override { return({}); }
+		bool Window_Is_Unicode(void) const override { return(true); }
+		unsigned int Text_Code_Page(void) const override { return(65001); }
+		void Apply_Cursor(UICursor cursor) override { Host_Set_Cursor(nullptr); }
+		void Restore_Game_Cursor(void) override { Win_Cursor_Refresh(); }
+		char const * String(int id) const override { return(Fetch_String(id)); }
+		int Milliseconds(void) const override { return((int)System_Milliseconds()); }
+		void Log(char const * message) override { DebugString("%s", message); }
 };
+#endif
 
 
 UIShellHostClass & UI_Engine_Host(void)

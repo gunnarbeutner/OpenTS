@@ -117,6 +117,7 @@
 #include "session.h"
 #include "sidebar.h"
 #include "sounddlg.h"
+#include "hostwindow.h"
 #include "stats.h"
 #include "surface.h"
 #include "tactical.h"

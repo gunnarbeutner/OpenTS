@@ -9,6 +9,8 @@
 
 #include "ui/uishell.h"
 
+#include "keyboard.h"
+
 #include "ui/dev/uidev.h"
 #include "ui/rml/rmlfont.h"
 #include "ui/rml/rmlkeys.h"
@@ -76,6 +78,7 @@ class UIHostClockClass : public UIClockClass
 };
 
 
+#if defined(_WIN32)
 bool Input_Message(UINT message)
 {
 	switch (message) {
@@ -133,6 +136,7 @@ int Message_Button(UINT message, WPARAM wparam)
 	}
 }
 
+#endif
 
 int Button_Virtual_Key(unsigned button)
 {
@@ -267,10 +271,10 @@ void UIShellClass::Drop_Cached_Files(void)
 }
 
 
-UIPointerPosition UIShellClass::Pointer_Position(LPARAM clientlparam) const
+UIPointerPosition UIShellClass::Pointer_Position(int clientx, int clienty) const
 {
 	UIFrameRect frame = Host.Frame();
-	return(UI_Client_To_Overlay(frame.X, frame.Y, frame.Width, frame.Height, GET_X_LPARAM(clientlparam), GET_Y_LPARAM(clientlparam)));
+	return(UI_Client_To_Overlay(frame.X, frame.Y, frame.Width, frame.Height, clientx, clienty));
 }
 
 
@@ -827,9 +831,9 @@ void UIShellClass::Render_Overlay(void)
 }
 
 
-bool UIShellClass::Handle_Mouse_Move(LPARAM clientlparam)
+bool UIShellClass::Handle_Mouse_Move(int clientx, int clienty)
 {
-	UIPointerPosition position = Pointer_Position(clientlparam);
+	UIPointerPosition position = Pointer_Position(clientx, clienty);
 
 	UIDev_Mouse_Position(position.X, position.Y);
 	if (UIDev_Wants_Mouse()) {
@@ -851,7 +855,7 @@ bool UIShellClass::Handle_Mouse_Move(LPARAM clientlparam)
 }
 
 
-bool UIShellClass::Handle_Button_Down(int button, LPARAM clientlparam)
+bool UIShellClass::Handle_Button_Down(int button, int clientx, int clienty)
 {
 	Input.Reconcile_Cancelled_Mouse(Physical_Buttons());
 
@@ -860,7 +864,7 @@ bool UIShellClass::Handle_Button_Down(int button, LPARAM clientlparam)
 		return(true);
 	}
 
-	UIPointerPosition position = Pointer_Position(clientlparam);
+	UIPointerPosition position = Pointer_Position(clientx, clienty);
 	int modifiers = Key_Modifiers();
 	bool haduimouse = Input.Has_UI_Mouse();
 	UIInputOwner owner = UI_INPUT_GAME;
@@ -898,9 +902,9 @@ bool UIShellClass::Handle_Button_Down(int button, LPARAM clientlparam)
 }
 
 
-bool UIShellClass::Handle_Button_Up(int button, LPARAM clientlparam)
+bool UIShellClass::Handle_Button_Up(int button, int clientx, int clienty)
 {
-	UIPointerPosition position = Pointer_Position(clientlparam);
+	UIPointerPosition position = Pointer_Position(clientx, clienty);
 	UIInputOwner owner = Input.Release_Mouse((unsigned)button);
 
 	if (owner == UI_INPUT_IMGUI) {
@@ -927,16 +931,9 @@ bool UIShellClass::Handle_Button_Up(int button, LPARAM clientlparam)
 }
 
 
-bool UIShellClass::Handle_Wheel(WPARAM wparam, LPARAM screenlparam, bool horizontal)
+bool UIShellClass::Handle_Wheel(float delta, int clientx, int clienty, bool horizontal)
 {
-	int x = GET_X_LPARAM(screenlparam);
-	int y = GET_Y_LPARAM(screenlparam);
-	Host.Screen_To_Client(x, y);
-
-	UIFrameRect frame = Host.Frame();
-	UIPointerPosition position = UI_Client_To_Overlay(frame.X, frame.Y, frame.Width, frame.Height, x, y);
-
-	float delta = (float)(short)HIWORD(wparam) / (float)WHEEL_DELTA;
+	UIPointerPosition position = Pointer_Position(clientx, clienty);
 
 	if (!horizontal && UIDev_Active()) {
 		UIDev_Mouse_Position(position.X, position.Y);
@@ -957,19 +954,19 @@ bool UIShellClass::Handle_Wheel(WPARAM wparam, LPARAM screenlparam, bool horizon
 }
 
 
-bool UIShellClass::Handle_Key(UINT message, WPARAM wparam, LPARAM lparam)
+bool UIShellClass::Handle_Key(unsigned int virtualkey, bool down, bool repeat)
 {
-	unsigned virtualkey = (unsigned)(wparam & 0xFF);
+	virtualkey &= 0xFF;
 	int modifiers = Key_Modifiers();
 	Rml::Input::KeyIdentifier key = UI_Key_Identifier((int)virtualkey);
 
-	if (message == WM_KEYUP) {
+	if (!down) {
 		UIInputOwner owner = Input.Release_Key(virtualkey);
 		if (owner == UI_INPUT_IMGUI) {
-			UIDev_Key(wparam, false);
+			UIDev_Key(virtualkey, false);
 		} else if (owner != UI_INPUT_SUPPRESSED) {
 			if (UIDev_Active()) {
-				UIDev_Key(wparam, false);
+				UIDev_Key(virtualkey, false);
 			}
 			if (key != Rml::Input::KI_UNKNOWN) {
 				Context->ProcessKeyUp(key, modifiers);
@@ -979,7 +976,6 @@ bool UIShellClass::Handle_Key(UINT message, WPARAM wparam, LPARAM lparam)
 		return(UI_Consumes_Input(owner));
 	}
 
-	bool repeat = (lparam & (1 << 30)) != 0;
 	if (!repeat) {
 		Input.Release_Key(virtualkey);
 	}
@@ -987,12 +983,12 @@ bool UIShellClass::Handle_Key(UINT message, WPARAM wparam, LPARAM lparam)
 	UIInputOwner owner = Input.Key_Owner(virtualkey);
 	if (owner != UI_INPUT_NONE) {
 		if (owner == UI_INPUT_IMGUI) {
-			UIDev_Key(wparam, true);
+			UIDev_Key(virtualkey, true);
 		} else if (owner == UI_INPUT_RML && key != Rml::Input::KI_UNKNOWN) {
 			Context->ProcessKeyDown(key, modifiers);
 		}
 	} else {
-		if (UIDev_Key(wparam, true)) {
+		if (UIDev_Key(virtualkey, true)) {
 			owner = UI_INPUT_IMGUI;
 		} else if (!Modals.empty()) {
 			if (key != Rml::Input::KI_UNKNOWN) {
@@ -1013,6 +1009,7 @@ bool UIShellClass::Handle_Key(UINT message, WPARAM wparam, LPARAM lparam)
 }
 
 
+#if defined(_WIN32)
 bool UIShellClass::Handle_Char(WPARAM wparam)
 {
 	if (Host.Window_Is_Unicode()) {
@@ -1021,6 +1018,7 @@ bool UIShellClass::Handle_Char(WPARAM wparam)
 	return(Feed_Text_Byte((unsigned char)wparam));
 }
 
+#endif
 
 bool UIShellClass::Feed_Text_Unit(wchar_t unit)
 {
@@ -1375,27 +1373,23 @@ void UIShellClass::Refresh(void)
 }
 
 
-/// <returns>True when the interface took the message, and the game must not act on it.
-/// A notification such as a lost capture is acted on and still answered false, because the
-/// game needs it too.</returns>
-bool UIShellClass::Handle_Window_Message(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
+bool UIShellClass::Handle_Host_Event(UIHostEvent const & event)
 {
-	if (!Ready || InHook || hwnd != Host.Main_Window()) {
+	if (!Ready || InHook) {
 		return(false);
 	}
 
 #ifdef _DEBUG
-	if (Host.Developer_Keys_Armed() && (message == WM_KEYDOWN || message == WM_KEYUP) && wparam == VK_F6) {
-		if (message == WM_KEYDOWN && (lparam & (1 << 30)) == 0) {
+	if (Host.Developer_Keys_Armed() && (event.Type == UI_HOST_KEY_DOWN || event.Type == UI_HOST_KEY_UP) && event.Key == VK_F6) {
+		if (event.Type == UI_HOST_KEY_DOWN && !event.Repeat) {
 			Deferred.ToggleDev = true;
 		}
 		return(true);
 	}
 #endif
 
-	if (message == WM_CAPTURECHANGED || message == WM_CANCELMODE) {
-		bool lost = (message == WM_CANCELMODE) || (HWND)lparam != Host.Main_Window();
-		if (lost && Input.Gesture_Owner() != UI_INPUT_NONE) {
+	if (event.Type == UI_HOST_CAPTURE_LOST) {
+		if (Input.Gesture_Owner() != UI_INPUT_NONE) {
 			TookCapture = false;
 			if (InContext) {
 				Deferred.DropPresses = true;
@@ -1407,8 +1401,8 @@ bool UIShellClass::Handle_Window_Message(HWND hwnd, UINT message, WPARAM wparam,
 		return(false);
 	}
 
-	if (message == WM_ACTIVATEAPP) {
-		bool activated = (wparam != 0);
+	if (event.Type == UI_HOST_FOCUS) {
+		bool activated = event.Focused;
 		if (InContext) {
 			Deferred.DevFocus = activated ? 1 : 0;
 		} else {
@@ -1442,27 +1436,101 @@ bool UIShellClass::Handle_Window_Message(HWND hwnd, UINT message, WPARAM wparam,
 		return(false);
 	}
 
-	if (message == WM_INPUTLANGCHANGE) {
-		Reset_Text();
-		return(false);
-	}
-
 	if (InContext || !Active()) {
 		return(false);
 	}
 
 	if (ModalClosing) {
-		return(Input_Message(message));
+		return(true);
 	}
 
 	UIReentryGuardClass hooking(InHook);
 	bool consumed = false;
 
-	switch (message) {
-		case WM_MOUSEMOVE:
-			consumed = Handle_Mouse_Move(lparam);
+	switch (event.Type) {
+		case UI_HOST_MOVE:
+			consumed = Handle_Mouse_Move(event.X, event.Y);
 			break;
 
+		case UI_HOST_BUTTON_DOWN:
+			consumed = Handle_Button_Down(event.Button, event.X, event.Y);
+			break;
+
+		case UI_HOST_BUTTON_UP:
+			consumed = Handle_Button_Up(event.Button, event.X, event.Y);
+			break;
+
+		case UI_HOST_WHEEL:
+			consumed = Handle_Wheel(event.Wheel, event.X, event.Y, event.Horizontal);
+			break;
+
+		case UI_HOST_KEY_DOWN:
+			consumed = Handle_Key(event.Key, true, event.Repeat);
+			break;
+
+		case UI_HOST_KEY_UP:
+			consumed = Handle_Key(event.Key, false, false);
+			break;
+
+		case UI_HOST_TEXT:
+			consumed = Handle_Text(event.Text);
+			break;
+
+		default:
+			break;
+	}
+
+	if (!Modals.empty()) {
+		consumed = true;
+	}
+
+	return(consumed);
+}
+
+
+#if defined(_WIN32)
+bool UIShellClass::Handle_Window_Message(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
+{
+	if (hwnd != Host.Main_Window()) {
+		return(false);
+	}
+
+	if (message == WM_INPUTLANGCHANGE) {
+		Reset_Text();
+		return(false);
+	}
+	if (message == WM_CHAR) {
+		if (!Ready || InHook || InContext || !Active()) {
+			return(false);
+		}
+		if (ModalClosing) {
+			return(true);
+		}
+		UIReentryGuardClass hooking(InHook);
+		bool consumed = Handle_Char(wparam);
+		return(consumed || !Modals.empty());
+	}
+
+	UIHostEvent event {};
+	if (message == WM_CAPTURECHANGED || message == WM_CANCELMODE) {
+		if (message == WM_CANCELMODE || (HWND)lparam != hwnd) {
+			event.Type = UI_HOST_CAPTURE_LOST;
+			return(Handle_Host_Event(event));
+		}
+		return(false);
+	}
+	if (message == WM_ACTIVATEAPP) {
+		event.Type = UI_HOST_FOCUS;
+		event.Focused = wparam != 0;
+		return(Handle_Host_Event(event));
+	}
+
+	event.X = GET_X_LPARAM(lparam);
+	event.Y = GET_Y_LPARAM(lparam);
+	switch (message) {
+		case WM_MOUSEMOVE:
+			event.Type = UI_HOST_MOVE;
+			break;
 		case WM_LBUTTONDOWN:
 		case WM_LBUTTONDBLCLK:
 		case WM_RBUTTONDOWN:
@@ -1471,40 +1539,32 @@ bool UIShellClass::Handle_Window_Message(HWND hwnd, UINT message, WPARAM wparam,
 		case WM_MBUTTONDBLCLK:
 		case WM_XBUTTONDOWN:
 		case WM_XBUTTONDBLCLK:
-			consumed = Handle_Button_Down(Message_Button(message, wparam), lparam);
+			event.Type = UI_HOST_BUTTON_DOWN;
+			event.Button = Message_Button(message, wparam);
 			break;
-
 		case WM_LBUTTONUP:
 		case WM_RBUTTONUP:
 		case WM_MBUTTONUP:
 		case WM_XBUTTONUP:
-			consumed = Handle_Button_Up(Message_Button(message, wparam), lparam);
+			event.Type = UI_HOST_BUTTON_UP;
+			event.Button = Message_Button(message, wparam);
 			break;
-
 		case WM_MOUSEWHEEL:
-			consumed = Handle_Wheel(wparam, lparam, false);
-			break;
-
 		case WM_MOUSEHWHEEL:
-			consumed = Handle_Wheel(wparam, lparam, true);
+			event.Type = UI_HOST_WHEEL;
+			event.Horizontal = message == WM_MOUSEHWHEEL;
+			event.Wheel = (float)(short)HIWORD(wparam) / (float)WHEEL_DELTA;
+			Host.Screen_To_Client(event.X, event.Y);
 			break;
-
 		case WM_KEYDOWN:
 		case WM_KEYUP:
-			consumed = Handle_Key(message, wparam, lparam);
+			event.Type = message == WM_KEYDOWN ? UI_HOST_KEY_DOWN : UI_HOST_KEY_UP;
+			event.Key = (unsigned int)wparam;
+			event.Repeat = (lparam & (1 << 30)) != 0;
 			break;
-
-		case WM_CHAR:
-			consumed = Handle_Char(wparam);
-			break;
-
 		default:
-			break;
+			return(false);
 	}
-
-	if (!Modals.empty() && Input_Message(message)) {
-		consumed = true;
-	}
-
-	return(consumed);
+	return(Handle_Host_Event(event));
 }
+#endif

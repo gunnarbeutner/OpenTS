@@ -2436,7 +2436,8 @@ void DisplayClass::Mouse_Left_Held(Point2D const & point)
 
 			// The system drag distance follows the display scale and accessibility settings.
 			Point2D travel = point - (Point2D &)BandX;
-			if (abs(travel.X) > GetSystemMetrics(SM_CXDRAG) || abs(travel.Y) > GetSystemMetrics(SM_CYDRAG)) {
+			Point2D threshold = Host_Drag_Threshold();
+			if (abs(travel.X) > threshold.X || abs(travel.Y) > threshold.Y) {
 				IsRubberBand = true;
 				IsTentative = false;
 				if (!IsWaypointMode) {
@@ -3687,20 +3688,6 @@ char const * DisplayClass::Help_Text(int id)
 /// </summary>
 void DisplayClass::Reposition_Sidebar(void)
 {
-	if (UnusedWindow) {
-		CloseWindow(UnusedWindow);
-		UnusedWindow = 0;
-	}
-}
-
-
-/// <summary>
-/// Handles a window message by handing it straight back to Windows.
-/// </summary>
-/// <returns>Returns with whatever the default window procedure decides.</returns>
-LRESULT DisplayClass::Windows_Message_Proc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
-{
-	return(DefWindowProcW(hWnd, Msg, wParam, lParam));
 }
 
 

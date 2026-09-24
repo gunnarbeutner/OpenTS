@@ -20,7 +20,7 @@
 #include "ini.h"
 #include "keyboard.h"
 #include "msanim.h"
-#include "ownrdraw.h"
+#include "surface.h"
 #include "theme.h"
 #include "ui/uishell.h"
 
@@ -166,7 +166,7 @@ int GraphicMenu::Presentation(void)
 {
 	Theme.Play_Song(Theme.From_Name(ThemeName.Peek()));
 
-	OwnerDraw::Capture_Mouse();
+	Menu_Capture_Mouse();
 
 	HiddenSurface->Fill(0);
 	AlternateSurface->Fill(0);
@@ -228,7 +228,7 @@ int GraphicMenu::Presentation(void)
 		item->Action(&Engine);
 	}
 
-	OwnerDraw::Release_Mouse();
+	Menu_Release_Mouse();
 
 	Theme.Fade_Out();
 

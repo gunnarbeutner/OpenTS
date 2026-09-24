@@ -9,8 +9,6 @@
 
 #pragma once
 
-#include "win.h"
-
 class UIRmlRenderClass;
 
 
@@ -23,7 +21,7 @@ void UIDev_Shutdown(UIRmlRenderClass & render);
 void UIDev_Mouse_Position(int x, int y);
 bool UIDev_Mouse_Button(int button, bool down);
 bool UIDev_Mouse_Wheel(float delta);
-bool UIDev_Key(WPARAM virtualkey, bool down);
+bool UIDev_Key(unsigned int virtualkey, bool down);
 bool UIDev_Character(wchar_t unit);
 void UIDev_Focus(bool focused);
 bool UIDev_Wants_Mouse(void);

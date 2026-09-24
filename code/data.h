@@ -33,9 +33,6 @@
 
 #include "buff.h"
 #include "iff.h"
-#include "win.h"
-
-#include <windows.h>
 #include "wwfile.h"
 
 /// An ID of -1 or 0 is not valid for Fetch_String.
@@ -47,5 +44,4 @@ int Load_Uncompress(FileClass & file, Buffer & uncomp_buff, Buffer & dest_buff, 
 char const * Fetch_String(int id);
 void * Hires_Load(char * name);
 
-bool Init_Language_Resources(bool show_error);
 void Get_Language_Version(char *version_string);

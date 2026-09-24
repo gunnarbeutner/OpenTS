@@ -188,7 +188,12 @@ void ProgressScreenClass::Set_Graphic_Data(const char * progbar, const char * ba
 		}
 		Fancy_Text_Print(String, *HiddenSurface, HiddenSurface->Get_Rect(), pt, scheme, TBLACK, TextPrintType(TPF_FULLSHADOW|TPF_6PT_GRAD));
 	}
-	Update_Visible_Surface();
+
+	// The box draws nothing into the frame, and in a menu the hidden surface still holds
+	// whatever was composed there last, so showing it would put stale art on the screen.
+	if (!IsBox) {
+		Update_Visible_Surface();
+	}
 }
 
 
@@ -282,7 +287,7 @@ void ProgressScreenClass::Display_Progress(Point2D xpt)
 				rect.X = pt.X;
 				rect.Y = pt.Y;
 				Draw_Shape(
-					*surface,
+					*HiddenSurface,
 					*drawer,
 					Shape,
 					0,
@@ -294,9 +299,7 @@ void ProgressScreenClass::Display_Progress(Point2D xpt)
 			pt = Point2D(-1,-1);
 		}
 
-		if (surface == HiddenSurface) {
-			Update_Visible_Surface();
-		}
+		Update_Visible_Surface();
 	}
 }
 

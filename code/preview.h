@@ -11,7 +11,6 @@
 
 #include "point.h"
 
-#include <windows.h>
 
 class Surface;
 class XSurface;

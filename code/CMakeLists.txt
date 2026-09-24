@@ -235,7 +235,7 @@ set_source_files_properties(${OPENTS_BGFX_SOURCES} PROPERTIES
         "${BGFX_ROOT}/include;${CMAKE_SOURCE_DIR}/thirdparty/bgfx.cmake/bx/include"
     COMPILE_DEFINITIONS
         "BX_CONFIG_DEBUG=$<IF:$<CONFIG:Debug>,1,$<BOOL:${BX_CONFIG_DEBUG}>>"
-    COMPILE_OPTIONS "/Zc:preprocessor"
+    COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:MSVC>:/Zc:preprocessor>"
 )
 
 # The frame quad's shaders come from the imgui example and the overlay's from the debug
@@ -256,7 +256,7 @@ set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/writepng.cpp" PROPERTIE
 
 if(MSVC)
     set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/bgfxbackend.cpp" APPEND PROPERTY
-        COMPILE_OPTIONS "/Zc:preprocessor"
+        COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:MSVC>:/Zc:preprocessor>"
     )
 endif()
 

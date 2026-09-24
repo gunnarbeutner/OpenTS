@@ -119,7 +119,6 @@ endif()
 
 add_subdirectory(thirdparty)
 add_subdirectory(code)
-add_subdirectory(code/language)
 
 enable_testing()
 

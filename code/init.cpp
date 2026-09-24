@@ -152,7 +152,6 @@
 #include "overlay.h"
 #include "overtype.h"
 #include "ovrlight.h"
-#include "ownrdraw.h"
 #include "partsys.h"
 #include "png.h"
 #include "platform/file.h"
@@ -1826,41 +1825,29 @@ void Init_Random(void)
 	*/
 	if (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) {
 
-	#ifdef WIN32
 		/*
 		**	Gather some "random" bits from the system timer. Actually, only the
 		**	low order millisecond bits are secure. The other bits could be
 		**	easily guessed from the system clock (most clocks are fairly accurate
 		**	and thus predictable).
 		*/
-		SYSTEMTIME t;
-		GetSystemTime(&t);
-		CryptRandom.Seed_Byte(t.wMilliseconds);
-		CryptRandom.Seed_Bit(t.wSecond);
-		CryptRandom.Seed_Bit(t.wSecond>>1);
-		CryptRandom.Seed_Bit(t.wSecond>>2);
-		CryptRandom.Seed_Bit(t.wSecond>>3);
-		CryptRandom.Seed_Bit(t.wSecond>>4);
-		CryptRandom.Seed_Bit(t.wMinute);
-		CryptRandom.Seed_Bit(t.wMinute>>1);
-		CryptRandom.Seed_Bit(t.wMinute>>2);
-		CryptRandom.Seed_Bit(t.wMinute>>3);
-		CryptRandom.Seed_Bit(t.wMinute>>4);
-		CryptRandom.Seed_Bit(t.wHour);
-		CryptRandom.Seed_Bit(t.wDay);
-		CryptRandom.Seed_Bit(t.wDayOfWeek);
-		CryptRandom.Seed_Bit(t.wMonth);
-		CryptRandom.Seed_Bit(t.wYear);
-	#else
-
-		/*
-		**	Gather some "random" bits from the DOS mode timer.
-		*/
-		struct timeb t;
-		ftime(&t);
-		CryptRandom.Seed_Byte(t.millitm);
-		CryptRandom.Seed_Byte(t.time);
-	#endif
+		CalendarTimeType const t = Calendar_Time(File_Time_Now());
+		CryptRandom.Seed_Byte((char)t.Milliseconds);
+		CryptRandom.Seed_Bit(t.Second);
+		CryptRandom.Seed_Bit(t.Second>>1);
+		CryptRandom.Seed_Bit(t.Second>>2);
+		CryptRandom.Seed_Bit(t.Second>>3);
+		CryptRandom.Seed_Bit(t.Second>>4);
+		CryptRandom.Seed_Bit(t.Minute);
+		CryptRandom.Seed_Bit(t.Minute>>1);
+		CryptRandom.Seed_Bit(t.Minute>>2);
+		CryptRandom.Seed_Bit(t.Minute>>3);
+		CryptRandom.Seed_Bit(t.Minute>>4);
+		CryptRandom.Seed_Bit(t.Hour);
+		CryptRandom.Seed_Bit(t.Day);
+		CryptRandom.Seed_Bit(t.DayOfWeek);
+		CryptRandom.Seed_Bit(t.Month);
+		CryptRandom.Seed_Bit(t.Year);
 
 		/*
 		**	Set the optional user-specified seed
@@ -1968,50 +1955,28 @@ static void Init_Heaps(void)
 static bool Init_Expansion_Files(void)
 {
 #ifdef _DEMO
-	HANDLE handle;
-	WIN32_FIND_DATA ff;
 	MFCD * ptr;
 
 	/*
 	**	Before all else, cache any additional mixfiles.
 	*/
-	handle = FindFirstFile("ECACHE*.MIX", &ff);
+	for (PlatformFileInfoType const & ff : Platform_Find_Files("ECACHE*.MIX")) {
+		if (!ff.IsDirectory && !ff.IsHidden) {
 
-	while (handle != INVALID_HANDLE_VALUE) {
-		if ((ff.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_TEMPORARY)) == 0) {
-
-			ptr = new MFCD(ff.cFileName, &FastKey);
+			ptr = new MFCD(ff.Name.c_str(), &FastKey);
 
 			ExpandMix.Add(ptr);
 			ptr->Cache();
 		}
-
-		if (FindNextFile(handle, &ff) == false) {
-			break;
-		}
 	}
 
-	if (handle != INVALID_HANDLE_VALUE) {
-		FindClose(handle);
-	}
+	for (PlatformFileInfoType const & ff : Platform_Find_Files("ELOCAL*.MIX")) {
+		if (!ff.IsDirectory && !ff.IsHidden) {
 
-	handle = FindFirstFile("ELOCAL*.MIX", &ff);
-
-	while (handle != INVALID_HANDLE_VALUE) {
-		if ((ff.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_TEMPORARY)) == 0) {
-
-			ptr = new MFCD(ff.cFileName, &FastKey);
+			ptr = new MFCD(ff.Name.c_str(), &FastKey);
 
 			ExpandMix.Add(ptr);
 		}
-
-		if (FindNextFile(handle, &ff) == false) {
-			break;
-		}
-	}
-
-	if (handle != INVALID_HANDLE_VALUE) {
-		FindClose(handle);
 	}
 #endif
 	return(true);
@@ -2867,7 +2832,8 @@ bool Cheat_Key_Process(char chr)
 /// <summary>
 /// Shows the version information and returns once the player closes it.
 /// </summary>
-void Version_Dialog(void)
+/// <returns>Returns with the selection a key made, or SEL_NONE.</returns>
+static int Main_Menu_Keys(std::function<void(bool)> const & show)
 {
 	UI_Version_Dialog();
 }

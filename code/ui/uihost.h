@@ -30,7 +30,9 @@ class UIShellHostClass
 {
 	public:
 		virtual ~UIShellHostClass(void) = default;
+#if defined(_WIN32)
 		virtual HWND Main_Window(void) const = 0;
+#endif
 		virtual UIFrameRect Frame(void) const = 0;
 		virtual void Mark_Overlay_Dirty(void) = 0;
 		virtual void Present_If_Dirty(void) = 0;

@@ -31,10 +31,6 @@
  *   LoadOptionsClass::LoadOptionsClass -- class constructor                                   *
  *   LoadOptionsClass::~LoadOptionsClass -- class destructor                                   *
  *   LoadOptionsClass::Process -- main processing routine                                      *
- *   LoadOptionsClass::Clear_List -- clears the list box & Files arrays                        *
- *   LoadOptionsClass::Fill_List -- fills the list box & GameNum arrays                        *
- *   LoadOptionsClass::Num_From_Ext -- clears the list box & GameNum arrays                    *
- *   LoadOptionsClass::Compare -- for qsort                                                    *
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include "always.h"
@@ -62,7 +58,6 @@
 #include "ui/uiview.h"
 #include "utf8.h"
 #include "win.h"
-#include <windowsx.h>
 
 #include <algorithm>
 #include <cstdio>
@@ -85,7 +80,6 @@
  *   02/14/1995 BR : Created.                                                                  *
  *=============================================================================================*/
 LoadOptionsClass::LoadOptionsClass(void) :
-	Files(0),
 	Style(NONE),
 	Description(NULL),
 	DescriptionSize(0),
@@ -95,7 +89,6 @@ LoadOptionsClass::LoadOptionsClass(void) :
 	Description = NULL;
 	Extension = "SAV";
 	MinSpaceRequired = 2048;
-	Files.Clear();
 }
 
 
@@ -116,10 +109,6 @@ LoadOptionsClass::LoadOptionsClass(void) :
  *=============================================================================================*/
 LoadOptionsClass::~LoadOptionsClass(void)
 {
-	for (int i = 0; i < Files.Count(); i++) {
-		delete Files[i];
-	}
-	Files.Clear();
 }
 
 
@@ -171,7 +160,8 @@ bool LoadOptionsClass::Delete(void)
 
 static bool Saved_Game_Exists(char const * name)
 {
-	return(GetFileAttributes(Saved_Game_Name(name).c_str()) != INVALID_FILE_ATTRIBUTES);
+	PlatformFileInfoType info;
+	return(Platform_File_Info(Saved_Game_Name(name).c_str(), info));
 }
 
 
@@ -187,7 +177,15 @@ bool LoadOptionsClass::Dialog(void)
 		return(false);
 	}
 
-	State = STATE_PENDING;
+	// The screen is handed what it cannot reach through the public members.
+	UIMissionFilesRequest request;
+	request.Options = this;
+	request.Style = Style;
+	request.Description = Description;
+	request.Extension = Extension;
+	request.ScanLimit = Scan_Limit();
+	request.Saved_Game_Exists = Saved_Game_Exists;
+	request.Save_Confirmation = [this](void) { return(Save_Confirmation()); };
 
 	char buffer[256];
 
@@ -543,53 +541,19 @@ bool LoadOptionsClass::Files_Present(void)
 	char pattern[64];
 	snprintf(pattern, sizeof(pattern), "*.%3s", Extension);
 
-	WIN32_FIND_DATAA find_data;
-	HANDLE hFind = FindFirstFile(Saved_Game_Name(pattern).c_str(), &find_data);
+	for (PlatformFileInfoType const & found : Platform_Find_Files(Saved_Game_Name(pattern).c_str())) {
+		if (found.IsDirectory || found.IsHidden) {
+			continue;
+		}
 
-	if (hFind != INVALID_HANDLE_VALUE) {
-		do {
-			if ((find_data.dwFileAttributes & (FILE_ATTRIBUTE_TEMPORARY|FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_SYSTEM|FILE_ATTRIBUTE_HIDDEN)) != 0) {
-				continue;
-			}
-
-			FileEntryClass entry;
-			if (Read_File(&entry, &find_data) == true) {
-				files_found = true;
-				break;
-			}
-		} while (FindNextFile(hFind, &find_data));
-
-		FindClose(hFind);
+		FileEntryClass entry;
+		if (Read_File(&entry, &found) == true) {
+			files_found = true;
+			break;
+		}
 	}
 
 	return(files_found);
-}
-
-
-/***********************************************************************************************
- * LoadOptionsClass::Compare -- for qsort                                                      *
- *                                                                                             *
- * INPUT:                                                                                      *
- *      p1,p2      ptrs to elements to compare                                                 *
- *                                                                                             *
- * OUTPUT:                                                                                     *
- *      0 = same, -1 = (*p1) goes BEFORE (*p2), 1 = (*p1) goes AFTER (*p2)                     *
- *                                                                                             *
- * WARNINGS:                                                                                   *
- *      none.                                                                                  *
- *                                                                                             *
- * HISTORY:                                                                                    *
- *   02/14/1995 BR : Created.                                                                  *
- *=============================================================================================*/
-int __cdecl LoadOptionsClass::Compare(const void * p1, const void * p2)
-{
-	FileEntryClass * fe1, * fe2;
-
-	fe1 = *((FileEntryClass **)p1);
-	fe2 = *((FileEntryClass **)p2);
-
-	int res = CompareFileTime(&fe1->DateTime, &fe2->DateTime);
-	return(-res);
 }
 
 
@@ -645,10 +609,7 @@ int LoadOptionsClass::Save_Confirmation(void) const
 /// <returns>bool; Was the file deleted?</returns>
 bool LoadOptionsClass::Delete_File(const char * file_name)
 {
-	if (DeleteFile(Saved_Game_Name(file_name).c_str()) == TRUE) {
-		return(true);
-	}
-	return(false);
+	return(Platform_Remove_File(Saved_Game_Name(file_name).c_str()));
 }
 
 
@@ -661,7 +622,7 @@ bool LoadOptionsClass::Delete_File(const char * file_name)
 /// <param name="fdata">The list entry to fill in.</param>
 /// <param name="ff">The find record naming the file to examine.</param>
 /// <returns>bool; Was a usable save game found in the file?</returns>
-bool LoadOptionsClass::Read_File(FileEntryClass * fdata, WIN32_FIND_DATAA * ff)
+bool LoadOptionsClass::Read_File(FileEntryClass * fdata, PlatformFileInfoType const * ff)
 {
 	if (fdata == NULL && ff == NULL) {
 		return(false);
@@ -672,7 +633,7 @@ bool LoadOptionsClass::Read_File(FileEntryClass * fdata, WIN32_FIND_DATAA * ff)
 	/*
 	 * get the game's info;
 	 */
-	bool ok = Get_Savefile_Info(ff->cFileName, &savever);
+	bool ok = Get_Savefile_Info(ff->Name.c_str(), &savever);
 	if (!ok) {
 		return(false);
 	}
@@ -687,13 +648,9 @@ bool LoadOptionsClass::Read_File(FileEntryClass * fdata, WIN32_FIND_DATAA * ff)
 	fdata->Scenario = savever.Get_Scenario_Number();
 	fdata->Num = savever.Get_Campaign_Number();
 	fdata->Type = (GameType)savever.Get_Game_Type();
-	strcpy(fdata->Filename, ff->cFileName);
+	strcpy(fdata->Filename, ff->Name.c_str());
 	strcpy(fdata->PlayerName, savever.Get_Player_House());
-	if (strlen(fdata->Filename) == 0) {
-		strcpy(fdata->Filename, ff->cAlternateFileName);
-	}
-	fdata->DateTime.dwHighDateTime = ff->ftLastWriteTime.dwHighDateTime;
-	fdata->DateTime.dwLowDateTime = ff->ftLastWriteTime.dwLowDateTime;
+	fdata->DateTime = ff->Modified;
 	return(true);
 }
 
@@ -718,9 +675,9 @@ bool MultiplayerLoadOptionsClass::Load_File(const char * file_name)
 /// <summary>
 /// Lists a numbered save of this kind of game and nothing else.
 /// </summary>
-bool MultiplayerLoadOptionsClass::Read_File(FileEntryClass * entry, WIN32_FIND_DATAA * ff)
+bool MultiplayerLoadOptionsClass::Read_File(FileEntryClass * entry, PlatformFileInfoType const * ff)
 {
-	if (entry == NULL || ff == NULL || Multiplayer_Save_Slot(ff->cFileName) < 0) {
+	if (entry == NULL || ff == NULL || Multiplayer_Save_Slot(ff->Name.c_str()) < 0) {
 		return(false);
 	}
 	return(LoadOptionsClass::Read_File(entry, ff) && entry->Type == Session.Type);

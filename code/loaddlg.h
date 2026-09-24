@@ -40,7 +40,7 @@
 #include <cstddef>
 #include <cstdint>
 
-template<class T> class DynamicVectorClass;
+struct PlatformFileInfoType;
 
 class FileEntryClass {
 	public:
@@ -166,15 +166,6 @@ class LoadOptionsClass
 			STATE_OK		= DIALOG_OK,		// OK pressed (confirmed action)
 			STATE_CLOSE		= DIALOG_CANCEL	/// Closed via ESC / system event
 		} State;
-
-		/*
-		**	This is an array of pointers to FileEntryClass objects.  These objects
-		**	are allocated on the fly as files are found, and pointers to them are
-		**	added to the vector list.  Thus, all the objects must be free'd before
-		**	the vector list is cleared.  This list is used for sorting the files
-		**	by date/time.
-		*/
-		DynamicVectorClass<FileEntryClass *> Files;
 };
 
 

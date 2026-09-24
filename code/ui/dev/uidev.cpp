@@ -15,7 +15,9 @@
 #include "bench.h"
 #include "dbgprint.h"
 #include "globals.h"
+#include "keyboard.h"
 #include "logic.h"
+#include "mstimer.h"
 #include "mono.h"
 #include "mpu.h"
 #include "ui/rml/rmlrender.h"
@@ -250,7 +252,7 @@ static void Sample_Benchmarks(void)
 	}
 
 	_SamplesValid = true;
-	_LastSampleTime = timeGetTime();
+	_LastSampleTime = System_Milliseconds();
 }
 
 
@@ -366,7 +368,7 @@ static void Draw_Benchmark_Window(void)
 		ImGui::TextDisabled("(the monochrome display owns the reset while it is on)");
 	}
 
-	if (Snapshots_In_Use() && (!_SamplesValid || timeGetTime() - _LastSampleTime >= 1000)) {
+	if (Snapshots_In_Use() && (!_SamplesValid || System_Milliseconds() - _LastSampleTime >= 1000)) {
 		Sample_Benchmarks();
 	}
 
@@ -517,7 +519,7 @@ bool UIDev_Mouse_Wheel(float delta)
 }
 
 
-bool UIDev_Key(WPARAM virtualkey, bool down)
+bool UIDev_Key(unsigned int virtualkey, bool down)
 {
 	if (!UIDev_Active()) {
 		return(false);
