@@ -176,16 +176,4 @@ Declining the replay ends the game. Abandoning the mission from the in-game menu
 
 The campaign level number goes up by one each time a campaign mission is won and the next one loads. No scenario file sets it. It is `1` when the game starts, and three other things change it:
 
-- Abandoning a mission from the in-game menu sets it back to `1`.
-- Loading a saved game restores the number the save recorded.
-- A LAN game sets it to the position of its map in the map list, counting from `0`.
-
-Three things read the number:
-
-- The animated introduction plays when a campaign mission loads with its briefing while the number is `1`, and only for a campaign whose [`CD=`](/keys/cd/) is below `2`. A new campaign's first mission and a mission that a launch file starts partway through a campaign both load with the briefing. A replay or restart skips the briefing, so it never plays the introduction.
-- A house section that leaves out [`TechLevel=`](/keys/techlevel/#scope-house-per-scenario) is given this number as its tech level, so by default tech level rises with campaign progress.
-- In single-player games, a music track whose [`Scenario=`](/keys/scenario/#scope-themes) is above the current number is skipped whenever the game picks the next track, and is missing from the track list in the sound options. This is how a campaign holds its later music back.
-
-Starting a new campaign does not reset the number, so the campaign inherits whatever value the last game left. A campaign that ends through its final mission, `OneTimeOnly` or a declined replay leaves the number raised. A campaign started next, in the same run of the game, then begins with that number: its animated introduction does not play, and its houses without `TechLevel=` start at the higher tech level. After a LAN game, the number is that map's list position, so the introduction and the default tech level depend on which map was played.
-
-The introduction played is `INTR<n>.VQA`, where `n` is the campaign's [`CD=`](/keys/cd/). If that file is not available, `INTRO.VQA` plays instead. Each original campaign shipped its introduction as `INTRO.VQA` on its own disc, so a deployment holding every campaign needs the numbered names to play more than one of them.
+The introduction played is `INTR<n>` with the build-selected movie extension, where `n` is the campaign's [`CD=`](/keys/cd/#scope-campaign). The current base campaigns therefore use `INTR0` and `INTR1`. Where a deployment holds no such file, `INTRO` with the same extension plays instead. Each campaign shipped its own introduction under that one name, on its own disc, so a deployment holding every campaign at once needs the numbered names to reach more than the first.

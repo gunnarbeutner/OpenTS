@@ -142,3 +142,8 @@ add_test(NAME toolkitheaders
     COMMAND "${CMAKE_COMMAND}" -DOPENTS_SOURCE_DIR=${CMAKE_SOURCE_DIR}
         -P "${CMAKE_SOURCE_DIR}/cmake/CheckToolkitHeaders.cmake"
 )
+add_subdirectory(uifont)
+add_subdirectory(platform)
+add_subdirectory(utf8)
+add_subdirectory(keyname)
+add_subdirectory(movieformat)
