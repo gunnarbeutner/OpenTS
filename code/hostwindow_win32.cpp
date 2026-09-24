@@ -14,6 +14,7 @@
 #include "hostwindow.h"
 
 #include "_keyboar.h"
+#include "_ui.h"
 #include "dbgprint.h"
 #include "except.h"
 #include "gamewindow.h"
@@ -27,7 +28,7 @@
 #include "queue.h"
 #include "resource.h"
 #include "session.h"
-#include "ui/uiwin32.h"
+#include "ui/uishell.h"
 #include "video.h"
 #include "vidscale.h"
 #include "win.h"
@@ -387,6 +388,10 @@ static bool Handle_Input_Message(UINT message, WPARAM wparam, LPARAM lparam)
 /// <returns>Returns with the result Windows expects for the message handled.</returns>
 LRESULT CALLBACK /*_export*/ Windows_Procedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	// Feed the shell the original client coordinates before the game maps them to its frame.
+	if (UIShell.Handle_Window_Message(hwnd, message, wParam, lParam)) {
+		return(0);
+	}
 
 	// The frame may be drawn scaled, so a position is taken into the frame before anything
 	// reads it. A wheel message carries a screen position, which nothing reads.
@@ -394,11 +399,6 @@ LRESULT CALLBACK /*_export*/ Windows_Procedure(HWND hwnd, UINT message, WPARAM w
 		Point2D point(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		Window_Point_To_Game(point);
 		lParam = MAKELPARAM((short)point.X, (short)point.Y);
-	}
-
-	// Before the game's own handling, so input a document took never enters the KN_ queue.
-	if (UI_Handle_Window_Message(hwnd, message, wParam, lParam)) {
-		return(0);
 	}
 
 	if (Handle_Input_Message(message, wParam, lParam)) {

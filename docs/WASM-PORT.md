@@ -183,9 +183,8 @@ of that buffer, through bgfx's OpenGL ES renderer.
 ### 2.1 Text without GDI
 
 No surface hands out a Windows device context any more, on any target. The
-tactical caption `Tactical::Draw_Screen_Text` draws is rasterized with
-FreeType by `UI_Draw_Caption` (`code/ui/uicaption.cpp`), and the interface
-screens' text is drawn by the UI shell.
+tactical caption `Tactical::Draw_Screen_Text` draws uses `Sheet_Draw_Text`
+(`code/sheettext.cpp`). Interface screens use the upstream RmlUi shell.
 
 ## 3 The platform layer
 
@@ -585,12 +584,9 @@ menu reads its design space from the backdrop rather than assuming 640 by 400,
 picks an item on release rather than press, and puts itself away for a pending
 resize so `Display_Menu` rebuilds it against the new frame.
 
-The mission restatement claims no design space at all. Its plate is filled out
-to the frame like the title page, and the shell screen over it
-([the UI design](UI_DESIGN.md#migration-plan)) is laid out against wherever that
-plate landed, so its lettering is rasterized at the window's own resolution
-rather than magnified out of 640 by 400. Only the plate and the button skins are
-magnified artwork.
+The mission restatement claims a 640 by 400 design space with `Set_Shell_Size`.
+It draws the plate, buttons, and sheet text on the engine surface, then
+`Fill_Out_Shell` scales that surface to the frame.
 
 The score screen claims the space the same way and pushes its frame through
 `Blit_Shell` rather than copying the design rectangle straight across, so the
@@ -617,6 +613,13 @@ highlight image to find the lettering, because only a few choices were ever
 drawn a disabled face. A menu backdrop movie keeps its 640 by 400 rectangle
 whatever the movie stretching option says, and all three page backdrops are
 prefetched when the shell comes up.
+
+The browser screen registry opens the upstream dialogs for abort, controls,
+game options, keyboard, options, map generation, skirmish, sound, version,
+and saved games. The old probe and menu names belonged to the removed UI
+implementation. Browser harnesses should enumerate names with
+`OpenTS_UI_Screen_Count` and `OpenTS_UI_Screen_Name` before requesting a screen;
+reach unregistered menus through the game.
 
 ### 5.4 Pointer, wheel, touch and typing
 
@@ -662,8 +665,8 @@ composition, and delivered as a press and release of the US layout key that
 produces the character. A character no such key produces, like a physical key
 the engine has no code for, rides on key `0xE7`, which Windows calls
 `VK_PACKET` and uses for the same purpose. Each event carries its character as
-a code point, and `UI_Handle_Text` receives it as UTF-8. The action
-key is `go` rather than `done`, because `done` only dismisses the keyboard, and the
+a code point, and the browser adapter sends it to `UIShell` as a `UI_HOST_TEXT`
+event. The action key is `go` rather than `done`, because `done` only dismisses the keyboard, and the
 form submit is the last resort for a return, skipped within 200 ms of one
 already accounted for.
 
@@ -832,13 +835,8 @@ match, so a page whose items are only partly prepared still lines up. A
 backdrop that is a movie, or a release with no prepared copies at all, leaves
 every coordinate as it was.
 
-A release may prepare lettering the same way. The outline face carries the name of the
-glyph sheet it was made from with a `.TTF` extension -- `DLGSYSI.TTF` beside the
-`DLGSYSI.PCX` the dialogs draw from -- and is resolved through the archive that answers
-the sheet, so a face a side or an addon carries its own copy of stays distinct.
-`code/fontbackend.cpp` fetches it whole and `UI_Load_Game_Fonts` installs it as the family
-the stylesheets ask for. A release that prepared none leaves the family served from the
-sheets themselves, magnified in whole steps, which is what every release holds today.
+`code/ui/uishell.cpp` loads the shipped UI font and legacy glyph sheets for
+the browser.
 
 The hit rectangle is the whole of what the INI names, which is wrong for a
 choice drawn as a disc: the corners of the game selection page's two
@@ -867,11 +865,10 @@ the builds, and `tests/save` covers it.
 Where a save lives is [the file layer](PLATFORM.md#2-the-file-layer)'s
 persistent directory.
 
-A save that only exists inside one browser's storage is easy to lose and
-impossible to move, so the load and save screens carry an Export and an Import
-button on this target. The screens show them only under Emscripten
-(`Transfer` in `code/ui/uimission.cpp`), and `LoadOptionsClass::Dialog` hands
-them `Export_Saved_Game` and `Import_Saved_Game` from `code/loaddlg.cpp`.
+A save in browser storage needs an explicit transfer to move it. The RmlUi
+load and save screens show Export and Import on Emscripten. `LoadOptionsClass::Dialog`
+handles those choices through `Export_Saved_Game` and `Import_Saved_Game` in
+`code/loaddlg.cpp`.
 
 Neither direction lets the page decide where a save belongs. Export reads
 through `RawFileClass` and hands the bytes to a download; import picks a file,

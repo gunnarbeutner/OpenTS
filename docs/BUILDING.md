@@ -210,17 +210,13 @@ ctest --test-dir build-wasm
 `CMAKE_CROSSCOMPILING_EMULATOR` at the emsdk's node, so `ctest` runs the
 harnesses there without further configuration. None of them reads game data.
 
-| Target | Tests registered |
-| --- | --- |
-| MSVC | 46: the fifteen below and 31 more listed under `if(MSVC)` in `tests/CMakeLists.txt` |
-| macOS | 15 |
-| Emscripten | 16: the fifteen below and `httpsource` |
-
-The fifteen that build everywhere are `blocksource`, `lcwstream`, `sosparity`,
-`unvqdelta`, `lzoblock`, `zbufring`, `priorityqueue`, `platformfile`, `save`,
-`movieformat-vqa`, `movieformat-mp4`, `uifontdialog`, `platformprocess`,
-`utf8contract` and `keyname`. `httpsource` drives the file layer's reads out of
-the asset manifest's archives against a stand-in for the transport.
+Run `ctest -N` in a configured build directory to list its registered tests.
+The shared suite includes `blocksource`, `lcwstream`, `sosparity`, `unvqdelta`,
+`lzoblock`, `zbufring`, `priorityqueue`, `platformfile`, `save`, `png`,
+`houseset`, `uilogic`, `movieformat-vqa`, `movieformat-mp4`,
+`platformprocess`, `utf8contract`, `keyname`, and `shapemagnify`.
+`uishell` currently exercises Windows messages and runs only on Windows.
+`httpsource` runs under Emscripten against a stand-in for the asset transport.
 
 `platformprocess` builds `code/dbgprint.cpp` with the process and diagnostics
 files in `code/platform/`, and checks where the executable is found, the log
@@ -843,8 +839,7 @@ Not established, and not to be read into the above:
   the page's IndexedDB mount of `/save` is for, has not been observed: every
   harness run starts with a fresh browser profile.
 - **Every interface screen doing its job.** The former owner-draw dialogs are
-  RmlUi screens; [the UI system design](UI_DESIGN.md#migration-plan) records
-  what the runs of each screen covered and what they left out.
+  RmlUi screens. This browser build has not verified each screen end to end.
 - **The mouse cursor.** `Host_Create_Cursor` in `code/hostwindow_page.cpp`
   encodes each cursor frame as a PNG data URL for `canvas.style.cursor`, but
   what a player sees is still the browser's own arrow, and that path is under

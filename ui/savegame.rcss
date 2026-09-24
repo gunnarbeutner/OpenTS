@@ -158,3 +158,18 @@ button
 	margin-left: 226dp;
 	margin-right: 10dp;
 }
+
+.transfer #accept
+{
+	margin-left: 71dp;
+}
+
+.transfer.save #accept
+{
+	margin-left: 76dp;
+}
+
+.transfer.delete #accept
+{
+	margin-left: 74dp;
+}

@@ -10,18 +10,17 @@
 #pragma once
 
 
-// Installs the shell's hook on the page's event queue. The page has no window procedure, so
-// this rather than uiwin32.cpp is what feeds the shell there.
+// Installs the shell's hook on the page's event queue.
 void UI_Browser_Install_Hook(void);
 void UI_Browser_Remove_Hook(void);
 
 // Delivers a mouse move when the pointer has moved. The page queues a press and a release
 // but tracks the position on its own, so a move has to be polled rather than awaited. The
-// shell's tick is what calls this.
+// browser service calls this.
 void UI_Browser_Service_Mouse(void);
 
 // Raises the page's keyboard while a text field holds the focus and puts it away after, as
-// the page has no other way to learn that a field wants typing. The shell's tick calls this.
+// the page has no other way to learn that a field wants typing. Browser service calls this.
 void UI_Browser_Service_Text_Input(void);
 
 // Whether a finger landing at this point of the game's frame is on a screen, which takes the

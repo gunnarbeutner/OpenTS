@@ -18,6 +18,7 @@
 #include "language/language.h"
 #include "mapgen.h"
 #include "mixfile.h"
+#include "msgloop.h"
 #include "wdtnet.h"
 
 

@@ -271,9 +271,8 @@ of the substitute it had used was deleted afterwards. These moves came first:
 
 The rest went in `4fefefc7..2a6a0517`. The network lobbies became RmlUi
 screens, the last owner-draw dialogs to go, which left the window manager, the
-controls and the GDI subset nothing to serve; OwnerDraw was deleted with them
-([UI system design](UI_DESIGN.md#migration-plan), step 13). The pointer, the
-cursor, the keys and the window moved behind `code/hostwindow.h`, with the
+controls and the GDI subset nothing to serve; OwnerDraw was deleted with them.
+The pointer, cursor, keys, and window moved behind `code/hostwindow.h`, with the
 shared input dispatch in `code/gamewindow.cpp`, and `code/msgroute.cpp`, which
 routed mouse messages to child windows, went with those windows.
 `Language.dll` went because nothing read its dialog templates any more. The

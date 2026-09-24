@@ -380,6 +380,9 @@ bool LoadOptionsClass::Dialog(void)
 
 		state.Selected = Initial_Row();
 		state.AcceptEnabled = Files.Count() > 0;
+#if defined(__EMSCRIPTEN__)
+		state.TransferEnabled = Style != WWDELETE;
+#endif
 		if (Style == SAVE && Description != NULL) {
 			state.Suggested = Description;
 			state.Description = Description;
@@ -393,6 +396,22 @@ bool LoadOptionsClass::Dialog(void)
 			Clear_List();
 			return(false);
 		}
+
+#if defined(__EMSCRIPTEN__)
+		if (presenter.ExportRequested) {
+			int const selected = presenter.State.Selected;
+			if (selected >= 0 && selected < Files.Count() && Files[selected]->Valid) {
+				Export_Saved_Game(Files[selected]->Filename);
+			}
+			Clear_List();
+			continue;
+		}
+		if (presenter.ImportRequested) {
+			Import_Saved_Game(*this);
+			Clear_List();
+			continue;
+		}
+#endif
 
 		if (!presenter.Accepted) {
 			Clear_List();

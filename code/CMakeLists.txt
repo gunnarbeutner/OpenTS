@@ -54,13 +54,6 @@ foreach(f ${OPENTS_RAW})
         set(EXCLUDED TRUE)
     endif()
 
-    # The two UI input adapters are each one target's. The page posts into the keyboard
-    # buffer rather than dispatching a window message, so the hook it offers is what feeds
-    # the shell there, and the window procedure's hook is what feeds it on Windows.
-    if(OPENTS_POSIX AND f MATCHES "/ui/uiwin32\\.cpp$")
-        set(EXCLUDED TRUE)
-    endif()
-
     if(NOT EMSCRIPTEN AND f MATCHES "/ui/uibrowser\\.cpp$")
         set(EXCLUDED TRUE)
     endif()

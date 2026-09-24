@@ -35,7 +35,7 @@ class UIScreenRegistration
 // modal screen from inside another one. An unknown index is ignored.
 void UI_Request_Screen(int index);
 
-// Opens a requested screen if one is pending. The shell's tick calls this.
+// Opens a requested screen if one is pending. Browser service calls this.
 void UI_Service_Screen_Request(void);
 
 int UI_Screen_Count(void);

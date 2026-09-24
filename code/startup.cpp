@@ -156,6 +156,7 @@ static void OpenTS_Host_Quit(void)
 #include "tunnel.h"
 #include "tutorial.h"
 #include "ui/uishell.h"
+#include "ui/uibrowser.h"
 #include "unit.h"
 #include "unittype.h"
 #include "vanim.h"
@@ -224,6 +225,9 @@ void Reset_Surfaces(void)
 			VisibleSurface = NULL;
 		}
 
+#if defined(__EMSCRIPTEN__)
+		UI_Browser_Remove_Hook();
+#endif
 		UIShell.Shutdown();
 		Video_Shutdown();
 
@@ -468,6 +472,9 @@ int main(int argc, char * argv[])
 		}
 
 		UIShell.Init();
+#if defined(__EMSCRIPTEN__)
+		UI_Browser_Install_Hook();
+#endif
 
 #if defined(_WIN32)
 		do {

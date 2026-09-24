@@ -45,6 +45,7 @@ struct UISaveGameState
 	std::string Title;
 	std::string AcceptCaption;
 	bool AcceptEnabled = true;
+	bool TransferEnabled = false;
 };
 
 
@@ -56,7 +57,9 @@ class UISaveGamePresenterClass : public UIPresenterClass
 		virtual void Refresh(void) override;
 
 		UISaveGameState State;
-		bool Accepted = false;
+	bool Accepted = false;
+	bool ExportRequested = false;
+	bool ImportRequested = false;
 
 		// Counts picks that refilled the description; the view focuses the field after each.
 		int DescriptionPicks = 0;

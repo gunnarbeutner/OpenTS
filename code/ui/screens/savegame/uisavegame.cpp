@@ -52,6 +52,14 @@ void UISaveGamePresenterClass::Execute(UIIntent const & intent)
 		accept = (State.Mode == UI_SAVE_GAME_LOAD);
 	} else if (intent.Name == "cancel") {
 		Result = UI_RESULT_CANCELLED;
+	} else if (intent.Name == "export" && State.TransferEnabled) {
+		if (State.Selected >= 0 && State.Selected < (int)State.Entries.size() && State.Entries[State.Selected].Valid) {
+			ExportRequested = true;
+			Result = UI_RESULT_ACCEPTED;
+		}
+	} else if (intent.Name == "import" && State.TransferEnabled) {
+		ImportRequested = true;
+		Result = UI_RESULT_ACCEPTED;
 	}
 
 	if (accept && State.AcceptEnabled) {
@@ -83,6 +91,7 @@ class UISaveGameViewClass : public UIRmlViewClass
 			Model.DirtyVariable("selected");
 			Model.DirtyVariable("description");
 			Model.DirtyVariable("acceptenabled");
+			Model.DirtyVariable("exportenabled");
 
 			if (Data.DescriptionPicks != SeenPicks) {
 				SeenPicks = Data.DescriptionPicks;
@@ -126,6 +135,10 @@ class UISaveGameViewClass : public UIRmlViewClass
 				&& model.Bind("title", &state.Title)
 				&& model.Bind("acceptcaption", &state.AcceptCaption)
 				&& model.Bind("acceptenabled", &state.AcceptEnabled)
+				&& model.Bind("transferenabled", &state.TransferEnabled)
+				&& model.BindFunc("exportenabled", [&state](Rml::Variant & out) {
+					out = state.Selected >= 0 && state.Selected < (int)state.Entries.size() && state.Entries[state.Selected].Valid;
+				})
 				&& model.BindFunc("mode", [&state](Rml::Variant & out) { out = (int)state.Mode; }));
 		}
 

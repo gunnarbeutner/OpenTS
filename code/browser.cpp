@@ -37,9 +37,10 @@
 #include "rect.h"
 #include "surface.h"
 #include "tactical.h"
+#include "_ui.h"
 #include "ui/uibrowser.h"
-#include "ui/uikeymap.h"
 #include "ui/uishell.h"
+#include "ui/uiscreens.h"
 #include "video.h"
 #include "vidscale.h"
 #include "win.h"
@@ -537,7 +538,13 @@ static void Service_Wheel(void)
 
 	// A screen's list scrolls by whatever the page reported, a touchpad's fractions of a notch
 	// included; RmlUi counts a notch as one.
-	if (_WheelPendingY != 0.0 && UI_Handle_Mouse_Wheel((float)(_WheelPendingY / WHEEL_NOTCH), UI_Modifiers_From_Bits(_Modifiers))) {
+	UIHostEvent wheel;
+	wheel.Type = UI_HOST_WHEEL;
+	wheel.Wheel = (float)(-_WheelPendingY / WHEEL_NOTCH);
+	VideoScaleInfo const & scale = Video_Get_Scale_Info();
+	wheel.X = scale.DestX + (int)((float)_MouseX * scale.ScaleX);
+	wheel.Y = scale.DestY + (int)((float)_MouseY * scale.ScaleY);
+	if (_WheelPendingY != 0.0 && UIShell.Handle_Host_Event(wheel)) {
 		_WheelPendingX = 0.0;
 		_WheelPendingY = 0.0;
 		return;
@@ -1523,6 +1530,10 @@ void Browser_Service(void)
 	// way a window host tells it about focus.
 	if (_Hidden != _Unfocused) {
 		_Unfocused = _Hidden;
+		UIHostEvent focus;
+		focus.Type = UI_HOST_FOCUS;
+		focus.Focused = !_Hidden;
+		UIShell.Handle_Host_Event(focus);
 
 		if (_Hidden) {
 			Focus_Loss();
@@ -1532,6 +1543,7 @@ void Browser_Service(void)
 	}
 
 	Service_Text_Input();
+	UI_Browser_Service_Mouse();
 
 	while (_EventHead != _EventTail) {
 		BrowserEvent const event = _Events[_EventHead];
@@ -1565,6 +1577,8 @@ void Browser_Service(void)
 	_EventCharacter = 0;
 
 	Service_Wheel();
+	UI_Browser_Service_Text_Input();
+	UI_Service_Screen_Request();
 
 	Touch_Service_Hold();
 	Touch_Service_Pan();

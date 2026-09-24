@@ -567,7 +567,7 @@ void Keyboard_Process(KeyNumType & input)
 bool Frame_Is_Due(void)
 {
 	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
-		return NetFrameTimer() == 0;
+		return FrameTimer() == 0;
 	}
 
 	return FrameTimer() == 0;
@@ -588,7 +588,7 @@ void Service_Frame(void)
 		if (SpecialDialog == SDLG_NONE && GameInFocus == true) {
 			KeyNumType input = KN_NONE;
 			int x, y;
-			if (NetFrameTimer > 10) {
+			if (FrameTimer > 10) {
 				Map.Input(input, x, y);
 				Keyboard_Process(input);
 				TacticalMap->AI();
@@ -596,7 +596,7 @@ void Service_Frame(void)
 			} else {
 				Platform_Sleep(0);
 			}
-			if (!NetFrameTimer()) {
+			if (!FrameTimer()) {
 				return;
 			}
 		}
