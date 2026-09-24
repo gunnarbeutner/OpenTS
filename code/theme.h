@@ -61,6 +61,14 @@ class ThemeClass
 		char const * Theme_File_Name(ThemeType theme);
 
 		AudioHandle Current;		// Handle to current score.
+
+#if defined(__EMSCRIPTEN__)
+		/*
+		 * A score playing through the page's own audio element rather than through the
+		 * mixer, or -1. The two never run at once.
+		 */
+		int BrowserCurrent;
+#endif
 		ThemeType Score;			// Score number currently being played.
 		ThemeType Pending;			// Score to play next.
 
