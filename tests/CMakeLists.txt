@@ -150,3 +150,6 @@ add_subdirectory(movieformat)
 add_subdirectory(shapemagnify)
 
 # These exercise the WebAssembly target's own layers, so their harnesses build only there.
+if(EMSCRIPTEN)
+    add_subdirectory(httpsource)
+endif()
