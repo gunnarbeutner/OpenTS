@@ -1060,7 +1060,7 @@ int CreateRandomMap(void)
 		result = Do_Random_Map_Dialog(MapGen_Call_Back);
 	}
 
-	if (result != IDOK) {
+	if (result != DIALOG_OK) {
 		return(0);
 	}
 

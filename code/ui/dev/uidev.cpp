@@ -25,6 +25,7 @@
 
 #include "bench.hh"
 
+#include <chrono>
 #include <cstdio>
 #include <imgui.h>
 
@@ -409,7 +410,11 @@ void UIDev_Toggle(UIRmlRenderClass const & render)
 		platform.Renderer_TextureMaxHeight = render.Texture_Limit();
 
 		Build_Key_Map();
+#if defined(_WIN32)
 		_CPUSpeed = Get_RDTSC_CPU_Speed();
+#else
+		_CPUSpeed = 0;
+#endif
 		_LastFrameTicks = 0;
 		_SamplesValid = false;
 
@@ -437,15 +442,13 @@ void UIDev_Tick(void)
 		ratio = 1.0f;
 	}
 
-	LARGE_INTEGER now;
-	LARGE_INTEGER frequency;
-	QueryPerformanceCounter(&now);
-	QueryPerformanceFrequency(&frequency);
-	float delta = (_LastFrameTicks == 0 || frequency.QuadPart == 0) ? (1.0f / 60.0f) : (float)(now.QuadPart - _LastFrameTicks) / (float)frequency.QuadPart;
+	auto now = std::chrono::steady_clock::now().time_since_epoch();
+	long long ticks = std::chrono::duration_cast<std::chrono::nanoseconds>(now).count();
+	float delta = _LastFrameTicks == 0 ? (1.0f / 60.0f) : (float)(ticks - _LastFrameTicks) / 1000000000.0f;
 	if (delta < 0.0001f) {
 		delta = 0.0001f;
 	}
-	_LastFrameTicks = now.QuadPart;
+	_LastFrameTicks = ticks;
 
 	ImGuiIO & io = ImGui::GetIO();
 	io.DisplaySize = ImVec2((float)scale.DestWidth, (float)scale.DestHeight);

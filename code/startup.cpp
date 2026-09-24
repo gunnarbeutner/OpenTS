@@ -174,10 +174,7 @@ static void OpenTS_Host_Quit(void)
 #include "zbuffer.h"
 
 #include <cfloat>
-#include <conio.h>
-#include <io.h>
 #include <lzo/lzoconf.h>
-#include <shellapi.h>
 #include <filesystem>
 #include <lzo/lzo1x.h>
 #include <string>
@@ -311,131 +308,6 @@ static void RegisterClasses(void)
 	REGISTER_CLASS(AlphaShapeClass, ClassID_AlphaShapeClass);
 }
 
-/// <summary>
-/// Builds the argument list the game parses from the command line the shell handed over.
-/// The shell's own quoting decides where one argument ends and the next begins, so a
-/// directory whose name holds spaces arrives as the single argument it was written as.
-/// </summary>
-/// <param name="path_to_exe">Full path to the running executable, which becomes the first
-/// argument the way a DOS program received it.</param>
-/// <param name="argv">Receives the argument array, which lasts as long as the process.</param>
-/// <returns>The number of arguments, which is never less than one.</returns>
-static int Build_Arguments(char const * path_to_exe, char ** & argv)
-{
-	static std::vector<std::string> arguments;
-	static std::vector<char *> pointers;
-
-	arguments.clear();
-	pointers.clear();
-	arguments.push_back(path_to_exe);
-
-	int wide_count = 0;
-	LPWSTR * wide_argv = CommandLineToArgvW(GetCommandLineW(), &wide_count);
-
-	if (wide_argv != NULL) {
-		// Index zero names the executable, which the caller has already established.
-		for (int index = 1; index < wide_count; index++) {
-			int length = WideCharToMultiByte(CP_ACP, 0, wide_argv[index], -1, NULL, 0, NULL, NULL);
-			if (length <= 1) continue;
-
-			std::string argument(length - 1, '\0');
-			WideCharToMultiByte(CP_ACP, 0, wide_argv[index], -1, argument.data(), length, NULL, NULL);
-			arguments.push_back(argument);
-		}
-
-		LocalFree(wide_argv);
-	}
-
-	for (std::string & argument : arguments) {
-		pointers.push_back(argument.data());
-	}
-
-	argv = pointers.data();
-	return((int)pointers.size());
-}
-
-
-/// <summary>
-/// Claims the mutexes that keep a second copy of the game from running.
-/// When another copy already holds them, its window is brought to the front instead.
-/// </summary>
-/// <returns>bool; Were the mutexes claimed? False means another copy is running.</returns>
-static bool Claim_Single_Instance(void)
-{
-	/*
-	 * Create a mutex with a unique name to TibSun in order to determine if
-	 * our app is already running.
-	 *
-	 * WARNING: DO NOT use this number for any other application except TibSun
-	 */
-	AppMutex = ::CreateMutex (NULL, FALSE, APP_GUID);
-
-	//
-	// Is there already an instance of this app somewhere?
-	//
-	if (::GetLastError () == ERROR_ALREADY_EXISTS) {
-		//
-		// Find the previous instance
-		//
-		HWND main_wnd = ::FindWindow (APP_GUID, NULL);
-		if (main_wnd != NULL) {
-			::SetForegroundWindow (main_wnd);
-			::ShowWindow (main_wnd, SW_RESTORE);
-		}
-		if (AppMutex != NULL) {
-			CloseHandle(AppMutex);
-			AppMutex = NULL;
-		}
-		DebugString("TibSun is already running...Bail!\n");
-		return(false);
-	} else {
-
-		DebugString("Create AppMutex okay.\n");
-
-		//
-		// Obtain the mutex unique to the Renegade AutoPlay application.
-		//
-		// WARNING: DO NOT use this number for any other application except Renegade AutoPlay
-		//
-		do
-		{
-			//
-			// Attempt to open the mutex
-			//
-			AutoPlayMutex = ::OpenMutex (MUTEX_ALL_ACCESS, FALSE, AUTOPLAY_GUID);
-			if (AutoPlayMutex != NULL) {
-				DebugString( "Waiting for Autoplay to quit!\n");
-				if (::WaitForSingleObject (AutoPlayMutex, 30000) == WAIT_FAILED) {
-					DebugString ("Failed waiting for AutoPlayMutex\n");
-					::CloseHandle (AutoPlayMutex);
-					AutoPlayMutex = NULL;
-				}
-			}
-
-			/*
-			 * Create a mutex with a name unique to the TibSun AutoPlay application.
-			 * This prevents the autoplay from running since it cannot get the mutex.
-			 * TibSun needs both of these mutexs before it is allowed to run.
-			 */
-			if (AutoPlayMutex == NULL) {
-				AutoPlayMutex = CreateMutex (NULL, FALSE, AUTOPLAY_GUID);
-				if (GetLastError () == ERROR_ALREADY_EXISTS) {
-					CloseHandle (AutoPlayMutex);
-					AutoPlayMutex = NULL;
-					Sleep (2500);
-				} else {
-					DebugString("Create AutoPlayMutex.\n");
-				}
-			}
-		} while (AutoPlayMutex == NULL);
-
-		DebugString ("Got AutoPlayMutex okay.\n");
-	}
-
-	return(true);
-}
-
-
 /***********************************************************************************************
  * main -- Initial startup routine (preps library systems).                                    *
  *                                                                                             *
@@ -483,7 +355,7 @@ int main(int argc, char * argv[])
 	int const lzo_status = lzo_init();
 	if (lzo_status != LZO_E_OK) {
 		DebugString("lzo_init failed with %d.\n", lzo_status);
-		MessageBox(NULL, "The compression library failed its startup check. This build is faulty.", "OpenTS", MB_OK | MB_ICONERROR);
+		Host_Message_Box("OpenTS", "The compression library failed its startup check. This build is faulty.", HOST_BOX_OK | HOST_BOX_ERROR);
 		return(EXIT_FAILURE);
 	}
 
@@ -501,7 +373,7 @@ int main(int argc, char * argv[])
 
 	if (Parse_Command_Line(argc, argv) && Apply_Game_Directories()) {
 
-		if (!Debug_MultipleInstances && !Claim_Single_Instance()) {
+		if (!Debug_MultipleInstances && !Acquire_Single_Instance()) {
 			return(EXIT_SUCCESS);
 		}
 
@@ -515,12 +387,8 @@ int main(int argc, char * argv[])
 		DeploymentConfig.Read_File(Data_Directory().c_str());
 		Init_Search_Folders(DeploymentConfig.SearchPaths.c_str());
 
-		std::string uidirectory = path;
-		if (!uidirectory.empty() && uidirectory.back() != '\\' && uidirectory.back() != '/') {
-			uidirectory += '\\';
-		}
-		uidirectory += "ui\\";
-		CDFileClass::Add_Search_Drive(uidirectory.c_str());
+		Init_Search_Folders("ui");
+		Init_Executable_Folder("ui");
 
 		// The recording's name was settled during static initialization, before there was
 		// anywhere for a player's files to go. Naming it again settles it where it belongs.
@@ -609,12 +477,6 @@ int main(int argc, char * argv[])
 #endif
 
 		VisibleSurface->Fill(0);
-
-		// The shell needs the frame's destination, which Video_Init settled, and the game
-		// runs without it if it cannot start: a screen that has no RmlUi view is unaffected.
-		if (!UI_Init()) {
-			DebugString("UI: the shell is unavailable; only the legacy screens will open\n");
-		}
 
 		ScreenLayout const layout = Compute_Screen_Layout(VisibleRect);
 

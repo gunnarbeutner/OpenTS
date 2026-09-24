@@ -361,15 +361,6 @@ target_link_libraries(OpenTS PRIVATE
     lzo
     RmlUi::Core
     imgui
-    comctl32
-    dbghelp
-    iphlpapi
-    psapi
-    version
-    winmm
-    ws2_32
-    kernel32 user32 gdi32 winspool comdlg32 advapi32 shell32
-    odbc32 odbccp32
 )
 
 # bimg's decoder is built for the texture tools the engine does not ship, so it is excluded
@@ -397,7 +388,9 @@ if (WIN32)
         dbghelp
         iphlpapi
         psapi
+        version
         winmm
+        ws2_32
         wsock32
         kernel32 user32 gdi32 winspool comdlg32 advapi32 shell32
         odbc32 odbccp32

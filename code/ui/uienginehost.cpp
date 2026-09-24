@@ -287,7 +287,7 @@ class UIEngineHostClass : public UIShellHostClass
 		UIFrameRect Frame(void) const override
 		{
 			VideoScaleInfo const & scale = Video_Get_Scale_Info();
-			return({ scale.DestX, scale.DestY, scale.DestWidth, scale.DestHeight, scale.ScaleX, scale.ScaleY });
+			return(UIFrameRect{ scale.DestX, scale.DestY, scale.DestWidth, scale.DestHeight, scale.ScaleX, scale.ScaleY });
 		}
 
 		void Mark_Overlay_Dirty(void) override { Video_Mark_Overlay_Dirty(); }
@@ -334,7 +334,7 @@ class UIEngineHostClass : public UIShellHostClass
 		bool Screen_To_Client(int & x, int & y) const override { return(true); }
 		bool Key_Down(int key) const override { return(Host_Key_Is_Down((unsigned short)key)); }
 		bool Key_Toggled(int key) const override { return(false); }
-		std::string System_Font_Path(char const * face) const override { return({}); }
+		std::string System_Font_Path(char const * face) const override { return {}; }
 		bool Window_Is_Unicode(void) const override { return(true); }
 		unsigned int Text_Code_Page(void) const override { return(65001); }
 		void Apply_Cursor(UICursor cursor) override { Host_Set_Cursor(nullptr); }

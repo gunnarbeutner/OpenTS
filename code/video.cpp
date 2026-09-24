@@ -26,11 +26,13 @@
 #include "globals.h"
 #include "goptions.h"
 #include "gscreen.h"
+#include "hostwindow.h"
 #include "init.h"
 #include "mainopt.h"
 #include "misc.h"
 #include "movies.h"
 #include "msengine.h"
+#include "mstimer.h"
 #include "screenlayout.h"
 #include "surface.h"
 #include "ui/uishell.h"
@@ -568,9 +570,11 @@ static void Present(void)
 	if (!_Initialized || _Presenting || VisibleSurface == NULL) {
 		return;
 	}
+	#if defined(_WIN32)
 	if (MainWindow != NULL && IsIconic(MainWindow)) {
 		return;
 	}
+	#endif
 
 	VideoDirtySnapshotType snapshot = _Dirty.Consume();
 
@@ -581,7 +585,7 @@ static void Present(void)
 		return;
 	}
 
-	_LastPresentTime = timeGetTime();
+	_LastPresentTime = System_Milliseconds();
 
 	_Presenting = true;
 	bool presented = Backend_Present(pixels, surface->Stride(), _ScaleInfo.DestX, _ScaleInfo.DestY, _ScaleInfo.DestWidth, _ScaleInfo.DestHeight, Backend_Scale_Mode());
@@ -642,7 +646,6 @@ void Video_Present_If_Dirty(void)
 	}
 	_LastPresentSerial = Browser_Frame_Serial();
 #else
-
 	unsigned int now = System_Milliseconds();
 	if ((now - _LastPresentTime) < _PresentInterval) {
 		return;
@@ -743,7 +746,6 @@ static int __cdecl Compare_Modes(void const * left, void const * right)
 /// when nothing matched.</returns>
 int * EnumDisplayModes(int minwidth, int minheight, int maxwidth, int maxheight)
 {
-	DEVMODE devmode;
 	int count = 0;
 	int capacity = 0;
 	int * modes = NULL;
@@ -753,15 +755,11 @@ int * EnumDisplayModes(int minwidth, int minheight, int maxwidth, int maxheight)
 		count = 0;
 
 		for (int index = 0; ; index++) {
-			memset(&devmode, 0, sizeof(devmode));
-			devmode.dmSize = sizeof(devmode);
-
-			if (!EnumDisplaySettings(NULL, index, &devmode)) {
+			int width;
+			int height;
+			if (!Host_Display_Mode(index, width, height)) {
 				break;
 			}
-
-			int width = (int)devmode.dmPelsWidth;
-			int height = (int)devmode.dmPelsHeight;
 
 			if (width < minwidth || width > maxwidth || height < minheight || height > maxheight) {
 				continue;

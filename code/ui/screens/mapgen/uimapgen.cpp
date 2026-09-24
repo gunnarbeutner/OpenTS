@@ -10,6 +10,7 @@
 #include "ui/screens/mapgen/uimapgen.h"
 
 #include "ui/rml/rmlsurface.h"
+#include "crtcompat.h"
 #include "ui/rml/rmlview.h"
 
 #include <RmlUi/Core/Context.h>

@@ -143,7 +143,6 @@ add_test(NAME toolkitheaders
         -P "${CMAKE_SOURCE_DIR}/cmake/CheckToolkitHeaders.cmake"
 )
 add_subdirectory(movieformat)
-add_subdirectory(uifont)
 add_subdirectory(platform)
 add_subdirectory(utf8)
 add_subdirectory(keyname)

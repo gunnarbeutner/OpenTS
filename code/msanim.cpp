@@ -28,7 +28,7 @@
 #include "mixfile.h"
 #include "movies.h"
 #include "msfont.h"
-#include "ownrdraw.h"
+#include "sheettext.h"
 #include "pcx.h"
 #include "shapeset.h"
 #include "srfcache.h"
@@ -1491,7 +1491,7 @@ void MSButtonAnim::Draw_Caption(Surface * surface)
 		rect.X += 3;
 		rect.Y += 6;
 	}
-	OD_Draw_Text_Remap(*surface, String, rect, "dlgsys", ODColorText, 5, 0);
+	Sheet_Draw_Text(*surface, String, rect, "dlgsys", SHEET_TEXT_GREEN, SHEET_TEXT_CENTER | SHEET_TEXT_MIDDLE);
 }
 
 

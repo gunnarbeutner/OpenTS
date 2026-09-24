@@ -34,6 +34,7 @@ int House_Slot(H const * house)
 class HouseSet
 {
 	public:
+		using SerializePositional = void;
 		constexpr HouseSet(void) : Bits(0) {}
 
 		// A NULL house is in no set.
@@ -70,7 +71,7 @@ class HouseSet
 		template<typename S>
 		void Serialize(S & stream)
 		{
-			stream.Serialize(Bits);
+			stream.Serialize_Raw(Bits);
 		}
 
 	private:
@@ -90,6 +91,7 @@ template<typename T>
 class HouseArray
 {
 	public:
+		using SerializePositional = void;
 		constexpr HouseArray(void) : Values{} {}
 
 		template<std::same_as<HouseClass> H>
@@ -112,10 +114,10 @@ class HouseArray
 					}
 				}
 			}
-			stream.Serialize(present);
+			stream.Serialize_Raw(present);
 			for (int slot = 0; slot < HOUSE_MAX; slot++) {
 				if ((present & (std::uint64_t(1) << slot)) != 0) {
-					stream.Serialize(Values[slot]);
+					stream.Serialize_Raw(Values[slot]);
 				} else if (stream.Is_Loading()) {
 					Values[slot] = T{};
 				}

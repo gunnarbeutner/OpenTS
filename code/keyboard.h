@@ -34,6 +34,11 @@
 #include "_xmouse.h"
 #include "win.h"
 
+#ifndef VK_XBUTTON1
+#define VK_XBUTTON1 0x05
+#define VK_XBUTTON2 0x06
+#endif
+
 enum WWKey_Type {
 	WWKEY_SHIFT_BIT	= 0x100,
 	WWKEY_CTRL_BIT		= 0x200,
@@ -356,6 +361,73 @@ class WWKeyboardClass
 #define VK_NONE_FD	 0xFD
 #define VK_NONE_FE	 0xFE
 #define VK_NONE_FF	 0xFF
+
+#ifndef VK_LWIN
+#define VK_LWIN 0x5B
+#endif
+#ifndef VK_RWIN
+#define VK_RWIN 0x5C
+#endif
+#ifndef VK_APPS
+#define VK_APPS 0x5D
+#endif
+#ifndef VK_LSHIFT
+#define VK_LSHIFT 0xA0
+#endif
+#ifndef VK_RSHIFT
+#define VK_RSHIFT 0xA1
+#endif
+#ifndef VK_LCONTROL
+#define VK_LCONTROL 0xA2
+#endif
+#ifndef VK_RCONTROL
+#define VK_RCONTROL 0xA3
+#endif
+#ifndef VK_LMENU
+#define VK_LMENU 0xA4
+#endif
+#ifndef VK_RMENU
+#define VK_RMENU 0xA5
+#endif
+#ifndef VK_OEM_1
+#define VK_OEM_1 0xBA
+#endif
+#ifndef VK_OEM_PLUS
+#define VK_OEM_PLUS 0xBB
+#endif
+#ifndef VK_OEM_COMMA
+#define VK_OEM_COMMA 0xBC
+#endif
+#ifndef VK_OEM_MINUS
+#define VK_OEM_MINUS 0xBD
+#endif
+#ifndef VK_OEM_PERIOD
+#define VK_OEM_PERIOD 0xBE
+#endif
+#ifndef VK_OEM_2
+#define VK_OEM_2 0xBF
+#endif
+#ifndef VK_OEM_3
+#define VK_OEM_3 0xC0
+#endif
+#ifndef VK_OEM_4
+#define VK_OEM_4 0xDB
+#endif
+#ifndef VK_OEM_5
+#define VK_OEM_5 0xDC
+#endif
+#ifndef VK_OEM_6
+#define VK_OEM_6 0xDD
+#endif
+#ifndef VK_OEM_7
+#define VK_OEM_7 0xDE
+#endif
+#ifndef VK_OEM_8
+#define VK_OEM_8 0xDF
+#endif
+#ifndef VK_OEM_102
+#define VK_OEM_102 0xE2
+#endif
 
 #define VK_UPLEFT	 VK_HOME
 #define VK_UPRIGHT	 VK_PRIOR

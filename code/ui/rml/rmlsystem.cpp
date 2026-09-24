@@ -15,6 +15,9 @@
 
 #include <cstdio>
 #include <cstring>
+#if defined(__APPLE__)
+#include <SDL.h>
+#endif
 
 
 UIRmlSystemClass::UIRmlSystemClass(UIShellHostClass & host) :
@@ -138,6 +141,9 @@ void UIRmlSystemClass::SetMouseCursor(Rml::String const & name)
 
 void UIRmlSystemClass::SetClipboardText(Rml::String const & text)
 {
+#if defined(__APPLE__)
+	SDL_SetClipboardText(text.c_str());
+#else
 	std::wstring wide;
 	if (!UI_UTF8_To_UTF16(text, wide)) {
 		return;
@@ -165,12 +171,20 @@ void UIRmlSystemClass::SetClipboardText(Rml::String const & text)
 		GlobalFree(memory);
 	}
 	CloseClipboard();
+#endif
 }
 
 
 void UIRmlSystemClass::GetClipboardText(Rml::String & text)
 {
 	text.clear();
+#if defined(__APPLE__)
+	char * clip = SDL_GetClipboardText();
+	if (clip != nullptr) {
+		text = clip;
+		SDL_free(clip);
+	}
+#else
 
 	if (!OpenClipboard(Host.Main_Window())) {
 		return;
@@ -195,4 +209,5 @@ void UIRmlSystemClass::GetClipboardText(Rml::String & text)
 	}
 
 	CloseClipboard();
+#endif
 }

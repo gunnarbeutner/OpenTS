@@ -62,7 +62,7 @@
 #include "sun.h"
 #include "terrain.h"
 #include "terrtype.h"
-#include "ui/uicaption.h"
+#include "sheettext.h"
 #include "vector.h"
 #include "vein.h"
 #include "waypoint.h"
@@ -1375,7 +1375,8 @@ void Tactical::Draw_Screen_Text(char const * text)
 	if (text == NULL || !strlen(text)) {
 		return;
 	}
-	UI_Draw_Caption(*CompositeSurface, TacticalRect, text);
+	Rect bounds(TacticalRect.X, TacticalRect.Y, TacticalRect.X + TacticalRect.Width, TacticalRect.Y + TacticalRect.Height);
+	Sheet_Draw_Text(*CompositeSurface, text, bounds, "dlgsys", 0x00FFFFFF, SHEET_TEXT_CENTER | SHEET_TEXT_MIDDLE);
 }
 
 

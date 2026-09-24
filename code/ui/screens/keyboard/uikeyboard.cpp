@@ -10,6 +10,7 @@
 #include "ui/screens/keyboard/uikeyboard.h"
 
 #include "ui/rml/rmlkeys.h"
+#include "crtcompat.h"
 #include "ui/rml/rmlview.h"
 
 #include <RmlUi/Core/Element.h>

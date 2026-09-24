@@ -4478,10 +4478,10 @@ void CellClass::Serialize(SaveStreamClass & stream)
 
 	SERIALIZE_BIT(stream, IsPlot);
 	SERIALIZE_BIT(stream, IsCursorHere);
-	stream.Serialize(IsMapped);
-	stream.Serialize(IsVisible);
-	stream.Serialize(IsFogVisible);
-	stream.Serialize(IsFogMapped);
+	SERIALIZE(stream, IsMapped);
+	SERIALIZE(stream, IsVisible);
+	SERIALIZE(stream, IsFogVisible);
+	SERIALIZE(stream, IsFogMapped);
 	SERIALIZE_BIT(stream, IsWaypoint);
 	SERIALIZE_BIT(stream, IsRadarCursor);
 	SERIALIZE_BIT(stream, IsFlagged);

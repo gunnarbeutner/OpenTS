@@ -1047,7 +1047,7 @@ bool UIShellClass::Feed_Text_Byte(unsigned char byte)
 {
 	unsigned int codepage = Host.Text_Code_Page();
 
-	if (codepage == CP_UTF8) {
+	if (codepage == 65001) {
 		UIInputText text = Utf8.Feed(byte);
 		bool consumed = false;
 		for (unsigned index = 0; index < text.Count; index++) {
@@ -1056,6 +1056,7 @@ bool UIShellClass::Feed_Text_Byte(unsigned char byte)
 		return(consumed);
 	}
 
+#if defined(_WIN32)
 	char bytes[2];
 	int count;
 	if (LegacyLead != 0) {
@@ -1080,6 +1081,9 @@ bool UIShellClass::Feed_Text_Byte(unsigned char byte)
 		code = 0x10000 + (((char32_t)wide[0] - 0xD800) << 10) + ((char32_t)wide[1] - 0xDC00);
 	}
 	return(Handle_Text(code));
+#else
+	return(false);
+#endif
 }
 
 

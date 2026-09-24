@@ -42,6 +42,7 @@
 #include "conquer.h"
 #include "data.h"
 #include "gamedirs.h"
+#include "platform/file.h"
 #include "globals.h"
 #include "houstype.h"
 #include "init.h"
@@ -335,19 +336,7 @@ bool LoadOptionsClass::Dialog(void)
 		return(false);
 	}
 
-	// The screen is handed what it cannot reach through the public members.
-	UIMissionFilesRequest request;
-	request.Options = this;
-	request.Style = Style;
-	request.Description = Description;
-	request.Extension = Extension;
-	request.ScanLimit = Scan_Limit();
-	request.Saved_Game_Exists = Saved_Game_Exists;
-	request.Save_Confirmation = [this](void) { return(Save_Confirmation()); };
-#if defined(__EMSCRIPTEN__)
-	request.Export = Export_Saved_Game;
-	request.Import = [this](void) { return(Import_Saved_Game(*this)); };
-#endif
+
 
 	char buffer[256];
 
@@ -565,93 +554,46 @@ void LoadOptionsClass::Clear_List(void)
  *=============================================================================================*/
 void LoadOptionsClass::Gather_Files(void)
 {
-	FileEntryClass * fdata = NULL;  // for adding entries to 'Files'
-	WIN32_FIND_DATAA ff;            // for FindFirstFile
-
-	/*
-	**	Make sure the list is empty
-	*/
 	Clear_List();
 
-	/*
-	**	Add the Empty Slot entry
-	*/
 	if (Style == SAVE) {
-		fdata = new FileEntryClass;
-		strcpy(fdata->Descr, Fetch_String(TXT_EMPTY_SLOT));
+		FileEntryClass * entry = new FileEntryClass;
+		std::snprintf(entry->Descr, sizeof(entry->Descr), "%s", Fetch_String(TXT_EMPTY_SLOT));
 		if (PlayerPtr != NULL) {
-			fdata->Scenario = Scen->Scenario;
-			fdata->House = Scen->PlayerHouse;
-			fdata->Num = Scen->Campaign;
-			strcpy(fdata->PlayerName, PlayerPtr->Class->GivenName);
+			entry->Scenario = Scen->Scenario;
+			entry->House = Scen->PlayerHouse;
+			entry->Num = Scen->Campaign;
+			std::snprintf(entry->PlayerName, sizeof(entry->PlayerName), "%s", PlayerPtr->Class->GivenName);
 		} else {
-			fdata->Scenario = 0;
-			fdata->House = (HousesType)Session.House;
-			fdata->Num = -1;
-			strcpy(fdata->PlayerName, Session.Handle);
+			entry->House = (HousesType)Session.House;
+			std::snprintf(entry->PlayerName, sizeof(entry->PlayerName), "%s", Session.Handle);
 		}
-		SYSTEMTIME time;
-		GetSystemTime(&time);
-		SystemTimeToFileTime(&time, &fdata->DateTime);
-		fdata->Type = Session.Type;
-		fdata->Valid = false;
-		Files.Add(fdata);
+		entry->DateTime = File_Time_Now();
+		entry->Type = Session.Type;
+		entry->Valid = false;
+		Files.Add(entry);
 	}
 
-	char buffer[128];
-	sprintf(buffer, "*.%3s", Extension);
-
-	/*
-	**	Find all savegame files
-	*/
-	std::vector<WIN32_FIND_DATAA> found;
-
-	HANDLE hFind = FindFirstFile(Saved_Game_Name(buffer).c_str(), &ff);
-
-	if (hFind != INVALID_HANDLE_VALUE) {
-		do {
-			if ((ff.dwFileAttributes & (FILE_ATTRIBUTE_TEMPORARY|FILE_ATTRIBUTE_DIRECTORY|FILE_ATTRIBUTE_SYSTEM|FILE_ATTRIBUTE_HIDDEN)) != 0) {
-				continue;
-			}
-			found.push_back(ff);
-		} while (FindNextFile(hFind, &ff));
-
-		FindClose(hFind);
-	}
-
-	// Newest first, so a bounded scan reads the headers of the files that matter.
-	std::sort(found.begin(), found.end(), [](WIN32_FIND_DATAA const & a, WIN32_FIND_DATAA const & b) {
-		return(CompareFileTime(&a.ftLastWriteTime, &b.ftLastWriteTime) > 0);
+	char pattern[128];
+	std::snprintf(pattern, sizeof(pattern), "*.%3s", Extension);
+	std::vector<PlatformFileInfoType> found = Platform_Find_Files(Saved_Game_Name(pattern).c_str());
+	found.erase(std::remove_if(found.begin(), found.end(), [](PlatformFileInfoType const & file) {
+		return(file.IsDirectory || file.IsHidden);
+	}), found.end());
+	std::sort(found.begin(), found.end(), [](PlatformFileInfoType const & left, PlatformFileInfoType const & right) {
+		return(left.Modified > right.Modified);
 	});
 	if (found.size() > Scan_Limit()) {
 		found.resize(Scan_Limit());
 	}
 
-	fdata = NULL;
-	for (WIN32_FIND_DATAA & record : found) {
-		if (fdata == NULL) {
-			fdata = new FileEntryClass;
+	for (PlatformFileInfoType const & file : found) {
+		FileEntryClass * entry = new FileEntryClass;
+		if (Read_File(entry, &file)) {
+			Files.Add(entry);
+		} else {
+			delete entry;
 		}
-
-		/*
-		**	get the game's info; if success, add it to the list
-		*/
-		if (Read_File(fdata, &record) == true) {
-			Files.Add(fdata);
-			fdata = NULL;
-		}
-	}
-
-	if (fdata != NULL) {
-		delete fdata;
-	}
-
-	if (Files.Count() > 0) {
-
-		/*
-		**	Now sort the list in order of Date/Time (newest first, oldest last)
-		*/
-		qsort((void *)(&Files[0]), Files.Count(), sizeof(class FileEntryClass *), LoadOptionsClass::Compare);
 	}
 }
 
@@ -659,19 +601,14 @@ void LoadOptionsClass::Gather_Files(void)
 bool LoadOptionsClass::Stamp_Strings(FileEntryClass const & entry, char * date, std::size_t datesize,
 	char * timeofday, std::size_t timesize)
 {
-	date[0] = '\0';
-	timeofday[0] = '\0';
-
-	if (entry.DateTime.dwHighDateTime == -1 && entry.DateTime.dwLowDateTime == -1) {
+	CalendarTimeType calendar;
+	if (!Local_Calendar_Time(entry.DateTime, calendar)) {
+		date[0] = '\0';
+		timeofday[0] = '\0';
 		return(false);
 	}
-
-	FILETIME ft;
-	SYSTEMTIME time;
-	FileTimeToLocalFileTime(&entry.DateTime, &ft);
-	FileTimeToSystemTime(&ft, &time);
-	GetDateFormat(LANG_USER_DEFAULT, TIME_NOMINUTESORSECONDS, &time, NULL, date, (int)datesize);
-	GetTimeFormat(LANG_USER_DEFAULT, TIME_NOSECONDS, &time, NULL, timeofday, (int)timesize);
+	std::snprintf(date, datesize, "%02d/%02d/%02d", calendar.Month, calendar.Day, calendar.Year % 100);
+	std::snprintf(timeofday, timesize, "%02d:%02d", calendar.Hour, calendar.Minute);
 	return(true);
 }
 
